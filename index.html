@@ -2284,39 +2284,46 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) AC.suspend().catch(() => {}); else AC.resume().catch(() => {});
 });
 
-// ---- generative soundtrack: a slow, spell-like synth-orchestra score.
-// In the spirit of 70s-80s space-opera synth scores: a deep drone, a wordless synth choir,
-// string swells, soft timpani, a glassy bell incantation (a 6-note figure that loops against
-// 8-note bars, so its accents keep shifting) and a haunting lead theme that comes and goes.
-// The score runs in 8-bar cycles; cycle 0 is an intro, then cycles 1-7 loop with the
-// arrangement building and breathing. It brightens as Mars is terraformed.
+// ---- generative soundtrack: an uplifting, alien synth-orchestra score.
+// In the spirit of 70s-80s space-opera synth scores: French horns carry a heroic theme with
+// wide leaps; major chords lit by a raised fourth (lydian) and sudden mediant shifts give the
+// alien wonder; under them sit a wordless synth choir, string swells, a deep drone and
+// timpani, and a glassy bell incantation (6 notes looped against 8-note bars, so its accents
+// keep shifting). The score runs in 8-bar cycles; cycle 0 is an intro, then cycles 1-7 loop.
+// It brightens as Mars is terraformed.
 const midi = m => 440 * Math.pow(2, (m - 69) / 12);
-const BPM = 66, BEAT = 60 / BPM, EIGHTH = BEAT / 2;
-// Each entry is one bar: [bass root, choir/strings voicing]. Two bars per chord.
-const PROG_A = [ // Am(add9) · Fmaj7#11 · Dm9 · E7sus4 → E
-  [45, [57, 60, 64, 71]], [45, [57, 60, 64, 71]], [41, [53, 57, 64, 71]], [41, [53, 57, 64, 71]],
-  [38, [53, 57, 60, 64]], [38, [53, 57, 60, 64]], [40, [52, 57, 59, 62]], [40, [52, 56, 59, 62]],
+const BPM = 74, BEAT = 60 / BPM, EIGHTH = BEAT / 2;
+// Each entry is one bar: [bass root, choir/strings voicing, horn chord]. Two bars per chord.
+const PROG_A = [ // Dmaj9#11 · Bbmaj7#11 · C(add9) · Dsus2 → D
+  [38, [57, 62, 64, 68], [50, 57, 62]], [38, [57, 62, 64, 68], [50, 57, 62]],
+  [46, [57, 62, 64, 65], [46, 53, 62]], [46, [57, 62, 64, 65], [46, 53, 62]],
+  [48, [55, 60, 62, 67], [48, 55, 60]], [48, [55, 60, 62, 67], [48, 55, 60]],
+  [50, [57, 62, 64, 69], [50, 57, 64]], [50, [57, 62, 66, 69], [50, 57, 66]],
 ];
-const PROG_B = [ // Am · Bbmaj7#11 · Gm(add9) · E: the darker turn
-  [45, [57, 60, 64, 69]], [45, [57, 60, 64, 69]], [46, [53, 57, 62, 64]], [46, [53, 57, 62, 64]],
-  [43, [55, 58, 62, 69]], [43, [55, 58, 62, 69]], [40, [52, 56, 59, 64]], [40, [52, 56, 59, 64]],
+const PROG_B = [ // Dmaj7 · F# major (the alien lift) · Gmaj7#11 · Asus4 → A
+  [38, [57, 61, 62, 66], [50, 57, 61]], [38, [57, 61, 62, 66], [50, 57, 61]],
+  [42, [58, 61, 66, 70], [54, 58, 61]], [42, [58, 61, 66, 70], [54, 58, 61]],
+  [43, [59, 61, 62, 66], [43, 50, 59]], [43, [59, 61, 62, 66], [43, 50, 59]],
+  [45, [57, 62, 64, 69], [45, 52, 62]], [45, [57, 61, 64, 69], [45, 52, 61]],
 ];
-// Lead themes: [beat within the 32-beat cycle, midi note, length in beats]
-const THEME_A = [[0, 64, 2], [2, 69, 1], [3, 71, 1], [4, 72, 3], [7, 71, 1], [8, 69, 2], [10, 67, 1], [11, 65, 1], [12, 64, 4],
-                 [16, 65, 2], [18, 64, 1], [19, 62, 1], [20, 64, 2], [22, 57, 2], [24, 59, 2], [26, 60, 1], [27, 62, 1], [28, 64, 3], [31, 68, 1]];
-const THEME_B = [[0, 69, 3], [3, 71, 1], [4, 72, 2], [6, 71, 1], [7, 69, 1], [8, 65, 2], [10, 64, 1], [11, 62, 1], [12, 64, 4],
-                 [16, 62, 2], [18, 67, 2], [20, 70, 2], [22, 69, 2], [24, 68, 3], [27, 71, 1], [28, 69, 4]];
+// Horn themes, written at sounding pitch: [beat within the 32-beat cycle, midi note, length in beats]
+const THEME_A = [[0, 50, 1.5], [1.5, 57, 0.5], [2, 57, 2], [4, 59, 1], [5, 61, 1], [6, 62, 2],
+                 [8, 62, 2], [10, 60, 1], [11, 58, 1], [12, 57, 3], [15, 53, 1],
+                 [16, 55, 2], [18, 60, 2], [20, 62, 2], [22, 64, 2], [24, 66, 3], [27, 64, 1], [28, 62, 4]];
+const THEME_B = [[0, 57, 2], [2, 62, 1], [3, 64, 1], [4, 66, 3], [7, 64, 1],
+                 [8, 66, 2], [10, 61, 1], [11, 58, 1], [12, 61, 4],
+                 [16, 62, 2], [18, 59, 2], [20, 61, 2], [22, 62, 2], [24, 64, 3], [27, 61, 1], [28, 64, 4]];
 const SPELL = [0, 2, 1, 3, 2, 1]; // bell figure: chord-tone indices, 6 steps against 8 eighths per bar
-// Arrangement per cycle: prog, theme, layers on. Cycle 0 plays once; then 1-7 repeat.
+// Arrangement per cycle. Cycle 0 plays once; then 1-7 repeat.
 const PLAN = [
-  { prog: PROG_A, bells: 0.5, choir: 1 },
-  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1 },
+  { prog: PROG_A, bells: 0.6, choir: 1 },
+  { prog: PROG_A, bells: 1, choir: 1, strings: 1, horns: 1, timp: 1 },
   { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_A },
-  { prog: PROG_B, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_B, high: 1 },
-  { prog: PROG_A, bells: 0.7, choir: 1, timp: 0 },
-  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_A, high: 1 },
-  { prog: PROG_B, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_B, high: 1 },
-  { prog: PROG_A, bells: 0.5, choir: 1, strings: 1 },
+  { prog: PROG_B, bells: 1, choir: 1, strings: 1, horns: 1, timp: 1, theme: THEME_B, high: 1 },
+  { prog: PROG_A, bells: 0.7, choir: 1 },
+  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_A, high: 1, octave: 1 },
+  { prog: PROG_B, bells: 1, choir: 1, strings: 1, horns: 1, timp: 1, theme: THEME_B, high: 1, octave: 1 },
+  { prog: PROG_A, bells: 0.6, choir: 1, strings: 1, horns: 1 },
 ];
 const M = { timer: null, out: null, next: 0, step: 0, lfos: [] };
 const panner = v => { if (!AC.createStereoPanner) return AC.createGain(); const p = AC.createStereoPanner(); p.pan.value = v; return p; };
@@ -2358,9 +2365,11 @@ function musicStart() {
   dl.delayTime.value = EIGHTH * 3; fb.gain.value = 0.42; tone.type = 'lowpass'; tone.frequency.value = 3200;
   M.bells.connect(dl); dl.connect(tone); tone.connect(fb); fb.connect(dl);
   const bellOut = bus(0.7, 0.8); M.bells.connect(bellOut); tone.connect(bellOut);
-  // lead and low end
+  // horns and lead
+  M.horns = AC.createGain(); M.horns.gain.value = 1;
+  const hornPan = panner(-0.15); M.horns.connect(hornPan); hornPan.connect(bus(0.7, 0.8));
   M.lead = AC.createBiquadFilter(); M.lead.type = 'lowpass'; M.lead.frequency.value = 2400;
-  M.lead.connect(bus(0.6, 0.85));
+  M.lead.connect(bus(0.5, 0.9));
   M.low = bus(0.9, 0.25);
   M.next = t + 0.15; M.step = 0;
   M.timer = setInterval(musicTick, 200);
@@ -2405,10 +2414,47 @@ function lead(m, t, dur) {
     vg.connect(o.detune); o.connect(og); og.connect(g); return o;
   });
   const end = t + dur;
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.14);
-  g.gain.setValueAtTime(0.06, Math.max(t + 0.15, end - 0.05)); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.9);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.03, t + 0.14);
+  g.gain.setValueAtTime(0.03, Math.max(t + 0.15, end - 0.05)); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.9);
   g.connect(M.lead);
   for (const o of [...oscs, vib]) { o.start(t); o.stop(end + 1); }
+}
+// French horn: warm detuned saws behind a lowpass that blooms on the attack (the brassy
+// "blat"), a small upward scoop into the note, and vibrato that arrives late
+function horn(m, t, dur, vol) {
+  const f = midi(m), end = t + dur;
+  const lp = AC.createBiquadFilter(), g = AC.createGain(), vib = AC.createOscillator(), vg = AC.createGain();
+  lp.type = 'lowpass'; lp.Q.value = 1.4;
+  const bright = Math.min(3200, f * 7), body = Math.min(1800, f * 3.6);
+  lp.frequency.setValueAtTime(f * 1.3, t);
+  lp.frequency.exponentialRampToValueAtTime(bright, t + 0.11);
+  lp.frequency.exponentialRampToValueAtTime(body, t + 0.5);
+  lp.frequency.setValueAtTime(body, Math.max(t + 0.5, end - 0.1));
+  lp.frequency.exponentialRampToValueAtTime(f * 1.2, end + 0.6);
+  vib.frequency.value = 4.8; vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(0, t + 0.35); vg.gain.linearRampToValueAtTime(7, t + 0.9);
+  vib.connect(vg);
+  const oscs = [['sawtooth', -6, 0.5], ['sawtooth', 6, 0.5], ['triangle', 0, 0.6]].map(([type, det, lvl]) => {
+    const o = AC.createOscillator(), og = AC.createGain();
+    o.type = type; o.detune.value = det; og.gain.value = lvl;
+    o.frequency.setValueAtTime(f * 0.982, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.07);
+    vg.connect(o.detune); o.connect(og); og.connect(lp); return o;
+  });
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.08);
+  g.gain.exponentialRampToValueAtTime(vol * 0.8, t + 0.4);
+  g.gain.setValueAtTime(vol * 0.8, Math.max(t + 0.41, end - 0.05)); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.7);
+  lp.connect(g); g.connect(M.horns);
+  for (const o of [...oscs, vib]) { o.start(t); o.stop(end + 0.8); }
+}
+// horn section swell: a slow crescendo and fade on a held chord
+function hornSwell(notes, t, dur) {
+  for (const n of notes) {
+    const f = midi(n), lp = AC.createBiquadFilter(), g = AC.createGain();
+    lp.type = 'lowpass'; lp.Q.value = 0.9;
+    lp.frequency.setValueAtTime(f * 1.5, t); lp.frequency.linearRampToValueAtTime(Math.min(1600, f * 4), t + dur * 0.55); lp.frequency.linearRampToValueAtTime(f * 1.5, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.026, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.8);
+    for (const det of [-8, 8]) { const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + dur + 0.9); }
+    lp.connect(g); g.connect(M.horns);
+  }
 }
 function timpani(root, t, vol) {
   const f = midi(root - 12), o = AC.createOscillator(), g = AC.createGain();
@@ -2431,7 +2477,7 @@ function musicTick() {
   if (!AC || AC.state !== 'running' || !M.timer) return;
   const now = AC.currentTime, p = S ? terra() : 0;
   M.str.frequency.setTargetAtTime(900 + p * 1600, now, 3);
-  M.lead.frequency.setTargetAtTime(2000 + p * 1600, now, 3);
+  M.lead.frequency.setTargetAtTime(1800 + p * 1400, now, 3);
   while (M.next < now + 1.2) {
     const t = M.next, step = M.step;
     const cyc = Math.floor(step / 64), plan = PLAN[cyc === 0 ? 0 : 1 + (cyc - 1) % 7];
@@ -2446,6 +2492,8 @@ function musicTick() {
       voice('sine', midi(root - 5), t, 3, len - 2.5, 3, 0.03, M.low);
       if (plan.choir) for (const n of ch) for (const d of [-7, 7]) voice('sawtooth', midi(n), t, 2.4, len - 2, 3.5, 0.016, M.choir, d);
       if (plan.strings) for (const n of ch) for (const d of [-10, 10]) voice('sawtooth', midi(n - 12), t, 3.2, len - 3, 3.5, 0.011, M.str, d);
+      if (plan.horns && !plan.theme) hornSwell(plan.prog[bar][2], t + BEAT, len - BEAT);
+      else if (plan.horns && bar === 6) hornSwell(plan.prog[bar][2], t, len);
       if (plan.high && Math.random() < 0.7) {
         const pn = panner(Math.random() * 1.6 - 0.8); pn.connect(M.verb);
         voice('sine', midi(ch[Math.floor(Math.random() * ch.length)] + 24), t + BEAT * 2, 2.5, 1.5, 4, 0.016, pn);
@@ -2460,9 +2508,14 @@ function musicTick() {
     }
     if (plan.timp && eighth === 0) timpani(root, t, bar % 2 === 0 ? 0.22 : 0.12);
     if (plan.timp && inCyc === 62) { timpani(root, t, 0.1); timpani(root, t + EIGHTH, 0.16); }
-    if (plan.theme && eighth % 2 === 0) {
+    if (plan.theme) {
       const beat = inCyc / 2;
-      for (const [b, n, l] of plan.theme) if (b === beat) lead(n, t, l * BEAT * 0.96);
+      for (const [b, n, l] of plan.theme) if (b >= beat && b < beat + 0.5) {
+        const at = t + (b - beat) * BEAT, d = l * BEAT * 0.97;
+        horn(n, at, d, 0.085);
+        if (l >= 2) horn(n - 12, at, d, 0.045);            // second horn an octave below on long notes
+        if (plan.octave) lead(n + 12, at, d);              // later cycles: a soft reed doubles above
+      }
     }
     M.step++; M.next += EIGHTH;
   }
