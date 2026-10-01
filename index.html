@@ -2284,46 +2284,85 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) AC.suspend().catch(() => {}); else AC.resume().catch(() => {});
 });
 
-// ---- generative soundtrack: swirling, ethereal sci-fi ambience.
-// Detuned pads drift around the stereo field under a slowly sweeping filter, a glassy arpeggio
-// circles left to right through a long echo, high shimmer tones bloom in a big reverb and
-// filtered-noise whooshes pass overhead. Everything gets brighter as Mars is terraformed.
+// ---- generative soundtrack: a slow, spell-like synth-orchestra score.
+// In the spirit of 70s-80s space-opera synth scores: a deep drone, a wordless synth choir,
+// string swells, soft timpani, a glassy bell incantation (a 6-note figure that loops against
+// 8-note bars, so its accents keep shifting) and a haunting lead theme that comes and goes.
+// The score runs in 8-bar cycles; cycle 0 is an intro, then cycles 1-7 loop with the
+// arrangement building and breathing. It brightens as Mars is terraformed.
 const midi = m => 440 * Math.pow(2, (m - 69) / 12);
-const CHORDS = [ // root (bass), then voicing: Am9, Fmaj7#11, Cmaj7, Em9; a high B rings through all four
-  [45, [57, 60, 64, 71]], [41, [53, 57, 64, 71]], [48, [55, 60, 64, 71]], [40, [52, 59, 62, 66]],
+const BPM = 66, BEAT = 60 / BPM, EIGHTH = BEAT / 2;
+// Each entry is one bar: [bass root, choir/strings voicing]. Two bars per chord.
+const PROG_A = [ // Am(add9) · Fmaj7#11 · Dm9 · E7sus4 → E
+  [45, [57, 60, 64, 71]], [45, [57, 60, 64, 71]], [41, [53, 57, 64, 71]], [41, [53, 57, 64, 71]],
+  [38, [53, 57, 60, 64]], [38, [53, 57, 60, 64]], [40, [52, 57, 59, 62]], [40, [52, 56, 59, 62]],
 ];
-const BAR = 9, STEP = 0.25;
-const ARP = [0, 1, 2, 3, 2, 1, 3, 2];
-const M = { timer: null, out: null, nextBar: 0, nextNote: 0, bar: 0, step: 0, lfos: [] };
+const PROG_B = [ // Am · Bbmaj7#11 · Gm(add9) · E: the darker turn
+  [45, [57, 60, 64, 69]], [45, [57, 60, 64, 69]], [46, [53, 57, 62, 64]], [46, [53, 57, 62, 64]],
+  [43, [55, 58, 62, 69]], [43, [55, 58, 62, 69]], [40, [52, 56, 59, 64]], [40, [52, 56, 59, 64]],
+];
+// Lead themes: [beat within the 32-beat cycle, midi note, length in beats]
+const THEME_A = [[0, 64, 2], [2, 69, 1], [3, 71, 1], [4, 72, 3], [7, 71, 1], [8, 69, 2], [10, 67, 1], [11, 65, 1], [12, 64, 4],
+                 [16, 65, 2], [18, 64, 1], [19, 62, 1], [20, 64, 2], [22, 57, 2], [24, 59, 2], [26, 60, 1], [27, 62, 1], [28, 64, 3], [31, 68, 1]];
+const THEME_B = [[0, 69, 3], [3, 71, 1], [4, 72, 2], [6, 71, 1], [7, 69, 1], [8, 65, 2], [10, 64, 1], [11, 62, 1], [12, 64, 4],
+                 [16, 62, 2], [18, 67, 2], [20, 70, 2], [22, 69, 2], [24, 68, 3], [27, 71, 1], [28, 69, 4]];
+const SPELL = [0, 2, 1, 3, 2, 1]; // bell figure: chord-tone indices, 6 steps against 8 eighths per bar
+// Arrangement per cycle: prog, theme, layers on. Cycle 0 plays once; then 1-7 repeat.
+const PLAN = [
+  { prog: PROG_A, bells: 0.5, choir: 1 },
+  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1 },
+  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_A },
+  { prog: PROG_B, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_B, high: 1 },
+  { prog: PROG_A, bells: 0.7, choir: 1, timp: 0 },
+  { prog: PROG_A, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_A, high: 1 },
+  { prog: PROG_B, bells: 1, choir: 1, strings: 1, timp: 1, theme: THEME_B, high: 1 },
+  { prog: PROG_A, bells: 0.5, choir: 1, strings: 1 },
+];
+const M = { timer: null, out: null, next: 0, step: 0, lfos: [] };
 const panner = v => { if (!AC.createStereoPanner) return AC.createGain(); const p = AC.createStereoPanner(); p.pan.value = v; return p; };
 function lfo(rate, depth, target) {
   const o = AC.createOscillator(), g = AC.createGain();
   o.frequency.value = rate; g.gain.value = depth; o.connect(g); g.connect(target); o.start(); M.lfos.push(o);
 }
+function bus(dry, wet, dest = M.out) {
+  const g = AC.createGain();
+  const d = AC.createGain(); d.gain.value = dry; g.connect(d); d.connect(dest);
+  const w = AC.createGain(); w.gain.value = wet; g.connect(w); w.connect(M.verb);
+  return g;
+}
 function musicStart() {
   if (!AC || M.timer) return;
   const t = AC.currentTime;
   M.out = AC.createGain(); M.out.gain.value = 0.0001; M.out.connect(AC.destination);
-  M.out.gain.exponentialRampToValueAtTime(0.85, t + 4);
-  // long, dark reverb from a generated impulse
-  const len = Math.floor(AC.sampleRate * 5), ir = AC.createBuffer(2, len, AC.sampleRate);
-  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  M.out.gain.exponentialRampToValueAtTime(0.85, t + 5);
+  // a big, dark hall
+  const len = Math.floor(AC.sampleRate * 6.5), ir = AC.createBuffer(2, len, AC.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
   M.verb = AC.createConvolver(); M.verb.buffer = ir;
-  const verbOut = AC.createGain(); verbOut.gain.value = 0.75; M.verb.connect(verbOut); verbOut.connect(M.out);
-  // pads: sweeping lowpass, then a slow auto-pan
-  M.pad = AC.createBiquadFilter(); M.pad.type = 'lowpass'; M.pad.frequency.value = 900; M.pad.Q.value = 3;
-  lfo(0.06, 500, M.pad.frequency);
-  const padPan = panner(0); M.pad.connect(padPan);
-  if (padPan.pan) lfo(0.045, 0.7, padPan.pan);
-  const padDry = AC.createGain(); padDry.gain.value = 0.7; padPan.connect(padDry); padDry.connect(M.out);
-  const padWet = AC.createGain(); padWet.gain.value = 0.6; padPan.connect(padWet); padWet.connect(M.verb);
-  // arpeggio bus: echo + reverb
-  M.arp = AC.createGain(); M.arp.connect(M.out);
+  const verbOut = AC.createGain(); verbOut.gain.value = 0.9; M.verb.connect(verbOut); verbOut.connect(M.out);
+  // choir: sawtooths through two formant filters that drift between "ah" and "oo"
+  M.choir = AC.createGain(); M.choir.gain.value = 1;
+  const choirOut = bus(0.55, 0.9);
+  const vowelGain = AC.createGain(); vowelGain.gain.value = 3.2; vowelGain.connect(choirOut);
+  for (const [f, q, depth, rate] of [[650, 5, 220, 0.05], [1080, 7, 260, 0.037]]) {
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    lfo(rate, depth, bp.frequency); M.choir.connect(bp); bp.connect(vowelGain);
+  }
+  // strings: their own lowpass that opens with terraforming, panned slowly
+  M.str = AC.createBiquadFilter(); M.str.type = 'lowpass'; M.str.frequency.value = 1100; M.str.Q.value = 0.8;
+  const strPan = panner(0); M.str.connect(strPan); if (strPan.pan) lfo(0.03, 0.5, strPan.pan);
+  strPan.connect(bus(0.6, 0.7));
+  // bells: dotted-eighth echo into the hall
+  M.bells = AC.createGain();
   const dl = AC.createDelay(2), fb = AC.createGain(), tone = AC.createBiquadFilter();
-  dl.delayTime.value = STEP * 3; fb.gain.value = 0.5; tone.type = 'lowpass'; tone.frequency.value = 2600;
-  M.arp.connect(dl); dl.connect(tone); tone.connect(fb); fb.connect(dl); tone.connect(M.out); tone.connect(M.verb);
-  const arpWet = AC.createGain(); arpWet.gain.value = 0.8; M.arp.connect(arpWet); arpWet.connect(M.verb);
-  M.nextBar = M.nextNote = t + 0.1; M.step = 0;
+  dl.delayTime.value = EIGHTH * 3; fb.gain.value = 0.42; tone.type = 'lowpass'; tone.frequency.value = 3200;
+  M.bells.connect(dl); dl.connect(tone); tone.connect(fb); fb.connect(dl);
+  const bellOut = bus(0.7, 0.8); M.bells.connect(bellOut); tone.connect(bellOut);
+  // lead and low end
+  M.lead = AC.createBiquadFilter(); M.lead.type = 'lowpass'; M.lead.frequency.value = 2400;
+  M.lead.connect(bus(0.6, 0.85));
+  M.low = bus(0.9, 0.25);
+  M.next = t + 0.15; M.step = 0;
   M.timer = setInterval(musicTick, 200);
   musicTick();
 }
@@ -2344,43 +2383,88 @@ function voice(type, freq, t, attack, hold, release, vol, dest, detune = 0) {
   g.gain.setValueAtTime(vol, t + attack + hold);
   g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
   o.connect(g); g.connect(dest); o.start(t); o.stop(t + attack + hold + release + 0.05);
+  return o;
+}
+// glassy FM bell: the modulator's brightness decays faster than the tone itself
+function bell(m, t, vel, pan) {
+  const f = midi(m), car = AC.createOscillator(), mod = AC.createOscillator(), mg = AC.createGain(), g = AC.createGain(), pn = panner(pan);
+  car.frequency.value = f; mod.frequency.value = f * 3.5;
+  mg.gain.setValueAtTime(f * 2.2 * vel, t); mg.gain.exponentialRampToValueAtTime(f * 0.05, t + 1.1);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05 * vel, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+  mod.connect(mg); mg.connect(car.frequency); car.connect(g); g.connect(pn); pn.connect(M.bells);
+  car.start(t); mod.start(t); car.stop(t + 2.7); mod.stop(t + 2.7);
+}
+// lead: a soft, breathy reed with delayed vibrato
+function lead(m, t, dur) {
+  const f = midi(m), g = AC.createGain(), vib = AC.createOscillator(), vg = AC.createGain();
+  vib.frequency.value = 5.2; vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(9, t + Math.min(0.6, dur * 0.6));
+  vib.connect(vg);
+  const oscs = [['triangle', 1, 0, 1], ['sine', 2, 3, 0.25], ['sawtooth', 1, -4, 0.08]].map(([type, mult, det, lvl]) => {
+    const o = AC.createOscillator(), og = AC.createGain();
+    o.type = type; o.frequency.value = f * mult; o.detune.value = det; og.gain.value = lvl;
+    vg.connect(o.detune); o.connect(og); og.connect(g); return o;
+  });
+  const end = t + dur;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.14);
+  g.gain.setValueAtTime(0.06, Math.max(t + 0.15, end - 0.05)); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.9);
+  g.connect(M.lead);
+  for (const o of [...oscs, vib]) { o.start(t); o.stop(end + 1); }
+}
+function timpani(root, t, vol) {
+  const f = midi(root - 12), o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(f * 1.5, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.09);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+  o.connect(g); g.connect(M.low); o.start(t); o.stop(t + 1.9);
 }
 function whoosh(t) {
-  const d = 7, len = Math.floor(AC.sampleRate * d), buf = AC.createBuffer(1, len, AC.sampleRate), data = buf.getChannelData(0);
+  const d = 8, len = Math.floor(AC.sampleRate * d), buf = AC.createBuffer(1, len, AC.sampleRate), data = buf.getChannelData(0);
   for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
   const src = AC.createBufferSource(), bp = AC.createBiquadFilter(), g = AC.createGain(), pn = panner(-0.8);
-  src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 9;
-  bp.frequency.setValueAtTime(250, t); bp.frequency.exponentialRampToValueAtTime(2800, t + d * 0.55); bp.frequency.exponentialRampToValueAtTime(400, t + d);
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + d * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 10;
+  bp.frequency.setValueAtTime(220, t); bp.frequency.exponentialRampToValueAtTime(2400, t + d * 0.55); bp.frequency.exponentialRampToValueAtTime(350, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + d * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
   if (pn.pan) pn.pan.linearRampToValueAtTime(0.8, t + d);
-  src.connect(bp); bp.connect(g); g.connect(pn); pn.connect(M.verb); pn.connect(M.out);
+  src.connect(bp); bp.connect(g); g.connect(pn); pn.connect(M.verb);
   src.start(t); src.stop(t + d);
 }
 function musicTick() {
   if (!AC || AC.state !== 'running' || !M.timer) return;
   const now = AC.currentTime, p = S ? terra() : 0;
-  M.pad.frequency.setTargetAtTime(800 + p * 1500, now, 3);
-  while (M.nextBar < now + 1) {
-    const [root, ch] = CHORDS[M.bar % CHORDS.length], t = M.nextBar;
-    for (const n of ch) for (const d of [-9, 0, 9]) voice(d ? 'sawtooth' : 'triangle', midi(n), t, 3, BAR - 3, 4, d ? 0.014 : 0.02, M.pad, d);
-    voice('sine', midi(root), t, 2, BAR - 2, 3, 0.13, M.out);
-    // two glassy shimmer tones blooming high up, each in its own place in the stereo field
-    for (let k = 0; k < 2; k++) {
-      const pn = panner(Math.random() * 1.6 - 0.8); pn.connect(M.verb);
-      voice('sine', midi(ch[Math.floor(Math.random() * ch.length)] + 24), t + k * BAR / 2 + Math.random(), 3, 1.5, 4, 0.018, pn);
+  M.str.frequency.setTargetAtTime(900 + p * 1600, now, 3);
+  M.lead.frequency.setTargetAtTime(2000 + p * 1600, now, 3);
+  while (M.next < now + 1.2) {
+    const t = M.next, step = M.step;
+    const cyc = Math.floor(step / 64), plan = PLAN[cyc === 0 ? 0 : 1 + (cyc - 1) % 7];
+    const inCyc = step % 64, bar = Math.floor(inCyc / 8), eighth = inCyc % 8;
+    const [root, ch] = plan.prog[bar];
+    const chordStart = eighth === 0 && bar % 2 === 0, barLen = 8 * EIGHTH;
+    if (chordStart) {
+      const len = barLen * 2;
+      // drone: root two octaves down, plus a soft fifth
+      voice('sine', midi(root - 12), t, 1.5, len - 1, 2.5, 0.16, M.low);
+      voice('triangle', midi(root - 12), t, 2, len - 1.5, 2.5, 0.05, M.low, 4);
+      voice('sine', midi(root - 5), t, 3, len - 2.5, 3, 0.03, M.low);
+      if (plan.choir) for (const n of ch) for (const d of [-7, 7]) voice('sawtooth', midi(n), t, 2.4, len - 2, 3.5, 0.016, M.choir, d);
+      if (plan.strings) for (const n of ch) for (const d of [-10, 10]) voice('sawtooth', midi(n - 12), t, 3.2, len - 3, 3.5, 0.011, M.str, d);
+      if (plan.high && Math.random() < 0.7) {
+        const pn = panner(Math.random() * 1.6 - 0.8); pn.connect(M.verb);
+        voice('sine', midi(ch[Math.floor(Math.random() * ch.length)] + 24), t + BEAT * 2, 2.5, 1.5, 4, 0.016, pn);
+      }
+      if (bar === 0 && cyc % 2 === 1) whoosh(t + BEAT);
     }
-    if (M.bar % 2 === 1) whoosh(t + 2);
-    M.bar++; M.nextBar += BAR;
-  }
-  while (M.nextNote < now + 1) {
-    const ch = CHORDS[(M.bar - 1 + CHORDS.length) % CHORDS.length][1];
-    const i = ARP[M.step % ARP.length], up = (Math.floor(M.step / ARP.length) % 2) * 12;
-    if (Math.random() < 0.55 + p * 0.3) {
-      const pn = panner(Math.sin(M.step * 0.45) * 0.85); pn.connect(M.arp);
-      voice('sine', midi(ch[i] + 12 + up), M.nextNote, 0.008, 0.04, 1.1, 0.045, pn);
-      voice('triangle', midi(ch[i] + 24 + up), M.nextNote, 0.008, 0.02, 0.5, 0.012, pn, 4);
+    // the incantation: chord tones up an octave, a 6-step figure across 8-step bars
+    if (plan.bells) {
+      const k = SPELL[step % SPELL.length], up = (Math.floor(step / 24) % 3 === 2) ? 24 : 12;
+      const accent = eighth === 0 ? 1 : eighth === 4 ? 0.8 : 0.55;
+      if (Math.random() < plan.bells * (0.8 + p * 0.2)) bell(ch[k] + up, t, accent, Math.sin(step * 0.39) * 0.75);
     }
-    M.step++; M.nextNote += STEP;
+    if (plan.timp && eighth === 0) timpani(root, t, bar % 2 === 0 ? 0.22 : 0.12);
+    if (plan.timp && inCyc === 62) { timpani(root, t, 0.1); timpani(root, t + EIGHTH, 0.16); }
+    if (plan.theme && eighth % 2 === 0) {
+      const beat = inCyc / 2;
+      for (const [b, n, l] of plan.theme) if (b === beat) lead(n, t, l * BEAT * 0.96);
+    }
+    M.step++; M.next += EIGHTH;
   }
 }
 function tone(f, d, type = 'sine', vol = 0.12, slide = 0, delay = 0) {
