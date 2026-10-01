@@ -27,13 +27,22 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 
 ## Levels
 
-1. **Touchdown**: build solar arrays, mines on purple ore, an ice drill, a greenhouse and a
-   habitat, then warm Mars from −63 °C to −55 °C. The first critters appear.
-2. **Thicken the Sky**: mirror links, comets and gas factories get Mars above 0 °C and
-   12 kPa; fill crater lakes, spread lichen, dig up an alien relic and open a restaurant.
-3. **Boomtown**: grow the town to 24 colonists, keep them happy with restaurants, cafés,
-   clinics, arcades and parks, fend off critter raids at night, trade with Zorp the alien
-   and uncover three ruins to wake an ancient Martian.
+1. **Touchdown**: power, metal, water and food, two habitats, and the first warming. Critters
+   and dust storms appear.
+2. **Thicken the Sky**: mirror links, comets and gas factories; crater lakes, lichen, two alien
+   relics and a restaurant.
+3. **Boomtown**: a town of 32, every kind of service, night raids, Zorp the trader and the
+   ruins that wake Elder Vell.
+4. **Green Frontier**: research labs open the **tech tree**. Chickens, goats, fish farms and
+   water towers that double the food of nearby farms (pipes carry water further).
+5. **Deep Roots**: smash critter nests, push the map outward with Land Reclamation, then dig
+   into the caves underground or raise sky islands above the dust.
+6. **Exodus**: two ways to win. Build a **Greater Mars** on every layer, or build the colony
+   rocket, beat the **Critter Queen** and fight your way out of orbit past the Swarm Mother.
+7. **Phobos Outpost**: the first world beyond Mars. No air, tiny gravity and falling meteors.
+   Europa and Titan are teased as coming soon.
+
+Research from Levels 4 and 5 carries into the next level when you finish them.
 
 ## Colony life
 
@@ -42,8 +51,10 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 - **Happiness** depends on food, water, services and pests. Happy colonists work faster
   and new settlers arrive; very unhappy ones fly home. Nobody gets hurt.
 - **Critters** climb out of craters, switch off a building while they nibble it and run off
-  with supplies. Tap one to bonk it and get the supplies back, plus a crystal. Zappers
-  bonk them automatically.
+  with supplies. Tap one to bonk it and get the supplies back, plus a crystal. Later levels
+  bring armoured (2 bonks), zippy, sneaky (nearly invisible) and brute (4 bonks) critters.
+  Zappers and drone bays bonk them automatically.
+- **Dust storms** cut solar power to a third for a while. Sky-island solar ignores them.
 - **Ruins** hide relics with permanent boosts. **Zorp's saucer** trades for crystals.
 
 Everything runs on solar power. If you use more energy than you make, every building slows down.
