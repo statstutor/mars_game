@@ -79,10 +79,13 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .tool.poor .cost { color: var(--warn); }
 .tool kbd { position: absolute; top: 4px; left: 7px; font: 700 10px var(--body); color: var(--muted); }
 .tool .cd { position: absolute; inset: 0; border-radius: 11px; background: rgba(18, 14, 43, 0.7); display: grid; place-items: center; font: 600 18px var(--display); }
-.controls { pointer-events: auto; display: flex; flex-direction: column; gap: 4px; padding: 6px; justify-content: center; }
+.controls { pointer-events: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 4px; padding: 6px; align-content: center; }
 .ctl { width: 40px; height: 34px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, 0.07); color: var(--ink); font: 600 13px var(--display); cursor: pointer; }
 .ctl:hover { background: rgba(255, 255, 255, 0.14); }
 .ctl.on { background: var(--mars); color: #24102a; }
+.ctl svg { width: 18px; height: 18px; fill: currentColor; vertical-align: middle; }
+.ctl.off { position: relative; color: var(--muted); }
+.ctl.off::after { content: ''; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: var(--warn); transform: rotate(-40deg); border-radius: 2px; }
 
 #toasts { position: fixed; left: 50%; top: 120px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 5; width: max-content; max-width: calc(100% - 32px); }
 .toast { background: var(--panel-solid); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: 13px; text-align: center; animation: pop .25s ease-out; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); }
@@ -202,7 +205,8 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
       <div class="controls card">
         <button class="ctl" id="btn-pause" title="Pause (Space)">❚❚</button>
         <button class="ctl" id="btn-speed" title="Game speed">1×</button>
-        <button class="ctl" id="btn-sound" title="Sound">♪</button>
+        <button class="ctl" id="btn-music" title="Music: on (M)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 20 2v13.2a3.3 3.3 0 1 1-2-3V6.6l-7 1.6v9a3.3 3.3 0 1 1-2-3z"/></svg></button>
+        <button class="ctl" id="btn-sound" title="Sound effects: on" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-4.5v15L7 15H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
     </div>
   </footer>
@@ -1246,22 +1250,141 @@ addEventListener('pagehide', saveGame);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 
 // ---------------------------------------------------------------- audio
-let AC = null, muted = false;
-function audioInit() { if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+let AC = null, sfxBus = null;
+const prefs = { music: true, sfx: true };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem('mmb-audio')) || {}); } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem('mmb-audio', JSON.stringify(prefs)); } catch (e) {} };
+
+// Browsers only allow sound after the player interacts, so this runs on every tap/click/key.
+function audioInit() {
+  if (!AC) {
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; return; }
+    sfxBus = AC.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(AC.destination);
+  }
+  if (AC.state === 'suspended') AC.resume().catch(() => {});
+  if (prefs.music) musicStart();
+}
+addEventListener('pointerdown', audioInit, true);
+addEventListener('keydown', audioInit, true);
+addEventListener('touchend', audioInit, true);
+document.addEventListener('visibilitychange', () => {
+  if (!AC) return;
+  if (document.hidden) AC.suspend().catch(() => {}); else AC.resume().catch(() => {});
+});
+
+// ---- generative soundtrack: swirling, ethereal sci-fi ambience.
+// Detuned pads drift around the stereo field under a slowly sweeping filter, a glassy arpeggio
+// circles left to right through a long echo, high shimmer tones bloom in a big reverb and
+// filtered-noise whooshes pass overhead. Everything gets brighter as Mars is terraformed.
+const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+const CHORDS = [ // root (bass), then voicing: Am9, Fmaj7#11, Cmaj7, Em9; a high B rings through all four
+  [45, [57, 60, 64, 71]], [41, [53, 57, 64, 71]], [48, [55, 60, 64, 71]], [40, [52, 59, 62, 66]],
+];
+const BAR = 9, STEP = 0.25;
+const ARP = [0, 1, 2, 3, 2, 1, 3, 2];
+const M = { timer: null, out: null, nextBar: 0, nextNote: 0, bar: 0, step: 0, lfos: [] };
+const panner = v => { if (!AC.createStereoPanner) return AC.createGain(); const p = AC.createStereoPanner(); p.pan.value = v; return p; };
+function lfo(rate, depth, target) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.value = rate; g.gain.value = depth; o.connect(g); g.connect(target); o.start(); M.lfos.push(o);
+}
+function musicStart() {
+  if (!AC || M.timer) return;
+  const t = AC.currentTime;
+  M.out = AC.createGain(); M.out.gain.value = 0.0001; M.out.connect(AC.destination);
+  M.out.gain.exponentialRampToValueAtTime(0.85, t + 4);
+  // long, dark reverb from a generated impulse
+  const len = Math.floor(AC.sampleRate * 5), ir = AC.createBuffer(2, len, AC.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  M.verb = AC.createConvolver(); M.verb.buffer = ir;
+  const verbOut = AC.createGain(); verbOut.gain.value = 0.75; M.verb.connect(verbOut); verbOut.connect(M.out);
+  // pads: sweeping lowpass, then a slow auto-pan
+  M.pad = AC.createBiquadFilter(); M.pad.type = 'lowpass'; M.pad.frequency.value = 900; M.pad.Q.value = 3;
+  lfo(0.06, 500, M.pad.frequency);
+  const padPan = panner(0); M.pad.connect(padPan);
+  if (padPan.pan) lfo(0.045, 0.7, padPan.pan);
+  const padDry = AC.createGain(); padDry.gain.value = 0.7; padPan.connect(padDry); padDry.connect(M.out);
+  const padWet = AC.createGain(); padWet.gain.value = 0.6; padPan.connect(padWet); padWet.connect(M.verb);
+  // arpeggio bus: echo + reverb
+  M.arp = AC.createGain(); M.arp.connect(M.out);
+  const dl = AC.createDelay(2), fb = AC.createGain(), tone = AC.createBiquadFilter();
+  dl.delayTime.value = STEP * 3; fb.gain.value = 0.5; tone.type = 'lowpass'; tone.frequency.value = 2600;
+  M.arp.connect(dl); dl.connect(tone); tone.connect(fb); fb.connect(dl); tone.connect(M.out); tone.connect(M.verb);
+  const arpWet = AC.createGain(); arpWet.gain.value = 0.8; M.arp.connect(arpWet); arpWet.connect(M.verb);
+  M.nextBar = M.nextNote = t + 0.1; M.step = 0;
+  M.timer = setInterval(musicTick, 200);
+  musicTick();
+}
+function musicStop() {
+  if (!M.timer) return;
+  clearInterval(M.timer); M.timer = null;
+  const out = M.out, lfos = M.lfos, t = AC.currentTime;
+  M.lfos = [];
+  out.gain.cancelScheduledValues(t); out.gain.setValueAtTime(Math.max(0.0001, out.gain.value), t);
+  out.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+  setTimeout(() => { lfos.forEach(o => o.stop()); out.disconnect(); }, 1600);
+}
+function voice(type, freq, t, attack, hold, release, vol, dest, detune = 0) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.detune.value = detune;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + attack);
+  g.gain.setValueAtTime(vol, t + attack + hold);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + attack + hold + release + 0.05);
+}
+function whoosh(t) {
+  const d = 7, len = Math.floor(AC.sampleRate * d), buf = AC.createBuffer(1, len, AC.sampleRate), data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource(), bp = AC.createBiquadFilter(), g = AC.createGain(), pn = panner(-0.8);
+  src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 9;
+  bp.frequency.setValueAtTime(250, t); bp.frequency.exponentialRampToValueAtTime(2800, t + d * 0.55); bp.frequency.exponentialRampToValueAtTime(400, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + d * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  if (pn.pan) pn.pan.linearRampToValueAtTime(0.8, t + d);
+  src.connect(bp); bp.connect(g); g.connect(pn); pn.connect(M.verb); pn.connect(M.out);
+  src.start(t); src.stop(t + d);
+}
+function musicTick() {
+  if (!AC || AC.state !== 'running' || !M.timer) return;
+  const now = AC.currentTime, p = S ? terra() : 0;
+  M.pad.frequency.setTargetAtTime(800 + p * 1500, now, 3);
+  while (M.nextBar < now + 1) {
+    const [root, ch] = CHORDS[M.bar % CHORDS.length], t = M.nextBar;
+    for (const n of ch) for (const d of [-9, 0, 9]) voice(d ? 'sawtooth' : 'triangle', midi(n), t, 3, BAR - 3, 4, d ? 0.014 : 0.02, M.pad, d);
+    voice('sine', midi(root), t, 2, BAR - 2, 3, 0.13, M.out);
+    // two glassy shimmer tones blooming high up, each in its own place in the stereo field
+    for (let k = 0; k < 2; k++) {
+      const pn = panner(Math.random() * 1.6 - 0.8); pn.connect(M.verb);
+      voice('sine', midi(ch[Math.floor(Math.random() * ch.length)] + 24), t + k * BAR / 2 + Math.random(), 3, 1.5, 4, 0.018, pn);
+    }
+    if (M.bar % 2 === 1) whoosh(t + 2);
+    M.bar++; M.nextBar += BAR;
+  }
+  while (M.nextNote < now + 1) {
+    const ch = CHORDS[(M.bar - 1 + CHORDS.length) % CHORDS.length][1];
+    const i = ARP[M.step % ARP.length], up = (Math.floor(M.step / ARP.length) % 2) * 12;
+    if (Math.random() < 0.55 + p * 0.3) {
+      const pn = panner(Math.sin(M.step * 0.45) * 0.85); pn.connect(M.arp);
+      voice('sine', midi(ch[i] + 12 + up), M.nextNote, 0.008, 0.04, 1.1, 0.045, pn);
+      voice('triangle', midi(ch[i] + 24 + up), M.nextNote, 0.008, 0.02, 0.5, 0.012, pn, 4);
+    }
+    M.step++; M.nextNote += STEP;
+  }
+}
 function tone(f, d, type = 'sine', vol = 0.12, slide = 0, delay = 0) {
-  if (!AC || muted) return;
+  if (!AC || !prefs.sfx) return;
   const t0 = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t0); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t0 + d);
   g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
-  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  o.connect(g); g.connect(sfxBus); o.start(t0); o.stop(t0 + d + 0.02);
 }
 function noise(d, vol, freq) {
-  if (!AC || muted) return;
+  if (!AC || !prefs.sfx) return;
   const len = AC.sampleRate * d, buf = AC.createBuffer(1, len, AC.sampleRate), data = buf.getChannelData(0);
   for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
   const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
   f.type = 'lowpass'; f.frequency.value = freq; g.gain.value = vol;
-  src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start();
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(sfxBus); src.start();
 }
 function sfx(k) {
   switch (k) {
@@ -1296,12 +1419,31 @@ addEventListener('keydown', e => {
   if (modalOpen || !S) return;
   if (e.key === 'Escape') selectTool(null);
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+  else if (e.key === 'm' || e.key === 'M') toggleMusic();
   else if (/^[1-9]$/.test(e.key)) { const n = LEVELS[S.level].tools[+e.key - 1]; if (n) selectTool(tool === n ? null : n); }
 });
 function togglePause() { paused = !paused; const b = $('#btn-pause'); b.textContent = paused ? '▶' : '❚❚'; b.classList.toggle('on', paused); }
 $('#btn-pause').addEventListener('click', togglePause);
 $('#btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $('#btn-speed').textContent = speed + '×'; $('#btn-speed').classList.toggle('on', speed > 1); });
-$('#btn-sound').addEventListener('click', () => { audioInit(); muted = !muted; $('#btn-sound').classList.toggle('on', muted); $('#btn-sound').textContent = muted ? '✕' : '♪'; });
+function syncAudioButtons() {
+  for (const [id, key, label] of [['#btn-music', 'music', 'Music'], ['#btn-sound', 'sfx', 'Sound effects']]) {
+    const b = $(id), on = prefs[key];
+    b.classList.toggle('off', !on); b.setAttribute('aria-pressed', String(on));
+    b.title = `${label}: ${on ? 'on' : 'off'}${key === 'music' ? ' (M)' : ''}`;
+  }
+}
+function toggleMusic() {
+  prefs.music = !prefs.music; savePrefs(); syncAudioButtons();
+  if (prefs.music) { audioInit(); musicStart(); } else musicStop();
+  toast(prefs.music ? 'Music on' : 'Music off');
+}
+$('#btn-music').addEventListener('click', toggleMusic);
+$('#btn-sound').addEventListener('click', () => {
+  prefs.sfx = !prefs.sfx; savePrefs(); syncAudioButtons();
+  if (prefs.sfx) sfx('chime');
+  toast(prefs.sfx ? 'Sound effects on' : 'Sound effects off');
+});
+syncAudioButtons();
 addEventListener('resize', layout);
 $('#goals').addEventListener('toggle', () => requestAnimationFrame(layout));
 

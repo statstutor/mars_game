@@ -10,6 +10,7 @@ Open `index.html` in a browser. It's a single file with no build step and no dep
 - Pick a building in the bottom bar (or press `1`–`9`), then click a tile.
 - Right-click or `Esc` cancels; `Space` pauses; the `1×` button speeds the game up to 4×.
 - Hover a tile to learn what it is.
+- The music and sound-effect buttons sit next to pause; `M` toggles the music. Sound starts after your first click or key press (browsers require it). On iPhone, the silent switch also mutes the game.
 
 ## Levels
 
