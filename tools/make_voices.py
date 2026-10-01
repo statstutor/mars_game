@@ -25,6 +25,8 @@ VOICES = {
     'eng': ('am_michael', 'en-us', 1.0),  # Chief Engineer Haddad
     'bot': ('bf_emma', 'en-gb', 0.97),    # Dr. Sato
     'kip': ('am_puck', 'en-us', 1.05),    # KIP-7, robot effect added below
+    'zorp': ('am_puck', 'en-us', 1.1),    # Zorp the alien trader, alien effect added below
+    'vell': ('bm_george', 'en-gb', 0.9),  # Elder Vell, ancient-being effect added below
 }
 
 def clip_key(who, text):
@@ -42,8 +44,9 @@ def collect_lines(src):
         lines.add((who, hint))
         lines.add((who, praise[who] + ' ' + hint))
         lines.add((who, 'Welcome back! ' + hint))
-    lines.update(re.findall(r"\['(cmd|eng|bot|kip)', '([^']*)'\]", src))
-    lines.update(re.findall(r"say\('(cmd|eng|bot|kip)', '([^']*)'", src))
+    who = '|'.join(VOICES)
+    lines.update(re.findall(r"\['(" + who + r")', '([^']*)'\]", src))
+    lines.update(re.findall(r"say\('(" + who + r")', '([^']*)'", src))
     return sorted(lines)
 
 def robotize(y, sr):
@@ -56,6 +59,25 @@ def robotize(y, sr):
     d = int(sr * 0.004)
     out = y.copy()
     out[d:] += 0.35 * y[:-d]
+    return out
+
+def shift(y, semitones):
+    factor = 2 ** (semitones / 12)
+    return np.interp(np.arange(0, len(y) - 1, factor), np.arange(len(y)), y)
+
+def alienize(y, sr):
+    # bright and bubbly: pitched up with a quick warble
+    y = shift(y, 5)
+    t = np.arange(len(y)) / sr
+    return y * (0.8 + 0.2 * np.sin(2 * np.pi * 9 * t))
+
+def ancient(y, sr):
+    # deep and echoing: pitched down with a few soft reflections
+    y = shift(y, -4)
+    out = np.concatenate([y, np.zeros(int(sr * 0.6))])
+    for delay, gain in ((0.11, 0.35), (0.23, 0.22), (0.37, 0.12)):
+        d = int(sr * delay)
+        out[d:d + len(y)] += gain * y
     return out
 
 def finish(y, sr):
@@ -83,6 +105,10 @@ def main():
         y, sr = kokoro.create(spoken, voice=voice, speed=speed, lang=lang)
         if who == 'kip':
             y = robotize(y, sr)
+        elif who == 'zorp':
+            y = alienize(y, sr)
+        elif who == 'vell':
+            y = ancient(y, sr)
         sf.write(path, finish(y, sr), sr, format='MP3')
         print(f'{key}  {who}  {text[:60]}')
     keep = set(keys)

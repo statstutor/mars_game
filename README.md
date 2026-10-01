@@ -27,10 +27,24 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 
 ## Levels
 
-1. **Touchdown**: build solar arrays, mines on purple ore, an ice drill on the polar cap and a
-   habitat, then warm Mars from −63 °C to −55 °C with a greenhouse gas factory.
-2. **Thicken the Sky**: use mirror links, comet strikes and gas factories to get above 0 °C and
-   12 kPa, fill two craters with lakes, and spread lichen across 12 tiles.
+1. **Touchdown**: build solar arrays, mines on purple ore, an ice drill, a greenhouse and a
+   habitat, then warm Mars from −63 °C to −55 °C. The first critters appear.
+2. **Thicken the Sky**: mirror links, comets and gas factories get Mars above 0 °C and
+   12 kPa; fill crater lakes, spread lichen, dig up an alien relic and open a restaurant.
+3. **Boomtown**: grow the town to 24 colonists, keep them happy with restaurants, cafés,
+   clinics, arcades and parks, fend off critter raids at night, trade with Zorp the alien
+   and uncover three ruins to wake an ancient Martian.
+
+## Colony life
+
+- **Food and water**: every colonist eats and drinks. The Fed and Water meters drop when
+  supplies run out. Restaurants make food go three times further.
+- **Happiness** depends on food, water, services and pests. Happy colonists work faster
+  and new settlers arrive; very unhappy ones fly home. Nobody gets hurt.
+- **Critters** climb out of craters, switch off a building while they nibble it and run off
+  with supplies. Tap one to bonk it and get the supplies back, plus a crystal. Zappers
+  bonk them automatically.
+- **Ruins** hide relics with permanent boosts. **Zorp's saucer** trades for crystals.
 
 Everything runs on solar power. If you use more energy than you make, every building slows down.
 
