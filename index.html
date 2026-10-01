@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Make Mars Blue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: a floating isometric diorama of Mars fills the screen; HUD cards float over space at the edges. */
+:root {
+  --space: #120e2b;
+  --panel: rgba(32, 23, 72, 0.8);
+  --panel-solid: #1f1747;
+  --line: rgba(255, 255, 255, 0.1);
+  --ink: #fff6ec;
+  --muted: #b8afd8;
+  --mars: #ff7a45;
+  --sky: #5cc8ff;
+  --leaf: #5fd38d;
+  --warn: #ff5d73;
+  --sun: #ffd166;
+  --display: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--space); color: var(--ink); font-family: var(--body); font-size: 14px; }
+canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+#ui { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.card { pointer-events: auto; background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 18px; }
+
+#goals { width: 290px; max-width: 100%; padding: 12px 14px; }
+#goals summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+#goals summary::-webkit-details-marker { display: none; }
+.eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mars); }
+#goals h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 21px; text-wrap: balance; }
+#goal-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+#goal-list li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; font-weight: 700; font-size: 13px; }
+#goal-list .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; }
+#goal-list li.done .dot { background: var(--leaf); border-color: var(--leaf); }
+#goal-list li.done .dot::after { content: ''; width: 6px; height: 3px; border: solid #123; border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+#goal-list li.done span:nth-child(2) { color: var(--muted); }
+#goal-list .pv { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+#goal-list li.done .pv { color: var(--leaf); }
+
+.stats { pointer-events: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 660px; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.chip { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: border-color .2s, background .2s; }
+.chip .ic { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.chip .ic svg { width: 16px; height: 16px; fill: #1a1238; }
+.chip .tx { display: flex; flex-direction: column; line-height: 1.1; }
+.chip b { font-family: var(--display); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip small { color: var(--muted); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip small.neg { color: var(--warn); }
+.chip small.pos { color: var(--leaf); }
+.chip.warn { border-color: var(--warn); background: rgba(120, 25, 50, 0.75); }
+.chip.planet b { color: var(--ink); }
+
+.bottom { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#tip { pointer-events: none; max-width: min(560px, 100%); padding: 10px 14px; font-size: 13px; line-height: 1.45; }
+#tip strong { font-family: var(--display); font-weight: 600; font-size: 15px; display: block; }
+#tip .bad { color: var(--warn); font-weight: 800; }
+#tip .muted { color: var(--muted); }
+.bar { display: flex; gap: 8px; align-items: stretch; max-width: 100%; pointer-events: none; }
+.toolbar { pointer-events: auto; display: flex; gap: 4px; overflow-x: auto; padding: 6px; min-width: 0; scrollbar-width: thin; }
+.tool { flex: 0 0 auto; width: 86px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px 7px; border-radius: 13px; background: transparent; border: 2px solid transparent; color: var(--ink); cursor: pointer; font: inherit; position: relative; transition: background .15s, transform .15s; }
+.tool:hover { background: rgba(255, 255, 255, 0.07); }
+.tool:focus-visible, .ctl:focus-visible, .btn:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.tool.on { background: rgba(255, 122, 69, 0.2); border-color: var(--mars); }
+.tool canvas { width: 58px; height: 46px; }
+.tool .nm { font-family: var(--display); font-size: 12.5px; font-weight: 500; line-height: 1.1; text-align: center; }
+.tool .cost { font-size: 11px; color: var(--muted); font-weight: 700; line-height: 1.2; text-align: center; }
+.tool.poor .cost { color: var(--warn); }
+.tool kbd { position: absolute; top: 4px; left: 7px; font: 700 10px var(--body); color: var(--muted); }
+.tool .cd { position: absolute; inset: 0; border-radius: 11px; background: rgba(18, 14, 43, 0.7); display: grid; place-items: center; font: 600 18px var(--display); }
+.controls { pointer-events: auto; display: flex; flex-direction: column; gap: 4px; padding: 6px; justify-content: center; }
+.ctl { width: 40px; height: 34px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, 0.07); color: var(--ink); font: 600 13px var(--display); cursor: pointer; }
+.ctl:hover { background: rgba(255, 255, 255, 0.14); }
+.ctl.on { background: var(--mars); color: #24102a; }
+
+#toasts { position: fixed; left: 50%; top: 120px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 5; width: max-content; max-width: calc(100% - 32px); }
+.toast { background: var(--panel-solid); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: 13px; text-align: center; animation: pop .25s ease-out; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); }
+.toast.good { background: #1d5a43; }
+.toast.bad { background: #6b1f37; }
+.toast.out { opacity: 0; transform: translateY(6px); transition: all .4s; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+#modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(12, 7, 32, 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 16px; z-index: 10; }
+.sheet { width: min(540px, 100%); max-height: 100%; overflow: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 80px rgba(0, 0, 0, .45); animation: pop .35s ease-out; }
+.sheet h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(38px, 9vw, 58px); line-height: .95; letter-spacing: -0.01em; text-wrap: balance; }
+.sheet h1 .m { color: var(--mars); }
+.sheet h1 .b { color: var(--sky); }
+.sheet h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 30px; line-height: 1.05; text-wrap: balance; }
+.sheet p { margin: 0; line-height: 1.55; font-size: 15px; color: #e9e2f7; max-width: 62ch; }
+.sheet .fact { background: rgba(92, 200, 255, 0.1); border-left: 0; border-radius: 14px; padding: 12px 14px; font-size: 14px; }
+.sheet .fact b { color: var(--sky); }
+.levels { display: grid; gap: 10px; }
+.lvl { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; text-align: left; padding: 14px 16px; border-radius: 18px; border: 2px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--ink); cursor: pointer; font: inherit; }
+.lvl:hover { border-color: var(--mars); background: rgba(255, 122, 69, 0.1); }
+.lvl:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.lvl .n { width: 40px; height: 40px; border-radius: 50%; background: var(--mars); color: #24102a; display: grid; place-items: center; font: 700 20px var(--display); }
+.lvl.two .n { background: var(--sky); }
+.lvl b { font: 600 18px var(--display); display: block; }
+.lvl small { color: var(--muted); font-size: 13px; }
+.lvl .go { font: 600 14px var(--display); color: var(--mars); }
+.lvl.two .go { color: var(--sky); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { border: 0; border-radius: 999px; padding: 12px 22px; font: 600 16px var(--display); cursor: pointer; background: var(--mars); color: #24102a; }
+.btn.alt { background: rgba(255, 255, 255, 0.1); color: var(--ink); }
+.btn:hover { filter: brightness(1.08); }
+.how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.how div { background: rgba(255, 255, 255, 0.05); border-radius: 14px; padding: 10px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.how b { display: block; color: var(--ink); font: 600 14px var(--display); }
+
+@media (max-width: 720px) {
+  #goals { width: 100%; padding: 10px 12px; }
+  #goals h2 { font-size: 18px; }
+  .stats { justify-content: flex-start; max-width: 100%; }
+  .group { justify-content: flex-start; }
+  .chip { padding: 3px 9px 3px 3px; gap: 6px; }
+  .chip .ic { width: 22px; height: 22px; }
+  .chip .ic svg { width: 13px; height: 13px; }
+  .chip b { font-size: 13px; }
+  .chip small { font-size: 10px; }
+  .tool { width: 66px; padding: 4px 2px 5px; }
+  .tool canvas { width: 44px; height: 35px; }
+  .tool .nm { font-size: 11px; }
+  .tool kbd { display: none; }
+  #tip { font-size: 12px; padding: 8px 12px; }
+  .how { grid-template-columns: 1fr; }
+  .sheet { padding: 22px 18px; border-radius: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast, .sheet { animation: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Isometric map of the Martian surface. Pick a building below, then click a tile to place it."></canvas>
+
+<div id="ui">
+  <header class="top">
+    <details id="goals" class="card" open>
+      <summary>
+        <span class="eyebrow" id="lvl-eyebrow">Level 1 · Sol 1</span>
+        <h2 id="lvl-name">Touchdown</h2>
+      </summary>
+      <ul id="goal-list"></ul>
+    </details>
+    <div class="stats">
+      <div class="group" aria-label="Colony">
+        <div class="chip" id="chip-energy" title="Energy (stored / capacity)">
+          <span class="ic" style="background:var(--sun)"><svg viewBox="0 0 24 24"><path d="M13.5 2 4.5 13.5h6l-1 8.5 9-11.5h-6z"/></svg></span>
+          <span class="tx"><b id="v-energy">0</b><small id="r-energy">+0/s</small></span>
+        </div>
+        <div class="chip" title="Metal">
+          <span class="ic" style="background:#b39cff"><svg viewBox="0 0 24 24"><path d="M12 2.5 3.5 7.2v9.6l8.5 4.7 8.5-4.7V7.2z"/></svg></span>
+          <span class="tx"><b id="v-metal">0</b><small id="r-metal">+0/s</small></span>
+        </div>
+        <div class="chip" title="Water">
+          <span class="ic" style="background:var(--sky)"><svg viewBox="0 0 24 24"><path d="M12 2.5S5.5 10 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5z"/></svg></span>
+          <span class="tx"><b id="v-water">0</b><small id="r-water">+0/s</small></span>
+        </div>
+        <div class="chip" title="Colonists">
+          <span class="ic" style="background:#f7f4ff"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4.5"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+          <span class="tx"><b id="v-pop">0</b><small>colonists</small></span>
+        </div>
+      </div>
+      <div class="group" aria-label="Planet">
+        <div class="chip planet" title="Average surface temperature. Earth: about 15 °C">
+          <span class="ic" style="background:var(--mars)"><svg viewBox="0 0 24 24"><path d="M9.5 4.5a2.5 2.5 0 0 1 5 0v8.6a5 5 0 1 1-5 0z"/></svg></span>
+          <span class="tx"><b id="v-temp">-63 °C</b><small>Earth 15 °C</small></span>
+        </div>
+        <div class="chip planet" title="Surface air pressure. Earth: 101 kPa">
+          <span class="ic" style="background:#ff9fb1"><svg viewBox="0 0 24 24"><path d="M12 4a9 9 0 0 0-9 9 9 9 0 0 0 1.4 4.8h15.2A9 9 0 0 0 21 13a9 9 0 0 0-9-9zm4.6 4.1-3.2 5.6a1.8 1.8 0 1 1-1.9-1.1z"/></svg></span>
+          <span class="tx"><b id="v-press">0.6 kPa</b><small>Earth 101 kPa</small></span>
+        </div>
+        <div class="chip planet" title="Oxygen share of the air. Earth: 21%">
+          <span class="ic" style="background:var(--leaf)"><svg viewBox="0 0 24 24"><circle cx="9" cy="13" r="5.5"/><circle cx="17.5" cy="7" r="3.5"/></svg></span>
+          <span class="tx"><b id="v-o2">0.13 %</b><small>O₂ · Earth 21%</small></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <footer class="bottom">
+    <div id="tip" class="card"></div>
+    <div class="bar">
+      <div class="toolbar card" id="toolbar" role="toolbar" aria-label="Build"></div>
+      <div class="controls card">
+        <button class="ctl" id="btn-pause" title="Pause (Space)">❚❚</button>
+        <button class="ctl" id="btn-speed" title="Game speed">1×</button>
+        <button class="ctl" id="btn-sound" title="Sound">♪</button>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="modal" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+// ---------------------------------------------------------------- constants
+const N = 11;               // grid size
+const HZ = 11;              // px per elevation step (world units)
+const BASE = 30;            // thickness of the diorama slab
+const ECAP = 100;           // energy storage
+const COMET_CD = 15;        // seconds between comets
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const $ = s => document.querySelector(s);
+
+// ---------------------------------------------------------------- utils
+const hexCache = {};
+const hex = h => hexCache[h] || (hexCache[h] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+const mix = (a, b, t) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const shade = (a, t) => t > 0 ? mix(a, '#ffffff', t) : mix(a, '#000000', -t);
+const rgba = (h, a) => { const [r, g, b] = hex(h); return `rgba(${r},${g},${b},${a})`; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const lp = (a, b, f) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+const easeBack = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const fmt = (v, d = 0) => v.toFixed(d).replace('-', '−');
+
+function poly(g, pts) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.closePath(); g.fill(); }
+function ell(g, x, y, rx, ry, fill) { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fillStyle = fill; g.fill(); }
+function shadow(g, rx, ry) { ell(g, 2, 3, rx, ry, 'rgba(70,16,24,0.22)'); }
+function isoBox(g, cx, cy, sx, sy, hh, top, left, right) {
+  g.fillStyle = left;  poly(g, [[cx - sx, cy - hh], [cx, cy + sy - hh], [cx, cy + sy], [cx - sx, cy]]);
+  g.fillStyle = right; poly(g, [[cx, cy + sy - hh], [cx + sx, cy - hh], [cx + sx, cy], [cx, cy + sy]]);
+  g.fillStyle = top;   poly(g, [[cx, cy - sy - hh], [cx + sx, cy - hh], [cx, cy + sy - hh], [cx - sx, cy - hh]]);
+}
+
+// ---------------------------------------------------------------- content
+const TILE_INFO = {
+  plain:  ['Rusty plain', 'Iron oxide dust gives Mars its colour. Flat and buildable.'],
+  ore:    ['Ore field', 'Purple veins of metal-rich rock. Mines go here.'],
+  ice:    ['Polar ice', 'Frozen water and dry ice from the north polar cap. Ice drills go here.'],
+  crater: ['Impact crater', 'A basin left by an ancient impact. Fill it with a comet to make a lake.'],
+  frozen: ['Frozen lake', 'Comet water, frozen solid. It melts once Mars is warmer than 0 °C.'],
+  lake:   ['Lake', 'Liquid water on Mars, open to the sky for the first time in 3 billion years.'],
+  rock:   ['Mountain', 'Too steep to build on. The snow on top is frozen carbon dioxide and water.'],
+};
+
+const B = {
+  solar:   { name: 'Solar Array', cost: { metal: 8 }, on: ['plain', 'ore'], onText: 'Solar arrays need flat ground.', energy: 3,
+             desc: '+3 energy/s. Mars gets about 43% of the sunlight Earth does, so you need plenty of these.' },
+  mine:    { name: 'Mine', cost: { metal: 10 }, on: ['ore'], onText: 'Mines must sit on purple ore.', energy: -1, out: { metal: 2 },
+             desc: '+2 metal/s from the ore below. Uses 1 energy/s.' },
+  drill:   { name: 'Ice Drill', cost: { metal: 12 }, on: ['ice', 'lake'], onText: 'Ice drills need polar ice or a lake.', energy: -1, out: { water: 1.5 },
+             desc: '+1.5 water/s by melting polar ice. Uses 1 energy/s.' },
+  habitat: { name: 'Habitat', cost: { metal: 30, water: 10 }, on: ['plain'], onText: 'Habitats need flat rusty ground.', energy: -1, pop: 4,
+             desc: 'A pressurised dome for 4 colonists. Uses 1 energy/s.' },
+  factory: { name: 'Gas Factory', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Factories need flat ground.', energy: -3, temp: 0.12, press: 0.03,
+             desc: 'Pumps super-greenhouse gases into the air. +0.12 °C/s and +0.03 kPa/s. Uses 3 energy/s.' },
+  mirror:  { name: 'Mirror Link', cost: { metal: 50 }, on: ['plain'], onText: 'Mirror links need flat ground.', energy: -2, temp: 0.25,
+             desc: 'Steers a huge orbital mirror that beams extra sunlight onto Mars. +0.25 °C/s. Uses 2 energy/s.' },
+  seeder:  { name: 'Lichen Seeder', cost: { metal: 25, water: 15 }, on: ['plain', 'ore'], onText: 'Seeders need open ground.', energy: -1,
+             desc: 'Sows hardy lichen on nearby ground; it spreads by itself. Grows only above −20 °C and 5 kPa.' },
+  comet:   { name: 'Comet', cost: { energy: 40 }, ability: true,
+             desc: 'Nudge an icy comet into Mars: +2.5 kPa, +1.5 °C. A comet into a crater leaves a lake. Hitting open ground digs a new crater.' },
+  recycle: { name: 'Recycle', cost: {}, ability: true,
+             desc: 'Take a building apart and get half of its metal back.' },
+};
+
+const count = type => S.tiles.reduce((n, t) => n + (t.b === type ? 1 : 0), 0);
+const lakesInCraters = () => S.tiles.reduce((n, t) => n + (t.basin && t.type === 'lake' ? 1 : 0), 0);
+const lichenTiles = () => S.tiles.reduce((n, t) => n + (t.lichen >= 0.5 ? 1 : 0), 0);
+
+const LEVELS = [
+  {
+    name: 'Touchdown',
+    seed: 11,
+    map: { ice: 3.3, mountains: [[8, 2, 1.7]], craters: [[3, 7], [7, 8]], ore: [[6, 4, 1.8], [2, 9, 1.4], [9, 6, 1.1]] },
+    start: { metal: 40, energy: 30, water: 0 },
+    planet: { temp: -63, press: 0.6, o2: 0.13 },
+    tools: ['solar', 'mine', 'drill', 'habitat', 'factory', 'recycle'],
+    prebuilt: [],
+    goals: [
+      { text: 'Build 3 solar arrays', get: () => count('solar'), target: 3 },
+      { text: 'Build 2 mines', get: () => count('mine'), target: 2 },
+      { text: 'Drill for ice', get: () => count('drill'), target: 1 },
+      { text: 'House 4 colonists', get: () => S.pop, target: 4 },
+      { text: 'Warm Mars to −55 °C', get: () => S.planet.temp, target: -55, unit: '°C', dec: 1 },
+    ],
+    brief: {
+      eyebrow: 'Level 1',
+      title: 'Touchdown',
+      body: [
+        'Mars is a frozen desert. It averages −63 °C, and its thin air of carbon dioxide presses down with less than 1% of Earth’s pressure.',
+        'Set up a base that can feed itself: solar arrays for power, mines on the purple ore for metal, and a drill on the polar ice for water. Then house your first colonists and start warming the planet with a gas factory.',
+      ],
+      fact: '<b>Why so cold?</b> Mars is 1.5 times farther from the Sun than Earth and its air is too thin to hold heat. At night the ground can drop below −100 °C.',
+    },
+    done: {
+      title: 'A foothold on Mars',
+      body: 'Your colonists are safe, the lights are on and the planet is a little warmer. It’s a start, but the air is still far too thin for liquid water.',
+      fact: '<b>Real proposal:</b> gases like sulfur hexafluoride trap heat thousands of times better than CO₂. Factories pumping them out could warm Mars over decades.',
+    },
+  },
+  {
+    name: 'Thicken the Sky',
+    seed: 23,
+    map: { ice: 4.3, mountains: [[1, 9, 1.4], [9, 1, 1.2]], craters: [[4, 5], [7, 6], [5, 9]], ore: [[8, 4, 1.6], [2, 5, 1.3]] },
+    start: { metal: 110, energy: 60, water: 20 },
+    planet: { temp: -55, press: 1.2, o2: 0.13 },
+    tools: ['solar', 'mine', 'drill', 'habitat', 'factory', 'mirror', 'comet', 'seeder', 'recycle'],
+    prebuilt: [['habitat', 8, 9], ['solar', 7, 9], ['solar', 9, 8], ['solar', 9, 7], ['mine', 8, 4], ['drill', 1, 1]],
+    goals: [
+      { text: 'Warm Mars above 0 °C', get: () => S.planet.temp, target: 0, unit: '°C', dec: 1 },
+      { text: 'Raise pressure to 12 kPa', get: () => S.planet.press, target: 12, unit: 'kPa', dec: 1 },
+      { text: 'Make 2 crater lakes', get: lakesInCraters, target: 2 },
+      { text: 'Grow lichen on 12 tiles', get: lichenTiles, target: 12 },
+    ],
+    brief: {
+      eyebrow: 'Level 2',
+      title: 'Thicken the Sky',
+      body: [
+        'Liquid water needs two things Mars lacks: warmth and air pressure. At today’s pressure, ice skips the liquid stage and turns straight into vapour.',
+        'Build mirror links to focus extra sunlight, and steer icy comets into Mars to add gas and water. Hit a crater and it becomes a lake once the planet thaws. When it’s warm enough, seed lichen, the first life on a new world.',
+      ],
+      fact: '<b>Where did the air go?</b> Billions of years ago Mars’ core cooled and its magnetic field faded. The solar wind slowly stripped the atmosphere away.',
+    },
+    done: {
+      title: 'Blue water, green ground',
+      body: 'Lakes shimmer in the craters, clouds drift overhead and lichen is creeping across the rust. Mars has its first ecosystem.',
+      fact: '<b>Next up:</b> oxygen. Even with lichen and algae everywhere, making the air breathable would take thousands of years. Level 3 is coming soon.',
+    },
+  },
+];
+
+// ---------------------------------------------------------------- state
+let S = null;            // serialisable game state
+let order = [];          // tiles in draw order
+let tool = null, hover = null;
+let paused = false, speed = 1, modalOpen = false;
+let RT = 0;              // real time (animations)
+let fx = [], comets = [], clouds = [], stars = [];
+let shake = 0, shortageWarned = false;
+let view = { x: 0, y: 0, s: 1, W: 0, H: 0, dpr: 1 };
+
+const tileAt = (x, y) => (x >= 0 && y >= 0 && x < N && y < N) ? S.tiles[y * N + x] : null;
+
+function newState(li) {
+  const L = LEVELS[li];
+  const r = rng(L.seed);
+  const tiles = [];
+  for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++)
+    tiles.push({ gx, gy, type: 'plain', h: 1, b: null, born: -9, v: r(), lichen: 0, basin: false });
+  const T = (x, y) => (x >= 0 && y >= 0 && x < N && y < N) ? tiles[y * N + x] : null;
+  const m = L.map;
+  for (const t of tiles) if (t.gx + t.gy + r() * 1.3 < m.ice) t.type = 'ice';
+  for (const [mx, my, mr] of m.mountains) for (const t of tiles) {
+    const d = Math.hypot(t.gx - mx, t.gy - my);
+    if (d < 0.5 || (d < 1.05 && r() < 0.45)) { t.type = 'rock'; t.h = 3; }
+    else if (d <= mr + 0.35 && t.type !== 'rock') { t.h = 2; if (t.type === 'ice') t.type = 'plain'; }
+  }
+  for (const [ox, oy, orr] of m.ore) for (const t of tiles) {
+    const d = Math.hypot(t.gx - ox, t.gy - oy);
+    if (t.type === 'plain' && (d < 0.5 || (d <= orr && r() > 0.35))) t.type = 'ore';
+  }
+  for (const [cx, cy] of m.craters) { const t = T(cx, cy); t.type = 'crater'; t.h = 0; t.basin = true; }
+  // gentle lowlands near the front edge
+  for (const t of tiles) if (t.type === 'plain' && t.h === 1 && t.gx + t.gy > 17 && r() < 0.5) t.h = 1;
+  for (const [b, x, y] of L.prebuilt) {
+    const t = T(x, y);
+    if (b === 'mine') t.type = 'ore';
+    else if (b === 'drill') t.type = 'ice';
+    else { t.type = 'plain'; t.h = Math.min(Math.max(t.h, 1), 2); }
+    t.b = b; t.basin = false;
+  }
+  return {
+    level: li, time: 0, won: false,
+    metal: L.start.metal, energy: L.start.energy, water: L.start.water, pop: 0,
+    planet: { ...L.planet }, cometCd: 0, eff: 1,
+    rates: { energy: 0, metal: 0, water: 0, temp: 0, press: 0 },
+    goalsDone: L.goals.map(() => false),
+    tiles,
+  };
+}
+
+function buildOrder() {
+  order = S.tiles.slice().sort((a, b) => (a.gx + a.gy) - (b.gx + b.gy) || a.gx - b.gx);
+}
+
+function initClouds() {
+  const r = rng(99);
+  clouds = Array.from({ length: 8 }, () => ({ x: (r() - 0.5) * 800, y: r() * 320 - 40, s: 0.6 + r() * 0.7, spd: 6 + r() * 8, k: r() }));
+}
+function initStars() {
+  const r = rng(5);
+  stars = Array.from({ length: 170 }, () => ({ x: r(), y: r(), z: r() * 1.4 + 0.3, a: 0.3 + r() * 0.7, f: 0.5 + r() * 2, p: r() * 6 }));
+}
+
+// ---------------------------------------------------------------- simulation
+function tick(dt) {
+  S.time += dt;
+  let prod = 0, cons = 0;
+  for (const t of S.tiles) if (t.b) { const e = B[t.b].energy || 0; if (e > 0) prod += e; else cons -= e; }
+  const avail = S.energy + prod * dt, need = cons * dt;
+  let eff = 1;
+  if (avail >= need) S.energy = Math.min(ECAP, avail - need);
+  else { eff = need > 0 ? avail / need : 1; S.energy = 0; }
+  S.eff = eff;
+
+  let metal = 0, water = 0, temp = 0, press = 0, pop = 0;
+  for (const t of S.tiles) {
+    if (!t.b) continue;
+    const d = B[t.b];
+    if (d.out) { metal += (d.out.metal || 0) * eff; water += (d.out.water || 0) * eff; }
+    if (d.temp) temp += d.temp * eff;
+    if (d.press) press += d.press * eff;
+    if (d.pop) pop += d.pop;
+  }
+  temp += S.planet.press * 0.003; // thicker air traps a bit more heat
+  S.metal += metal * dt;
+  S.water += water * dt;
+  S.pop = pop;
+  S.planet.temp = Math.min(22, S.planet.temp + temp * dt);
+  S.planet.press = Math.min(60, S.planet.press + press * dt);
+  S.rates = { energy: prod - cons, metal, water, temp, press };
+  S.cometCd = Math.max(0, S.cometCd - dt);
+
+  if (eff < 1 && !shortageWarned) { shortageWarned = true; toast('Power shortage: everything slows down. Build more solar arrays.', 'bad'); }
+  if (eff >= 1 && S.energy > 10) shortageWarned = false;
+
+  // thaw
+  if (S.planet.temp >= 0) for (const t of S.tiles) {
+    if (t.type === 'frozen' || t.type === 'ice') {
+      if (t.type === 'ice' && t.b) continue; // drills keep their ice
+      if (t.type === 'frozen') toastOnce('thaw', 'Crater ice is melting into lakes!', 'good');
+      t.type = 'lake';
+    }
+  }
+
+  // lichen
+  const canGrow = S.planet.temp >= -20 && S.planet.press >= 5;
+  if (canGrow) {
+    const open = t => t && !t.b && (t.type === 'plain' || t.type === 'ore');
+    for (const t of S.tiles) if (t.b === 'seeder') {
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const n = tileAt(t.gx + dx, t.gy + dy);
+        if (open(n)) n.lichen = Math.min(1, n.lichen + 0.05 * eff * dt);
+      }
+    }
+    for (const t of S.tiles) if (t.lichen >= 0.6) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = tileAt(t.gx + dx, t.gy + dy);
+        if (open(n)) n.lichen = Math.min(1, n.lichen + 0.012 * dt);
+      }
+    }
+  }
+  S.planet.o2 = Math.min(21, S.planet.o2 + lichenTiles() * 0.0006 * dt);
+
+  // goals
+  const L = LEVELS[S.level];
+  L.goals.forEach((g, i) => {
+    if (!S.goalsDone[i] && g.get() >= g.target) {
+      S.goalsDone[i] = true;
+      toast('Done: ' + g.text, 'good'); sfx('chime');
+    }
+  });
+  if (!S.won && S.goalsDone.every(Boolean)) {
+    S.won = true;
+    try { localStorage.setItem('mmb-best', String(Math.max(S.level + 1, +localStorage.getItem('mmb-best') || 0))); } catch (e) {}
+    setTimeout(showComplete, 1400);
+  }
+}
+
+// ---------------------------------------------------------------- actions
+const afford = c => Object.entries(c).every(([k, v]) => S[k] >= v);
+const costText = c => {
+  const e = Object.entries(c);
+  return e.length ? e.map(([k, v]) => `${v} ${k}`).join(' · ') : '½ metal back';
+};
+
+function canPlace(name, t) {
+  if (!t) return [false, ''];
+  const d = B[name];
+  if (name === 'recycle') return t.b ? [true, ''] : [false, 'Nothing to recycle here.'];
+  if (name === 'comet') {
+    if (t.b) return [false, 'A comet would flatten that building.'];
+    if (t.type === 'rock') return [false, 'Aim for open ground or a crater.'];
+    if (S.cometCd > 0) return [false, `Next comet arrives in ${Math.ceil(S.cometCd)} s.`];
+  } else {
+    if (t.b) return [false, 'This tile already has a building.'];
+    if (!d.on.includes(t.type)) return [false, d.onText];
+  }
+  if (!afford(d.cost)) {
+    const miss = Object.entries(d.cost).filter(([k, v]) => S[k] < v).map(([k, v]) => `${Math.ceil(v - S[k])} more ${k}`);
+    return [false, 'Need ' + miss.join(' and ') + '.'];
+  }
+  return [true, ''];
+}
+
+function place(name, t) {
+  const [ok, why] = canPlace(name, t);
+  if (!ok) { if (why) toast(why, 'bad'); sfx('nope'); return; }
+  const d = B[name];
+  for (const [k, v] of Object.entries(d.cost)) S[k] -= v;
+  const c = center(t);
+  if (name === 'recycle') {
+    const refund = Math.floor((B[t.b].cost.metal || 0) / 2);
+    S.metal += refund;
+    t.b = null;
+    burst(c.x, c.y - 8, 14, ['#ffd166', '#b8afd8', '#ffffff']);
+    toast(`Recycled for ${refund} metal`); sfx('pop');
+    return;
+  }
+  if (name === 'comet') {
+    S.cometCd = COMET_CD;
+    comets.push({ t, p: 0 });
+    toast('Comet inbound!'); sfx('whoosh');
+    return;
+  }
+  t.b = name; t.born = RT;
+  fx.push({ kind: 'ring', x: c.x, y: c.y, r: 6, life: 0.6, max: 0.6, color: '#ffffff' });
+  burst(c.x, c.y, 8, ['#ffd7b8', '#ffffff']);
+  sfx('build');
+}
+
+function cometImpact(t) {
+  const c = center(t);
+  S.planet.press += 2.5;
+  S.planet.temp = Math.min(22, S.planet.temp + 1.5);
+  if (t.type === 'crater' || t.type === 'frozen') {
+    t.type = S.planet.temp >= 0 ? 'lake' : 'frozen';
+  } else if (t.type === 'plain' || t.type === 'ore') {
+    t.type = 'crater'; t.h = 0; t.basin = true; t.lichen = 0;
+  }
+  shake = RM ? 0 : 14;
+  fx.push({ kind: 'flash', life: 0.35, max: 0.35 });
+  fx.push({ kind: 'ring', x: c.x, y: c.y, r: 10, life: 0.9, max: 0.9, color: '#ffffff', big: true });
+  fx.push({ kind: 'ring', x: c.x, y: c.y, r: 6, life: 1.2, max: 1.2, color: '#9be3ff', big: true });
+  burst(c.x, c.y - 4, 34, ['#ff9a6a', '#ffd166', '#9be3ff', '#ffffff', '#c4552d'], 1.8);
+  for (let i = 0; i < 6; i++) fx.push(puff(c.x + (Math.random() - .5) * 40, c.y - 6, '#f3d9cf', 1.6));
+  sfx('boom');
+  toast(t.type === 'frozen' ? 'Splash! The crater filled with ice. Warm Mars above 0 °C to melt it.'
+      : t.type === 'lake' && t.basin ? 'Splash! A new crater lake.' : '+2.5 kPa of fresh atmosphere', 'good');
+}
+
+// ---------------------------------------------------------------- effects
+function puff(x, y, color, scale = 1) {
+  return { kind: 'puff', x, y, vx: (Math.random() - 0.3) * 6, vy: -10 - Math.random() * 8, r: 3 * scale, grow: 5 * scale, life: 2.4, max: 2.4, color };
+}
+function burst(x, y, n, colors, power = 1) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = (30 + Math.random() * 60) * power;
+    fx.push({ kind: 'dot', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5 - 40 * power, r: 1.2 + Math.random() * 2.2, life: 0.8 + Math.random() * 0.5, max: 1.3, color: colors[i % colors.length], g: 140 });
+  }
+}
+
+let emitT = 0;
+function updateFX(dt, simDt) {
+  // emitters from buildings
+  emitT += simDt;
+  if (emitT > 0.45) {
+    emitT = 0;
+    for (const t of S.tiles) {
+      if (!t.b || S.eff <= 0.05) continue;
+      const c = center(t);
+      if (t.b === 'factory') {
+        fx.push(puff(c.x - 7, c.y - 32, Math.random() < 0.5 ? '#ffb3c1' : '#ffcfa8'));
+        if (Math.random() < 0.6) fx.push(puff(c.x + 4, c.y - 31, '#ffc2cf'));
+      } else if (t.b === 'mine' && Math.random() < 0.35) {
+        fx.push({ ...puff(c.x + 12, c.y + 2, '#d98b62', 0.5), life: 1.2, max: 1.2 });
+      } else if (t.b === 'seeder' && S.planet.temp >= -20 && S.planet.press >= 5 && Math.random() < 0.6) {
+        fx.push({ kind: 'dot', x: c.x + (Math.random() - .5) * 10, y: c.y - 10, vx: (Math.random() - .5) * 30, vy: -14, r: 1.5, life: 1.8, max: 1.8, color: '#9cf0bd', g: -4 });
+      }
+    }
+  }
+  for (const p of fx) {
+    p.life -= dt;
+    if (p.kind === 'puff') { p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.grow * dt; p.vy *= 0.99; }
+    else if (p.kind === 'dot') { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.g || 0) * dt; p.vx *= 0.98; }
+    else if (p.kind === 'ring') { p.r += (p.big ? 120 : 50) * dt; }
+  }
+  fx = fx.filter(p => p.life > 0);
+  for (const c of comets) c.p += dt / 1.3;
+  for (const c of comets) if (c.p >= 1 && !c.hit) { c.hit = true; cometImpact(c.t); }
+  comets = comets.filter(c => !c.hit);
+  for (const c of clouds) { c.x += c.spd * dt; if (c.x > 460) c.x = -460; }
+  shake = Math.max(0, shake - dt * 30);
+}
+
+// ---------------------------------------------------------------- geometry
+function center(t) { return { x: (t.gx - t.gy) * 32, y: (t.gx + t.gy + 1) * 16 - t.h * HZ }; }
+function silhouette(t) {
+  const c = center(t), d = t.h * HZ + BASE;
+  return [[c.x, c.y - 16], [c.x + 32, c.y], [c.x + 32, c.y + d], [c.x, c.y + 16 + d], [c.x - 32, c.y + d], [c.x - 32, c.y]];
+}
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function pick(mx, my) {
+  const wx = (mx - view.x) / view.s, wy = (my - view.y) / view.s;
+  for (let i = order.length - 1; i >= 0; i--) if (inPoly(wx, wy, silhouette(order[i]))) return order[i];
+  return null;
+}
+
+function layout() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = innerWidth, H = innerHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const top = $('.top').getBoundingClientRect().bottom + 8;
+  const bot = $('.bottom').getBoundingClientRect().top - 4;
+  const availH = Math.max(160, bot - top), availW = W - 16;
+  const bw = N * 64, bh = N * 32 + BASE + 3 * HZ + 50;
+  const s = Math.min(availW / bw, availH / bh, 1.6);
+  $('#toasts').style.top = top + 'px';
+  view = { W, H, dpr, s, x: W / 2, y: top + (availH - bh * s) / 2 + (3 * HZ + 50) * s };
+}
+
+// ---------------------------------------------------------------- drawing: world
+const PAL = {
+  plain:  ['#e5733f', '#c4552d', '#a5422a'],
+  ore:    ['#e06d3d', '#c4552d', '#a5422a'],
+  ice:    ['#eef6ff', '#b9d4ef', '#95b6dc'],
+  crater: ['#c65a33', '#c4552d', '#a5422a'],
+  lake:   ['#3d9df0', '#c4552d', '#a5422a'],
+  frozen: ['#d9edfb', '#c4552d', '#a5422a'],
+  rock:   ['#cf6a43', '#b24f30', '#923f28'],
+};
+
+function terra() {
+  const p = S.planet;
+  return clamp((p.press - 0.6) / 12, 0, 1) * 0.6 + clamp((p.temp + 63) / 63, 0, 1) * 0.4;
+}
+
+function drawTile(g, t) {
+  const c = center(t), d = t.h * HZ + BASE;
+  const pal = PAL[t.type];
+  let top = pal[0];
+  if (t.h === 2 && t.type !== 'ice') top = shade(top, 0.07);
+  if (t.type === 'plain' || t.type === 'ore' || t.type === 'rock' || t.type === 'crater') top = shade(top, (t.v - 0.5) * 0.08);
+  if (t.lichen > 0) top = mix(top, '#4cb878', t.lichen * 0.8);
+  const N_ = [c.x, c.y - 16], E = [c.x + 32, c.y], S_ = [c.x, c.y + 16], W = [c.x - 32, c.y];
+  const left = t.type === 'ice' ? pal[1] : PAL.plain[1], right = t.type === 'ice' ? pal[2] : PAL.plain[2];
+  g.fillStyle = left;  poly(g, [W, S_, [S_[0], S_[1] + d], [W[0], W[1] + d]]);
+  g.fillStyle = right; poly(g, [S_, E, [E[0], E[1] + d], [S_[0], S_[1] + d]]);
+  // bedrock band
+  const bd = BASE * 0.55;
+  g.fillStyle = '#7d3326'; poly(g, [[W[0], W[1] + d - bd], [S_[0], S_[1] + d - bd], [S_[0], S_[1] + d], [W[0], W[1] + d]]);
+  g.fillStyle = '#672a22'; poly(g, [[S_[0], S_[1] + d - bd], [E[0], E[1] + d - bd], [E[0], E[1] + d], [S_[0], S_[1] + d]]);
+  if (t.type === 'ice') { // ice sheet sits on rock
+    g.fillStyle = PAL.plain[1]; poly(g, [[W[0], W[1] + 6], [S_[0], S_[1] + 6], [S_[0], S_[1] + d - bd], [W[0], W[1] + d - bd]]);
+    g.fillStyle = PAL.plain[2]; poly(g, [[S_[0], S_[1] + 6], [E[0], E[1] + 6], [E[0], E[1] + d - bd], [S_[0], S_[1] + d - bd]]);
+  }
+  g.fillStyle = top; poly(g, [N_, E, S_, W]);
+  g.strokeStyle = 'rgba(80,20,20,0.10)'; g.lineWidth = 1; g.stroke();
+  g.save(); g.translate(c.x, c.y); decorate(g, t); g.restore();
+}
+
+function decorate(g, t) {
+  const v = t.v, T = RT;
+  switch (t.type) {
+    case 'plain': {
+      if (t.b) break;
+      if (v > 0.25) { ell(g, -10 + v * 14, -2 + v * 4, 2.6, 1.4, 'rgba(120,35,20,0.25)'); ell(g, -10 + v * 14, -3 + v * 4, 2.2, 1.2, '#f28d5c'); }
+      if (v > 0.6) { ell(g, 9 - v * 6, 4, 1.8, 1, 'rgba(120,35,20,0.25)'); ell(g, 9 - v * 6, 3.4, 1.5, 0.9, '#f59a6b'); }
+      if (v < 0.18) { g.strokeStyle = 'rgba(140,45,25,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(4, 1, 7, 3.2, 0, 0, Math.PI * 2); g.stroke(); }
+      break;
+    }
+    case 'ore': {
+      if (t.b === 'mine') { ell(g, -12, 3, 2, 1, '#7a5fd0'); break; }
+      if (t.b) break;
+      const spots = [[-9, 1], [6, -4], [3, 5]];
+      spots.forEach(([x, y], i) => {
+        if (i === 2 && v < 0.4) return;
+        const h = 6 + ((v * 10 + i * 3) % 4);
+        ell(g, x, y + 1, 4, 1.8, 'rgba(60,20,60,0.25)');
+        g.fillStyle = '#7a5fd0'; poly(g, [[x - 3, y], [x - 3, y - h], [x, y - h - 4], [x + 3, y - h], [x + 3, y]]);
+        g.fillStyle = '#b8a2ff'; poly(g, [[x - 3, y], [x - 3, y - h], [x, y - h - 4], [x, y + 1]]);
+        g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x - 2, y - h + 1, 0.9, h * 0.5);
+      });
+      break;
+    }
+    case 'ice': {
+      if (t.b) break;
+      ell(g, -8 + v * 10, -1, 7, 3, '#ffffff');
+      if (v > 0.4) ell(g, 8, 4, 5, 2.2, '#ffffff');
+      g.strokeStyle = 'rgba(120,170,220,0.6)'; g.lineWidth = 1; g.beginPath();
+      g.moveTo(-14, 4); g.lineTo(-6, 6); g.lineTo(0, 3); g.moveTo(6, -6); g.lineTo(12, -3); g.stroke();
+      break;
+    }
+    case 'crater': {
+      ell(g, 0, 0, 23, 10.5, '#e98a5a');
+      ell(g, 0, 1, 20, 9, '#a5462a');
+      g.save(); g.beginPath(); g.ellipse(0, 1, 20, 9, 0, 0, Math.PI * 2); g.clip();
+      ell(g, 3, 4, 20, 9, '#b8532f'); g.restore();
+      break;
+    }
+    case 'frozen': {
+      ell(g, 0, 0, 23, 10.5, '#e98a5a');
+      ell(g, 0, 1, 20, 9, '#cfe7fa');
+      g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 1; g.beginPath();
+      g.moveTo(-10, -1); g.lineTo(-2, 2); g.lineTo(4, -1); g.moveTo(-2, 2); g.lineTo(2, 6); g.stroke();
+      break;
+    }
+    case 'lake': {
+      if (t.basin) { ell(g, 0, 0, 23, 10.5, '#e98a5a'); ell(g, 0, 1, 20, 9, '#2f8be0'); ell(g, -2, 0, 16, 6.5, '#3fa2f2'); }
+      else { g.fillStyle = '#3fa2f2'; poly(g, [[0, -12], [24, 0], [0, 12], [-24, 0]]); }
+      g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1.2; g.lineCap = 'round';
+      const o = Math.sin(T * 1.6 + v * 7) * 3;
+      g.beginPath(); g.moveTo(-9 + o, -2); g.lineTo(-3 + o, -2); g.moveTo(3 - o, 3); g.lineTo(10 - o, 3); g.stroke();
+      break;
+    }
+    case 'rock': {
+      const pk = [-2 + v * 4, -30 - v * 8];
+      g.fillStyle = '#e8875a'; poly(g, [[-27, 0], [0, 13], pk]);
+      g.fillStyle = '#b8502f'; poly(g, [[0, 13], [27, 0], pk]);
+      g.fillStyle = '#d06a42'; poly(g, [[-27, 0], pk, [-6, -10]]);
+      if (S.planet.temp < -10) {
+        const a = lp(pk, [-27, 0], 0.3), b = lp(pk, [0, 13], 0.28), c2 = lp(pk, [27, 0], 0.3);
+        g.fillStyle = '#ffffff'; poly(g, [pk, a, [lerp(a[0], b[0], .5), lerp(a[1], b[1], .5) - 2], b]);
+        g.fillStyle = '#dbe6f7'; poly(g, [pk, b, [lerp(b[0], c2[0], .5), lerp(b[1], c2[1], .5) - 2], c2]);
+      }
+      break;
+    }
+  }
+  if (t.lichen > 0.05 && !t.b) {
+    for (let k = 0; k < 7; k++) {
+      if (t.lichen < (k + 1) / 8) break;
+      const a = k * 2.4 + v * 9, rr = 4 + (k * 3.7) % 13;
+      ell(g, Math.cos(a) * rr * 1.4, Math.sin(a) * rr * 0.55, 2.4 + (k % 3), 1.4 + (k % 2) * 0.6, k % 2 ? '#2f8f5a' : '#7ddc9f');
+    }
+  }
+}
+
+const DRAW = {
+  solar(g, T, v) {
+    shadow(g, 19, 8);
+    g.fillStyle = '#8f97c2'; g.fillRect(-1.5, -12, 3, 12);
+    const A = [-19, -15], Bp = [1, -25], C = [19, -16], D = [-1, -6];
+    g.fillStyle = '#2c4ea8'; poly(g, [A, Bp, C, D]);
+    g.save(); g.clip();
+    const k = ((T * 0.22 + v) % 1.6) * 60 - 30;
+    g.fillStyle = 'rgba(255,255,255,0.28)'; poly(g, [[k - 8, -30], [k, -30], [k + 6, 0], [k - 2, 0]]);
+    g.restore();
+    g.strokeStyle = '#5d8cf0'; g.lineWidth = 0.9; g.beginPath();
+    for (const f of [1 / 3, 2 / 3]) { const p = lp(A, Bp, f), q = lp(D, C, f); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); }
+    { const p = lp(A, D, 0.5), q = lp(Bp, C, 0.5); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); }
+    g.stroke();
+    g.strokeStyle = '#e8eeff'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(...A); g.lineTo(...Bp); g.lineTo(...C); g.lineTo(...D); g.closePath(); g.stroke();
+  },
+  mine(g, T) {
+    shadow(g, 20, 9);
+    isoBox(g, 0, 3, 15, 7.5, 7, '#9aa0c4', '#757aa0', '#5d6186');
+    g.strokeStyle = '#f6c453'; g.lineWidth = 2.4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-9, -3); g.lineTo(0, -30); g.lineTo(9, -3);
+    g.moveTo(-6, -12); g.lineTo(6, -12); g.moveTo(-3, -21); g.lineTo(3, -21); g.stroke();
+    g.save(); g.translate(0, -30); g.rotate(T * 2.5 * (S ? S.eff : 1));
+    g.strokeStyle = '#ffe08a'; g.lineWidth = 1.6; g.beginPath(); g.arc(0, 0, 5.5, 0, Math.PI * 2);
+    for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.moveTo(Math.cos(a) * 5.5, Math.sin(a) * 5.5); g.lineTo(-Math.cos(a) * 5.5, -Math.sin(a) * 5.5); }
+    g.stroke(); g.restore();
+    ell(g, 0, -30, 1.7, 1.7, '#3b3f5c');
+    ell(g, 14, 5, 6.5, 3, '#7a5fd0'); ell(g, 13, 3.4, 4.2, 2.4, '#a68cff');
+  },
+  drill(g, T, v) {
+    shadow(g, 16, 7);
+    g.strokeStyle = '#a9b0d6'; g.lineWidth = 1.6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(9, 3); g.lineTo(13, -26); g.lineTo(17, 3); g.moveTo(10.5, -8); g.lineTo(15.5, -8); g.moveTo(11.5, -17); g.lineTo(14.5, -17); g.stroke();
+    ell(g, -2, 0, 10, 5, '#d5def5');
+    g.fillStyle = '#eef3ff'; g.fillRect(-12, -18, 10, 18);
+    g.fillStyle = '#d5def5'; g.fillRect(-2, -18, 10, 18);
+    g.fillStyle = '#4fb3ff'; g.fillRect(-12, -11, 10, 4); g.fillStyle = '#2f93e0'; g.fillRect(-2, -11, 10, 4);
+    ell(g, -2, -18, 10, 5, '#ffffff');
+    const a = 0.35 + 0.3 * Math.sin(T * 3 + v * 6);
+    ell(g, -2, -18, 6, 3, `rgba(90,190,255,${a})`);
+    g.fillStyle = '#a9b0d6'; g.fillRect(7, -6, 5, 2.5);
+  },
+  habitat(g, T, v) {
+    shadow(g, 27, 12);
+    ell(g, 0, 0, 23, 11.5, '#b8b0dc');
+    g.fillStyle = '#e4defa'; g.fillRect(-33, -8, 14, 8); ell(g, -33, -4, 2.6, 4, '#cfc7ee');
+    g.beginPath(); g.ellipse(0, 0, 21, 22, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#f7f4ff'; g.fill();
+    g.save(); g.clip(); ell(g, 13, -3, 15, 26, '#e1dbf6'); g.restore();
+    g.strokeStyle = 'rgba(150,140,200,0.4)'; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(0, 0, 10, 22, 0, Math.PI, 0); g.stroke();
+    g.beginPath(); g.ellipse(0, -11, 18.5, 4, 0, 0, Math.PI); g.stroke();
+    const glow = 0.75 + 0.25 * Math.sin(T * 2 + v * 9);
+    for (const [x, y] of [[-12, -5], [-1, -4], [10, -5]]) { ell(g, x, y, 4.5, 4.5, `rgba(255,211,110,${glow * 0.25})`); ell(g, x, y, 2.6, 2.6, `rgba(255,211,110,${glow})`); }
+    g.beginPath(); g.ellipse(0, 0, 21, 5, 0, 0, Math.PI); g.lineWidth = 2.5; g.strokeStyle = '#cfc7ee'; g.stroke();
+    g.strokeStyle = '#cfc7ee'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(6, -21); g.lineTo(9, -31); g.stroke();
+    ell(g, 9, -31, 1.8, 1.8, Math.sin(T * 4 + v * 5) > 0.6 ? '#ff6b81' : '#ffb3c1');
+  },
+  factory(g, T) {
+    shadow(g, 21, 9);
+    const chimney = (x, y, w, h) => {
+      g.fillStyle = '#e45f7d'; g.fillRect(x - w / 2, y - h, w, h);
+      g.fillStyle = '#c4466a'; g.fillRect(x, y - h, w / 2, h);
+      g.fillStyle = '#ffffff'; g.fillRect(x - w / 2, y - h + 4, w, 2);
+      ell(g, x, y - h, w / 2, w / 4, '#ffb8c6');
+    };
+    chimney(-7, -6, 6, 26); chimney(4, -9, 6, 22);
+    isoBox(g, 0, 3, 17, 8.5, 12, '#ff9fb1', '#ec6580', '#cc4866');
+    g.fillStyle = '#ffd36e'; poly(g, [[-13, -4], [-5, 0], [-5, -4], [-13, -8]]);
+    g.fillStyle = '#ffd36e'; poly(g, [[5, 0], [13, -4], [13, -8], [5, -4]]);
+  },
+  mirror(g, T, v) {
+    shadow(g, 18, 8);
+    isoBox(g, 0, 3, 11, 5.5, 4, '#b9bfdf', '#9298bf', '#7b81a8');
+    g.fillStyle = '#9298bf'; g.fillRect(-1.5, -14, 3, 13);
+    g.save(); g.translate(0, -16); g.rotate(-0.35);
+    ell(g, 0, 0, 16, 6.5, '#c9d0f0'); ell(g, 0, -1, 13.5, 4.8, '#f8faff');
+    g.restore();
+    g.strokeStyle = '#9298bf'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-6, -15); g.lineTo(-4, -28); g.moveTo(6, -19); g.lineTo(-4, -28); g.stroke();
+    const a = 0.7 + 0.3 * Math.sin(T * 5 + v * 4);
+    ell(g, -4, -29, 5, 5, `rgba(255,209,102,${a * 0.35})`);
+    ell(g, -4, -29, 2.4, 2.4, '#ffd166');
+  },
+  seeder(g) {
+    shadow(g, 16, 7);
+    isoBox(g, 0, 3, 13, 6.5, 4, '#a6adcf', '#8086ad', '#686e96');
+    ell(g, -4, -4, 3.6, 3, '#3fae6b'); ell(g, 3, -6, 4, 3.6, '#5fd38d'); ell(g, 0, -2, 3, 2.5, '#2f8f57');
+    g.beginPath(); g.ellipse(0, -1, 11.5, 14, 0, Math.PI, 0); g.closePath();
+    g.fillStyle = 'rgba(150,235,185,0.42)'; g.fill(); g.strokeStyle = '#d6ffe6'; g.lineWidth = 1.2; g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 1.4; g.beginPath(); g.arc(0, -1, 8.5, Math.PI * 1.15, Math.PI * 1.4); g.stroke();
+  },
+  comet(g) {
+    const grd = g.createLinearGradient(-20, 12, 14, -14);
+    grd.addColorStop(0, 'rgba(155,227,255,0)'); grd.addColorStop(1, 'rgba(155,227,255,0.9)');
+    g.fillStyle = grd; poly(g, [[-24, 14], [10, -16], [16, -8]]);
+    ell(g, 13, -12, 7, 7, '#9be3ff'); ell(g, 12, -13, 5, 5, '#ffffff');
+  },
+  recycle(g) {
+    g.strokeStyle = '#5fd38d'; g.lineWidth = 3.4; g.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const a = i * Math.PI * 2 / 3;
+      g.beginPath(); g.arc(0, -6, 11, a + 0.35, a + 1.75); g.stroke();
+      const ex = Math.cos(a + 1.75) * 11, ey = Math.sin(a + 1.75) * 11 - 6;
+      g.fillStyle = '#5fd38d'; g.beginPath(); g.arc(ex, ey, 3, 0, Math.PI * 2); g.fill();
+    }
+  },
+};
+
+function drawColonists(g, t, front) {
+  for (let k = 0; k < 4; k++) {
+    const dir = k % 2 ? 1 : -1;
+    const a = RT * 0.35 * dir + k * 1.57 + t.v * 6;
+    const x = Math.cos(a) * 30, y = Math.sin(a) * 13 + 2;
+    if ((y > 2) !== front) continue;
+    const bob = Math.abs(Math.sin(RT * 8 + k)) * 1.2;
+    ell(g, x, y + 0.5, 2.6, 1.1, 'rgba(70,16,24,0.25)');
+    ell(g, x, y - 3.5 - bob, 2.6, 3.4, '#ffffff');
+    ell(g, x + dir * 1, y - 4.6 - bob, 1.5, 1.1, '#ff9b54');
+  }
+}
+
+function drawBuildingOn(g, t) {
+  const c = center(t);
+  const age = RT - t.born;
+  const k = age < 0 || age > 0.5 ? 1 : easeBack(clamp(age / 0.5, 0, 1));
+  g.save(); g.translate(c.x, c.y);
+  if (t.b === 'habitat') drawColonists(g, t, false);
+  g.save(); g.scale(k, k);
+  if (S.eff < 0.5 && (B[t.b].energy || 0) < 0) g.globalAlpha = 0.75;
+  DRAW[t.b](g, RT, t.v);
+  g.restore();
+  if (t.b === 'habitat') drawColonists(g, t, true);
+  g.restore();
+}
+
+function drawHalo(g) {
+  const p = terra(), press = S.planet.press;
+  const col = mix('#ff9a6a', '#6cc8ff', clamp(press / 14, 0, 1));
+  const cx = 0, cy = N * 16 + 10;
+  const r = 470 + press * 6;
+  const grd = g.createRadialGradient(cx, cy, 60, cx, cy, r);
+  grd.addColorStop(0, rgba(col, 0.20 + p * 0.22));
+  grd.addColorStop(0.6, rgba(col, 0.08 + p * 0.1));
+  grd.addColorStop(1, rgba(col, 0));
+  g.fillStyle = grd; g.beginPath(); g.ellipse(cx, cy, r, r * 0.62, 0, 0, Math.PI * 2); g.fill();
+}
+
+function drawBeams(g) {
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (const t of S.tiles) {
+    if (t.b !== 'mirror' || S.eff < 0.1) continue;
+    const c = center(t), x = c.x - 4, y = c.y - 29;
+    const grd = g.createLinearGradient(x, y, x - 150, y - 460);
+    const a = 0.32 + 0.08 * Math.sin(RT * 3 + t.v * 8);
+    grd.addColorStop(0, `rgba(255,214,120,${a})`); grd.addColorStop(1, 'rgba(255,214,120,0)');
+    g.fillStyle = grd; poly(g, [[x - 2, y], [x + 2, y], [x - 140, y - 470], [x - 168, y - 460]]);
+  }
+  g.restore();
+}
+
+function drawFX(g) {
+  for (const p of fx) {
+    const a = clamp(p.life / p.max, 0, 1);
+    if (p.kind === 'puff') { ell(g, p.x, p.y, p.r, p.r * 0.85, rgba(p.color, a * 0.75)); }
+    else if (p.kind === 'dot') { ell(g, p.x, p.y, p.r, p.r, rgba(p.color, Math.min(1, a * 1.5))); }
+    else if (p.kind === 'ring') { g.strokeStyle = rgba(p.color, a * 0.8); g.lineWidth = p.big ? 3 : 2; g.beginPath(); g.ellipse(p.x, p.y, p.r, p.r * 0.5, 0, 0, Math.PI * 2); g.stroke(); }
+  }
+}
+
+function drawComets(g) {
+  for (const cm of comets) {
+    const c = center(cm.t);
+    const sx = c.x + 330, sy = c.y - 520;
+    const e = cm.p * cm.p;
+    const x = lerp(sx, c.x, e), y = lerp(sy, c.y, e);
+    const dx = sx - c.x, dy = sy - c.y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+    const tail = 150;
+    const grd = g.createLinearGradient(x, y, x + ux * tail, y + uy * tail);
+    grd.addColorStop(0, 'rgba(200,240,255,0.95)'); grd.addColorStop(1, 'rgba(120,200,255,0)');
+    g.fillStyle = grd;
+    poly(g, [[x - uy * 7, y + ux * 7], [x + uy * 7, y - ux * 7], [x + ux * tail, y + uy * tail]]);
+    ell(g, x, y, 12, 12, 'rgba(155,227,255,0.35)');
+    ell(g, x, y, 7, 7, '#ffffff');
+    // target reticle
+    g.strokeStyle = `rgba(255,255,255,${0.4 + 0.4 * Math.sin(RT * 12)})`; g.lineWidth = 1.5;
+    g.beginPath(); g.ellipse(c.x, c.y, 26, 13, 0, 0, Math.PI * 2); g.stroke();
+  }
+}
+
+function cloudShape(g, x, y, s, col) {
+  ell(g, x, y, 40 * s, 12 * s, col);
+  ell(g, x - 16 * s, y - 7 * s, 17 * s, 13 * s, col);
+  ell(g, x + 6 * s, y - 13 * s, 21 * s, 17 * s, col);
+  ell(g, x + 24 * s, y - 4 * s, 14 * s, 10 * s, col);
+}
+function drawClouds(g) {
+  const a = clamp((S.planet.press - 3) / 9, 0, 1) * 0.85;
+  if (a <= 0.01) return;
+  for (const c of clouds) {
+    const fade = clamp((460 - Math.abs(c.x)) / 120, 0, 1);
+    g.save(); g.globalAlpha = a * fade;
+    // shadow on the ground
+    ell(g, c.x + 10, c.y + 120, 44 * c.s, 14 * c.s, 'rgba(60,20,40,0.12)');
+    cloudShape(g, c.x, c.y, c.s, '#dfe9ff');
+    cloudShape(g, c.x, c.y - 3 * c.s, c.s * 0.92, '#ffffff');
+    g.restore();
+  }
+}
+
+function drawGhost(g) {
+  if (!hover || !tool) return;
+  const [ok] = canPlace(tool, hover);
+  const c = center(hover);
+  g.save(); g.translate(c.x, c.y);
+  g.fillStyle = ok ? 'rgba(120,255,180,0.28)' : 'rgba(255,80,110,0.3)';
+  poly(g, [[0, -16], [32, 0], [0, 16], [-32, 0]]);
+  g.strokeStyle = ok ? '#a8ffd0' : '#ff8aa0'; g.lineWidth = 2; g.stroke();
+  if (tool === 'comet') {
+    g.strokeStyle = ok ? '#ffffff' : '#ff8aa0'; g.lineWidth = 1.5;
+    g.beginPath(); g.ellipse(0, 0, 20, 10, 0, 0, Math.PI * 2); g.moveTo(-28, 0); g.lineTo(-14, 0); g.moveTo(14, 0); g.lineTo(28, 0); g.stroke();
+  } else if (tool === 'recycle') {
+    if (hover.b) { g.globalAlpha = 0.9; g.scale(0.6, 0.6); DRAW.recycle(g); }
+  } else if (!hover.b) {
+    g.globalAlpha = ok ? 0.65 : 0.4; DRAW[tool](g, RT, 0.5);
+  }
+  g.restore();
+}
+
+function drawBG(g, W, H) {
+  const p = S ? terra() : 0;
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, mix('#120d30', '#10204a', p));
+  grd.addColorStop(1, mix('#2b1748', '#1c3a68', p));
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  for (const s of stars) {
+    const a = s.a * (RM ? 0.8 : 0.6 + 0.4 * Math.sin(RT * s.f + s.p));
+    ell(g, s.x * W, s.y * H, s.z, s.z, `rgba(255,248,235,${a})`);
+  }
+  // the Sun, small and far away
+  const sx = W * 0.1, sy = H * 0.16;
+  const sg = g.createRadialGradient(sx, sy, 4, sx, sy, 120);
+  sg.addColorStop(0, 'rgba(255,230,170,0.55)'); sg.addColorStop(1, 'rgba(255,200,120,0)');
+  g.fillStyle = sg; g.fillRect(sx - 120, sy - 120, 240, 240);
+  ell(g, sx, sy, 11, 11, '#fff3d6');
+  // Phobos drifting by
+  const px = ((RT * 9) % (W + 200)) - 100, py = H * 0.3 + Math.sin(RT * 0.05) * 20;
+  g.save(); g.translate(px, py); g.rotate(0.3);
+  ell(g, 0, 0, 9, 6.5, '#8d7f8f'); ell(g, -2, -1.5, 6, 4, '#a89aa8'); ell(g, 3, 1, 1.6, 1.1, '#6f6272');
+  g.restore();
+}
+
+function render() {
+  const { W, H, dpr, s } = view;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawBG(ctx, W, H);
+  if (!S) return;
+  const sx = shake ? (Math.random() - 0.5) * shake : 0, sy = shake ? (Math.random() - 0.5) * shake : 0;
+  ctx.translate(view.x + sx, view.y + sy); ctx.scale(s, s);
+  drawHalo(ctx);
+  for (const t of order) { drawTile(ctx, t); if (t.b) drawBuildingOn(ctx, t); }
+  if (hover && !tool) {
+    const c = center(hover);
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(c.x, c.y - 16); ctx.lineTo(c.x + 32, c.y); ctx.lineTo(c.x, c.y + 16); ctx.lineTo(c.x - 32, c.y); ctx.closePath(); ctx.stroke();
+  }
+  drawGhost(ctx);
+  drawBeams(ctx);
+  drawFX(ctx);
+  drawClouds(ctx);
+  drawComets(ctx);
+  for (const p of fx) if (p.kind === 'flash') {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = `rgba(255,250,235,${(p.life / p.max) * 0.55})`; ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// ---------------------------------------------------------------- UI
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind; el.textContent = msg;
+  const box = $('#toasts');
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 420); }, 2600);
+}
+const once = new Set();
+function toastOnce(key, msg, kind) { if (once.has(key)) return; once.add(key); toast(msg, kind); }
+
+function buildToolbar() {
+  const bar = $('#toolbar'); bar.innerHTML = '';
+  const L = LEVELS[S.level];
+  L.tools.forEach((name, i) => {
+    const d = B[name];
+    const btn = document.createElement('button');
+    btn.className = 'tool'; btn.id = 'tool-' + name; btn.dataset.tool = name;
+    btn.setAttribute('aria-label', `${d.name}, ${costText(d.cost)}`);
+    const cnv = document.createElement('canvas');
+    const dpr = 2; cnv.width = 58 * dpr; cnv.height = 46 * dpr;
+    const g = cnv.getContext('2d'); g.scale(dpr, dpr); g.translate(29, 34); g.scale(0.85, 0.85);
+    if (!d.ability) { g.fillStyle = 'rgba(255,255,255,0.08)'; poly(g, [[0, -14], [28, 0], [0, 14], [-28, 0]]); }
+    DRAW[name](g, 0.6, 0.3);
+    btn.innerHTML = `<kbd>${i + 1}</kbd>`;
+    btn.appendChild(cnv);
+    btn.insertAdjacentHTML('beforeend', `<span class="nm">${d.name}</span><span class="cost">${costText(d.cost).replace(' · ', '<br>')}</span>`);
+    btn.addEventListener('click', () => selectTool(tool === name ? null : name));
+    btn.addEventListener('mouseenter', () => showTip(name));
+    btn.addEventListener('mouseleave', () => showTip());
+    bar.appendChild(btn);
+  });
+}
+
+function selectTool(name) {
+  tool = name;
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === name));
+  showTip();
+  sfx('tick');
+}
+
+function showTip(preview) {
+  const el = $('#tip');
+  const name = preview || tool;
+  if (name) {
+    const d = B[name];
+    let extra = '';
+    if (!preview && hover) { const [ok, why] = canPlace(name, hover); if (!ok && why) extra = `<br><span class="bad">${why}</span>`; }
+    el.innerHTML = `<strong>${d.name} <span class="muted" style="font-size:12px;font-family:var(--body)">${costText(d.cost)}</span></strong>${d.desc}${extra}`;
+    return;
+  }
+  if (hover) {
+    const [n, txt] = TILE_INFO[hover.type];
+    let b = '';
+    if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
+    let l = hover.lichen > 0.05 ? `<br><span style="color:var(--leaf)">Lichen cover ${Math.round(hover.lichen * 100)}%</span>` : '';
+    el.innerHTML = `<strong>${n}</strong>${txt}${b}${l}`;
+    return;
+  }
+  el.innerHTML = '<span class="muted">Pick a building below (or press 1–9), then click a tile on the map. Right-click or Esc to cancel.</span>';
+}
+
+function buildGoals() {
+  const L = LEVELS[S.level];
+  $('#lvl-name').textContent = L.name;
+  $('#goal-list').innerHTML = L.goals.map((g, i) => `<li id="goal-${i}"><span class="dot"></span><span>${g.text}</span><span class="pv"></span></li>`).join('');
+}
+
+const rateTxt = (r, d = 1) => (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(d) + '/s';
+function updateUI() {
+  const L = LEVELS[S.level];
+  $('#lvl-eyebrow').textContent = `Level ${S.level + 1} · Sol ${Math.floor(S.time / 10) + 1}`;
+  $('#v-energy').textContent = `${Math.floor(S.energy)} / ${ECAP}`;
+  const re = $('#r-energy'); re.textContent = rateTxt(S.rates.energy); re.className = S.rates.energy < 0 ? 'neg' : 'pos';
+  $('#chip-energy').classList.toggle('warn', S.eff < 1);
+  $('#v-metal').textContent = Math.floor(S.metal);
+  $('#r-metal').textContent = rateTxt(S.rates.metal);
+  $('#v-water').textContent = Math.floor(S.water);
+  $('#r-water').textContent = rateTxt(S.rates.water);
+  $('#v-pop').textContent = S.pop;
+  $('#v-temp').textContent = `${fmt(S.planet.temp, 1)} °C`;
+  $('#v-press').textContent = `${S.planet.press.toFixed(S.planet.press < 10 ? 2 : 1)} kPa`;
+  $('#v-o2').textContent = `${S.planet.o2.toFixed(2)} %`;
+  L.goals.forEach((g, i) => {
+    const li = $('#goal-' + i); if (!li) return;
+    li.classList.toggle('done', S.goalsDone[i]);
+    const v = g.get();
+    li.querySelector('.pv').textContent = g.unit ? `${fmt(Math.min(v, g.target), g.dec)} / ${fmt(g.target)} ${g.unit}` : `${Math.min(v, g.target)}/${g.target}`;
+  });
+  document.querySelectorAll('.tool').forEach(b => {
+    const name = b.dataset.tool, d = B[name];
+    b.classList.toggle('poor', !afford(d.cost));
+    let cd = b.querySelector('.cd');
+    if (name === 'comet' && S.cometCd > 0) {
+      if (!cd) { cd = document.createElement('span'); cd.className = 'cd'; b.appendChild(cd); }
+      cd.textContent = Math.ceil(S.cometCd) + 's';
+    } else if (cd) cd.remove();
+  });
+  if (tool) showTip();
+}
+
+// ---------------------------------------------------------------- modals
+function openModal(html) {
+  const m = $('#modal'); m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; m.hidden = false; modalOpen = true;
+  const f = m.querySelector('button'); if (f) f.focus({ preventScroll: true });
+}
+function closeModal() { $('#modal').hidden = true; modalOpen = false; }
+
+function showTitle() {
+  openModal(`
+    <span class="eyebrow">A tiny terraforming game</span>
+    <h1><span class="m">Make Mars</span><br><span class="b">Blue</span></h1>
+    <p>Turn a frozen, rusty desert into a world with lakes, clouds and life, one tile at a time.</p>
+    <div class="how">
+      <div><b>Build</b>Pick a building, click a tile.</div>
+      <div><b>Balance</b>Everything runs on solar power.</div>
+      <div><b>Terraform</b>Warm the planet, thicken the air.</div>
+    </div>
+    <div class="levels">
+      <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
+      <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes and lichen.</small></span><span class="go">Play</span></button>
+    </div>`);
+  $('#modal').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => { audioInit(); startLevel(+b.dataset.l); }));
+}
+
+function showBrief() {
+  const br = LEVELS[S.level].brief;
+  openModal(`
+    <span class="eyebrow">${br.eyebrow}</span>
+    <h2>${br.title}</h2>
+    ${br.body.map(p => `<p>${p}</p>`).join('')}
+    <p class="fact">${br.fact}</p>
+    <div class="row"><button class="btn" id="go">Start building</button><button class="btn alt" id="menu">Level select</button></div>`);
+  $('#go').addEventListener('click', closeModal);
+  $('#menu').addEventListener('click', showTitle);
+}
+
+function showComplete() {
+  const L = LEVELS[S.level], d = L.done, next = S.level + 1 < LEVELS.length;
+  sfx('win');
+  openModal(`
+    <span class="eyebrow" style="color:var(--leaf)">Level ${S.level + 1} complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <h2>${d.title}</h2>
+    <p>${d.body}</p>
+    <p class="fact">${d.fact}</p>
+    <div class="row">
+      ${next ? '<button class="btn" id="next">Level 2: Thicken the Sky</button>' : '<button class="btn" id="again">Play again</button>'}
+      <button class="btn alt" id="stay">Keep playing</button>
+      <button class="btn alt" id="menu">Level select</button>
+    </div>`);
+  if (next) $('#next').addEventListener('click', () => startLevel(S.level + 1));
+  else $('#again').addEventListener('click', () => startLevel(0));
+  $('#stay').addEventListener('click', closeModal);
+  $('#menu').addEventListener('click', showTitle);
+}
+
+function startLevel(li, brief = true) {
+  S = newState(li);
+  afterLoad();
+  if (brief) showBrief(); else closeModal();
+}
+
+function afterLoad() {
+  buildOrder(); buildToolbar(); buildGoals();
+  tool = null; hover = null; fx = []; comets = []; once.clear(); shortageWarned = false;
+  selectTool(null); layout(); updateUI();
+}
+
+// ---------------------------------------------------------------- audio
+let AC = null, muted = false;
+function audioInit() { if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+function tone(f, d, type = 'sine', vol = 0.12, slide = 0, delay = 0) {
+  if (!AC || muted) return;
+  const t0 = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t0 + d);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + d + 0.02);
+}
+function noise(d, vol, freq) {
+  if (!AC || muted) return;
+  const len = AC.sampleRate * d, buf = AC.createBuffer(1, len, AC.sampleRate), data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  f.type = 'lowpass'; f.frequency.value = freq; g.gain.value = vol;
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start();
+}
+function sfx(k) {
+  switch (k) {
+    case 'build': tone(520, 0.12, 'triangle', 0.12, 260); tone(880, 0.1, 'sine', 0.06, 0, 0.06); break;
+    case 'pop': tone(400, 0.12, 'triangle', 0.1, -200); break;
+    case 'tick': tone(1200, 0.03, 'sine', 0.03); break;
+    case 'nope': tone(200, 0.14, 'square', 0.04, -60); break;
+    case 'whoosh': noise(1.2, 0.08, 1800); break;
+    case 'boom': noise(1.4, 0.45, 500); tone(90, 0.8, 'sine', 0.3, -50); break;
+    case 'chime': [660, 880, 1320].forEach((f, i) => tone(f, 0.3, 'sine', 0.08, 0, i * 0.08)); break;
+    case 'win': [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.5, 'triangle', 0.09, 0, i * 0.12)); break;
+  }
+}
+
+// ---------------------------------------------------------------- input
+function setHover(e) {
+  const t = S ? pick(e.clientX, e.clientY) : null;
+  if (t !== hover) { hover = t; showTip(); }
+}
+cv.addEventListener('pointermove', setHover);
+cv.addEventListener('pointerleave', () => { hover = null; showTip(); });
+cv.addEventListener('pointerdown', e => {
+  audioInit();
+  if (!S || modalOpen) return;
+  if (e.button === 2) { selectTool(null); return; }
+  setHover(e);
+  if (!hover) return;
+  if (tool) { place(tool, hover); showTip(); }
+});
+cv.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (modalOpen || !S) return;
+  if (e.key === 'Escape') selectTool(null);
+  else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+  else if (/^[1-9]$/.test(e.key)) { const n = LEVELS[S.level].tools[+e.key - 1]; if (n) selectTool(tool === n ? null : n); }
+});
+function togglePause() { paused = !paused; const b = $('#btn-pause'); b.textContent = paused ? '▶' : '❚❚'; b.classList.toggle('on', paused); }
+$('#btn-pause').addEventListener('click', togglePause);
+$('#btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $('#btn-speed').textContent = speed + '×'; $('#btn-speed').classList.toggle('on', speed > 1); });
+$('#btn-sound').addEventListener('click', () => { audioInit(); muted = !muted; $('#btn-sound').classList.toggle('on', muted); $('#btn-sound').textContent = muted ? '✕' : '♪'; });
+addEventListener('resize', layout);
+$('#goals').addEventListener('toggle', () => requestAnimationFrame(layout));
+
+// ---------------------------------------------------------------- loop
+let last = performance.now(), uiT = 0;
+function frame(now) {
+  const rdt = Math.min(0.1, (now - last) / 1000); last = now; RT += rdt;
+  const running = S && !paused && !modalOpen;
+  const simDt = running ? rdt * speed : 0;
+  if (running) tick(simDt);
+  if (S) updateFX(running ? rdt * Math.min(speed, 2) : rdt * 0.3, simDt);
+  uiT += rdt;
+  if (uiT > 0.12 && S) { uiT = 0; updateUI(); layout(); }
+  render();
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- boot
+function boot(data) {
+  initStars(); initClouds();
+  if (data && data.S) {
+    S = data.S; for (const t of S.tiles) t.born = -9;
+    afterLoad();
+    if (data.modal === false) closeModal(); else showTitle();
+  } else {
+    S = newState(0); afterLoad(); showTitle();
+  }
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ S, modal: modalOpen }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
