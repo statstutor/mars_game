@@ -23,7 +23,7 @@ the game falls back to the browser's built-in speech.
 
 To change a line, edit it in `index.html` and re-record with `tools/make_voices.py`
 (instructions at the top of that file). Clips are named by a hash of the speaker and text,
-so only new or changed lines are recorded. Click the crew card or press `Enter` to skip a line; `V` turns the voices off.
+so only new or changed lines are recorded. Click the crew card or press `Enter` to skip a line. The sound button (or `V`) turns sound effects and voices off together; music has its own button (`M`).
 
 ## Levels
 
