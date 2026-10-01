@@ -79,7 +79,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .tool.poor .cost { color: var(--warn); }
 .tool kbd { position: absolute; top: 4px; left: 7px; font: 700 10px var(--body); color: var(--muted); }
 .tool .cd { position: absolute; inset: 0; border-radius: 11px; background: rgba(18, 14, 43, 0.7); display: grid; place-items: center; font: 600 18px var(--display); }
-.controls { pointer-events: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 4px; padding: 6px; align-content: center; }
+.controls { pointer-events: auto; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; padding: 6px; align-content: center; }
 .ctl { width: 40px; height: 34px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, 0.07); color: var(--ink); font: 600 13px var(--display); cursor: pointer; }
 .ctl:hover { background: rgba(255, 255, 255, 0.14); }
 .ctl.on { background: var(--mars); color: #24102a; }
@@ -117,6 +117,15 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
 .lvl.cont .n { background: var(--leaf); font-size: 16px; }
 .lvl.cont .go { color: var(--leaf); }
+#talk { position: fixed; left: 16px; bottom: 200px; z-index: 11; width: min(410px, calc(100% - 32px)); display: grid; grid-template-columns: 60px 1fr; gap: 12px; align-items: start; padding: 12px 14px 13px; cursor: pointer; animation: pop .25s ease-out; }
+#talk canvas { width: 60px; height: 60px; display: block; }
+#talk .who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-right: 44px; }
+#talk .who b { font: 600 16px var(--display); }
+#talk .who small { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+#talk p { margin: 3px 0 0; font-size: 14px; line-height: 1.45; min-height: 2.9em; }
+#talk .skip { position: absolute; right: 8px; top: 8px; border: 0; background: rgba(255, 255, 255, 0.08); color: var(--muted); font: 700 11px var(--body); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+#talk .skip:hover { color: var(--ink); }
+#talk .skip:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
 #saved { margin: 10px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn { border: 0; border-radius: 999px; padding: 12px 22px; font: 600 16px var(--display); cursor: pointer; background: var(--mars); color: #24102a; }
@@ -141,6 +150,9 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
   .tool .nm { font-size: 11px; }
   .tool kbd { display: none; }
   #tip { font-size: 12px; padding: 8px 12px; }
+  #talk { grid-template-columns: 44px 1fr; gap: 10px; padding: 10px 12px; }
+  #talk canvas { width: 44px; height: 44px; }
+  #talk p { font-size: 13px; }
   .how { grid-template-columns: 1fr; }
   .sheet { padding: 22px 18px; border-radius: 22px; }
 }
@@ -206,6 +218,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
         <button class="ctl" id="btn-pause" title="Pause (Space)">❚❚</button>
         <button class="ctl" id="btn-speed" title="Game speed">1×</button>
         <button class="ctl" id="btn-music" title="Music: on (M)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 20 2v13.2a3.3 3.3 0 1 1-2-3V6.6l-7 1.6v9a3.3 3.3 0 1 1-2-3z"/></svg></button>
+        <button class="ctl" id="btn-voice" title="Crew voices: on (V)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></button>
         <button class="ctl" id="btn-sound" title="Sound effects: on" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-4.5v15L7 15H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
     </div>
@@ -213,6 +226,11 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 </div>
 
 <div id="toasts" aria-live="polite"></div>
+<div id="talk" class="card" hidden aria-live="polite">
+  <canvas id="talk-face" width="120" height="120" aria-hidden="true"></canvas>
+  <div><div class="who"><b id="talk-name"></b><small id="talk-role"></small></div><p id="talk-text"></p></div>
+  <button class="skip" id="talk-skip" title="Skip (Enter)">Skip</button>
+</div>
 <div id="modal" hidden></div>
 
 <script>
@@ -299,12 +317,19 @@ const LEVELS = [
     tools: ['solar', 'mine', 'drill', 'habitat', 'factory', 'recycle'],
     prebuilt: [],
     goals: [
-      { text: 'Build 3 solar arrays', get: () => count('solar'), target: 3 },
-      { text: 'Build 2 mines', get: () => count('mine'), target: 2 },
-      { text: 'Drill for ice', get: () => count('drill'), target: 1 },
-      { text: 'House 4 colonists', get: () => S.pop, target: 4 },
-      { text: 'Warm Mars to −55 °C', get: () => S.planet.temp, target: -55, unit: '°C', dec: 1 },
+      { text: 'Build 3 solar arrays', get: () => count('solar'), target: 3,
+        who: 'eng', hint: 'Power comes first. Pick the solar array and set three of them down on flat ground.' },
+      { text: 'Build 2 mines', get: () => count('mine'), target: 2,
+        who: 'eng', hint: 'Now we need metal. See the purple crystals? That’s ore. Put two mines on it.' },
+      { text: 'Drill for ice', get: () => count('drill'), target: 1,
+        who: 'bot', hint: 'The white ground at the north pole is mostly frozen water. Put an ice drill on it so we have water to work with.' },
+      { text: 'House 4 colonists', get: () => S.pop, target: 4,
+        who: 'cmd', hint: 'Our colonists are still sleeping in the lander. Build them a habitat dome. It takes thirty metal and ten water.' },
+      { text: 'Warm Mars to −55 °C', get: () => S.planet.temp, target: -55, unit: '°C', dec: 1,
+        who: 'bot', hint: 'Time to start warming the planet. A gas factory pumps out greenhouse gases. Get us up to minus fifty-five degrees.' },
     ],
+    intro: [['cmd', 'Welcome to Mars, team. It’s minus sixty-three degrees out there, and the air is a hundred times thinner than home. Let’s get to work.']],
+    outro: [['cmd', 'That’s it. A real foothold on Mars. I’m proud of every one of you.'], ['eng', 'Lights on, metal flowing, nobody frozen. I’ll take it.']],
     brief: {
       eyebrow: 'Level 1',
       title: 'Touchdown',
@@ -329,11 +354,18 @@ const LEVELS = [
     tools: ['solar', 'mine', 'drill', 'habitat', 'factory', 'mirror', 'comet', 'seeder', 'recycle'],
     prebuilt: [['habitat', 8, 9], ['solar', 7, 9], ['solar', 9, 8], ['solar', 9, 7], ['mine', 8, 4], ['drill', 1, 1]],
     goals: [
-      { text: 'Warm Mars above 0 °C', get: () => S.planet.temp, target: 0, unit: '°C', dec: 1 },
-      { text: 'Raise pressure to 12 kPa', get: () => S.planet.press, target: 12, unit: 'kPa', dec: 1 },
-      { text: 'Make 2 crater lakes', get: lakesInCraters, target: 2 },
-      { text: 'Grow lichen on 12 tiles', get: lichenTiles, target: 12 },
+      { text: 'Warm Mars above 0 °C', get: () => S.planet.temp, target: 0, unit: '°C', dec: 1,
+        who: 'eng', hint: 'Mirror links steer giant mirrors in orbit to focus extra sunlight on us. Build a few and get us above zero.' },
+      { text: 'Raise pressure to 12 kPa', get: () => S.planet.press, target: 12, unit: 'kPa', dec: 1,
+        who: 'kip', hint: 'Comets are full of frozen gas! Each one adds two and a half kilopascals. Pick the comet and aim it at open ground. Wheee!' },
+      { text: 'Make 2 crater lakes', get: lakesInCraters, target: 2,
+        who: 'bot', hint: 'Steer comets into the craters. Once it’s above zero, the comet ice melts and we get lakes.' },
+      { text: 'Grow lichen on 12 tiles', get: lichenTiles, target: 12,
+        who: 'bot', hint: 'Lichen can survive once it’s warmer than minus twenty and the air is above five kilopascals. Build a seeder and it will spread on its own.' },
     ],
+    intro: [['cmd', 'Phase two. We want liquid water, and that means a warmer planet with much thicker air.'],
+            ['kip', 'Good news! I have found several icy comets. Bad news: they are very, very fast. Shall we throw them at Mars?']],
+    outro: [['bot', 'Lakes, clouds, and something green growing on Mars. I might cry a little.'], ['kip', 'Do not cry near the electronics, please.']],
     brief: {
       eyebrow: 'Level 2',
       title: 'Thicken the Sky',
@@ -444,7 +476,10 @@ function tick(dt) {
   S.rates = { energy: prod - cons, metal, water, temp, press };
   S.cometCd = Math.max(0, S.cometCd - dt);
 
-  if (eff < 1 && !shortageWarned) { shortageWarned = true; toast('Power shortage: everything slows down. Build more solar arrays.', 'bad'); }
+  if (eff < 1 && !shortageWarned) {
+    shortageWarned = true; toast('Power shortage: everything slows down. Build more solar arrays.', 'bad');
+    say('eng', 'We’re using more power than we make, so everything has slowed down. Build more solar arrays, or recycle something.', 'short' + S.level);
+  }
   if (eff >= 1 && S.energy > 10) shortageWarned = false;
 
   // thaw
@@ -452,12 +487,17 @@ function tick(dt) {
     if (t.type === 'frozen' || t.type === 'ice') {
       if (t.type === 'ice' && t.b) continue; // drills keep their ice
       if (t.type === 'frozen') toastOnce('thaw', 'Crater ice is melting into lakes!', 'good');
+      say('bot', 'We’re above zero and the ice is melting! Liquid water, open to the sky, for the first time in billions of years.', 'thaw');
       t.type = 'lake';
     }
   }
 
+  if (S.planet.temp >= -10) say('kip', 'The snow on the mountains is melting. Fun fact: it was mostly frozen carbon dioxide, so now it is more atmosphere!', 'snow');
+  if (S.planet.press >= 4) say('kip', 'Look up! Those are clouds. Real clouds, on Mars! I am taking several hundred photos.', 'clouds');
+
   // lichen
   const canGrow = S.planet.temp >= -20 && S.planet.press >= 5;
+  if (canGrow && S.level === 1) say('bot', 'It’s warm enough and the air is thick enough for lichen now. Get a seeder down!', 'lichen-ok');
   if (canGrow) {
     const open = t => t && !t.b && (t.type === 'plain' || t.type === 'ore');
     for (const t of S.tiles) if (t.b === 'seeder') {
@@ -479,10 +519,18 @@ function tick(dt) {
   const L = LEVELS[S.level];
   L.goals.forEach((g, i) => {
     if (!S.goalsDone[i] && g.get() >= g.target) {
-      S.goalsDone[i] = true;
+      S.goalsDone[i] = true; S.lastProgress = S.time;
       toast('Done: ' + g.text, 'good'); sfx('chime');
+      const j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
+      if (j >= 0) { const n = L.goals[j]; say(n.who, PRAISE[n.who] + ' ' + n.hint, `hint-${S.level}-${j}`); }
     }
   });
+  // nudge with the next objective when nothing has happened for a while
+  if (!S.won && S.time - S.lastProgress > 55 && S.time - S.lastNudge > 70 && !talking && !talkQ.length) {
+    S.lastNudge = S.time;
+    const j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
+    if (j >= 0) say(L.goals[j].who, L.goals[j].hint);
+  }
   if (!S.won && S.goalsDone.every(Boolean)) {
     S.won = true;
     try { localStorage.setItem('mmb-best', String(Math.max(S.level + 1, +localStorage.getItem('mmb-best') || 0))); } catch (e) {}
@@ -522,7 +570,7 @@ function place(name, t) {
   if (!ok) { if (why) toast(why, 'bad'); sfx('nope'); return; }
   const d = B[name];
   for (const [k, v] of Object.entries(d.cost)) S[k] -= v;
-  dirty = true;
+  dirty = true; S.lastProgress = S.time;
   const c = center(t);
   if (name === 'recycle') {
     const refund = Math.floor((B[t.b].cost.metal || 0) / 2);
@@ -561,6 +609,7 @@ function cometImpact(t) {
   burst(c.x, c.y - 4, 34, ['#ff9a6a', '#ffd166', '#9be3ff', '#ffffff', '#c4552d'], 1.8);
   for (let i = 0; i < 6; i++) fx.push(puff(c.x + (Math.random() - .5) * 40, c.y - 6, '#f3d9cf', 1.6));
   sfx('boom');
+  say('kip', 'Direct hit! Atmosphere: slightly thicker. Crater: slightly bigger. Me: extremely happy.', 'comet1');
   toast(t.type === 'frozen' ? 'Splash! The crater filled with ice. Warm Mars above 0 °C to melt it.'
       : t.type === 'lake' && t.basin ? 'Splash! A new crater lake.' : '+2.5 kPa of fresh atmosphere', 'good');
 }
@@ -639,6 +688,7 @@ function layout() {
   const bw = N * 64, bh = N * 32 + BASE + 3 * HZ + 50;
   const s = Math.min(availW / bw, availH / bh, 1.6);
   $('#toasts').style.top = top + 'px';
+  $('#talk').style.bottom = (H - $('.bottom').getBoundingClientRect().top + 10) + 'px';
   view = { W, H, dpr, s, x: W / 2, y: top + (availH - bh * s) / 2 + (3 * HZ + 50) * s };
 }
 
@@ -1143,6 +1193,7 @@ function openModal(html) {
 function closeModal() { $('#modal').hidden = true; modalOpen = false; }
 
 function showTitle() {
+  hush();
   const cont = playing ? { S, savedAt: Date.now() } : readSave();
   openModal(`
     <span class="eyebrow">A tiny terraforming game</span>
@@ -1163,6 +1214,10 @@ function showTitle() {
     audioInit();
     if (!playing) loadSave(cont);
     closeModal();
+    if (!talking && !talkQ.length) {
+      const L = LEVELS[S.level], j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
+      if (j >= 0) say(L.goals[j].who, 'Welcome back! ' + L.goals[j].hint);
+    }
   });
 }
 
@@ -1181,6 +1236,7 @@ function showBrief() {
 function showComplete() {
   const L = LEVELS[S.level], d = L.done, next = S.level + 1 < LEVELS.length;
   sfx('win');
+  for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
     <span class="eyebrow" style="color:var(--leaf)">Level ${S.level + 1} complete · ${Math.floor(S.time / 10) + 1} sols</span>
     <h2>${d.title}</h2>
@@ -1201,14 +1257,164 @@ function startLevel(li, brief = true) {
   S = newState(li);
   afterLoad();
   playing = true; saveGame();
+  const L = LEVELS[li];
+  for (const [w, txt] of L.intro) say(w, txt);
+  say(L.goals[0].who, L.goals[0].hint, `hint-${li}-0`);
   if (brief) showBrief(); else closeModal();
 }
 
 function afterLoad() {
+  hush();
+  S.said = S.said || {}; S.lastProgress = S.lastProgress ?? S.time; S.lastNudge = S.lastNudge ?? 0;
   buildOrder(); buildToolbar(); buildGoals();
   tool = null; hover = null; fx = []; comets = []; once.clear(); shortageWarned = false;
   selectTool(null); layout(); updateUI();
 }
+
+// ---------------------------------------------------------------- crew
+// Lines are spoken with the browser's built-in speech synthesis and always shown as subtitles.
+const CREW = {
+  cmd: { name: 'Commander Reyes', role: 'Mission lead', suit: '#ff7a45', bg: '#3b2352', skin: '#9a6440', hair: '#2a1712', pitch: 1.0, rate: 1.0,
+         prefs: ['Google US English', 'Samantha', 'Microsoft Aria', 'Microsoft Jenny', 'Allison', 'Ava', 'Victoria'] },
+  eng: { name: 'Chief Engineer Haddad', role: 'Power & construction', suit: '#f6c453', bg: '#3a3120', skin: '#c68a5e', hair: '#1b1514', pitch: 0.85, rate: 1.03,
+         prefs: ['Google UK English Male', 'Daniel', 'Microsoft Guy', 'Microsoft David', 'Microsoft Ryan', 'Alex', 'Tom', 'Fred'] },
+  bot: { name: 'Dr. Sato', role: 'Botanist', suit: '#5fd38d', bg: '#1d3a2e', skin: '#f0c9a2', hair: '#3a2318', pitch: 1.15, rate: 0.98,
+         prefs: ['Google UK English Female', 'Karen', 'Moira', 'Tessa', 'Microsoft Sonia', 'Microsoft Libby', 'Microsoft Zira', 'Serena', 'Kate'] },
+  kip: { name: 'KIP-7', role: 'Survey robot', suit: '#5cc8ff', bg: '#1b2e4b', robot: true, pitch: 1.7, rate: 1.12,
+         prefs: ['Zarvox', 'Trinoids', 'Ralph', 'Microsoft Mark', 'Google US English', 'Fred'] },
+};
+const PRAISE = { cmd: 'Good work, team.', eng: 'Solid work.', bot: 'Lovely!', kip: 'Excellent! Beep.' };
+const TTS = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+const talkQ = [];
+let talking = null, talkGen = 0;
+
+function assignVoices() {
+  if (!TTS) return;
+  const voices = speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
+  const used = new Set();
+  for (const c of Object.values(CREW)) {
+    let v = null;
+    for (const name of c.prefs) { v = voices.find(x => x.name.includes(name) && !used.has(x.name)); if (v) break; }
+    v = v || voices.find(x => !used.has(x.name) && x.localService) || voices.find(x => !used.has(x.name)) || voices[0] || null;
+    if (v) used.add(v.name);
+    c.voice = v;
+  }
+}
+if (TTS) { assignVoices(); speechSynthesis.addEventListener?.('voiceschanged', assignVoices); }
+
+// key: say each keyed line once per save. force: allowed to start while a dialog is open.
+function say(who, text, key = null, force = false) {
+  if (!S) return;
+  if (key) { if (S.said[key]) return; S.said[key] = 1; dirty = true; }
+  if ((talking && talking.text === text) || talkQ.some(l => l.text === text)) return;
+  talkQ.push({ who, text, force, shown: 0 });
+}
+function hush() {
+  talkQ.length = 0; talking = null; talkGen++;
+  if (TTS) speechSynthesis.cancel();
+  $('#talk').hidden = true; duck(false);
+}
+function duck(on) {
+  if (AC && M.out && M.timer) M.out.gain.setTargetAtTime(on ? 0.3 : 0.85, AC.currentTime, 0.25);
+}
+function nextLine() {
+  const gen = ++talkGen;
+  talking = talkQ.shift();
+  const c = CREW[talking.who];
+  $('#talk-name').textContent = c.name; $('#talk-name').style.color = c.suit;
+  $('#talk-role').textContent = c.role;
+  $('#talk-text').textContent = '';
+  const el = $('#talk'); el.hidden = false; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  talking.until = Infinity;
+  const minEnd = RT + 1.6 + talking.text.length * 0.04; // enough time to read, even if speech fails instantly
+  const done = () => { if (gen === talkGen && talking) talking.until = Math.max(RT + 1.1, minEnd); };
+  if (TTS && prefs.voice && !document.hidden) {
+    const u = new SpeechSynthesisUtterance(talking.text);
+    if (c.voice) { u.voice = c.voice; u.lang = c.voice.lang; }
+    u.pitch = c.pitch; u.rate = c.rate; u.volume = 1;
+    u.onend = done; u.onerror = done;
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+    talking.spoken = true;
+    // fallback in case the speech engine never reports the end
+    talking.safety = RT + 4 + talking.text.length * 0.085;
+    duck(true);
+  } else {
+    talking.until = RT + 2.2 + talking.text.length * 0.05;
+  }
+}
+function skipLine() {
+  if (!talking) return;
+  talkGen++; if (TTS && talking.spoken) speechSynthesis.cancel();
+  talking = null;
+  if (!talkQ.length) { $('#talk').hidden = true; duck(false); }
+}
+function talkUpdate(dt) {
+  if (talking) {
+    talking.shown = Math.min(talking.text.length, talking.shown + dt * 30);
+    $('#talk-text').textContent = talking.text.slice(0, Math.ceil(talking.shown));
+    if (talking.safety && RT > talking.safety && talking.until === Infinity) talking.until = RT;
+    if (RT > talking.until) { talking = null; if (!talkQ.length) { $('#talk').hidden = true; duck(false); } }
+  }
+  if (!talking && talkQ.length && (!modalOpen || talkQ[0].force)) nextLine();
+  if (talking) {
+    const speaking = talking.spoken ? (TTS && speechSynthesis.speaking && talking.until === Infinity) : talking.shown < talking.text.length;
+    const mouth = speaking && Math.sin(RT * 22) > -0.1;
+    const blink = (RT % 3.7) < 0.12;
+    drawPortrait(faceCtx, talking.who, mouth, blink);
+  }
+}
+
+const faceCtx = $('#talk-face').getContext('2d');
+faceCtx.scale(2, 2);
+function drawPortrait(g, id, open, blink) {
+  const c = CREW[id];
+  g.clearRect(0, 0, 60, 60);
+  g.save();
+  g.beginPath(); g.arc(30, 30, 30, 0, Math.PI * 2); g.clip();
+  g.fillStyle = c.bg; g.fillRect(0, 0, 60, 60);
+  ell(g, 44, 14, 2, 2, 'rgba(255,255,255,0.25)'); ell(g, 12, 20, 1.2, 1.2, 'rgba(255,255,255,0.25)');
+  ell(g, 30, 64, 27, 19, c.suit);
+  ell(g, 30, 50, 9, 4, shade(c.suit, -0.2));
+  if (c.robot) {
+    g.strokeStyle = '#c9d6f5'; g.lineWidth = 2; g.beginPath(); g.moveTo(30, 16); g.lineTo(30, 7); g.stroke();
+    ell(g, 30, 6.5, 3, 3, Math.sin(RT * 5) > 0 ? '#ff6b81' : '#ffb3c1');
+    g.fillStyle = '#e8efff'; g.beginPath(); g.roundRect ? g.roundRect(13, 15, 34, 30, 11) : g.rect(13, 15, 34, 30); g.fill();
+    g.fillStyle = '#cfdaf5'; g.beginPath(); g.roundRect ? g.roundRect(31, 15, 16, 30, [0, 11, 11, 0]) : g.rect(31, 15, 16, 30); g.fill();
+    g.fillStyle = '#16203d'; g.beginPath(); g.roundRect ? g.roundRect(17, 21, 26, 15, 7) : g.rect(17, 21, 26, 15); g.fill();
+    const eh = blink ? 0.6 : 3.4;
+    ell(g, 24.5, 28, 3.4, eh, '#5cc8ff'); ell(g, 35.5, 28, 3.4, eh, '#5cc8ff');
+    if (!blink) { ell(g, 25.5, 27, 1.1, 1.1, '#ffffff'); ell(g, 36.5, 27, 1.1, 1.1, '#ffffff'); }
+    for (let k = 0; k < 3; k++) ell(g, 25 + k * 5, 40.5, 1.5, open ? 1.6 : 0.8, open ? '#5cc8ff' : '#7f8db3');
+  } else {
+    ell(g, 30, 30, 20, 20, '#f6f3ff');
+    g.save(); g.beginPath(); g.arc(30, 30, 20, 0, Math.PI * 2); g.clip(); ell(g, 42, 33, 14, 22, '#e2dcf6'); g.restore();
+    g.fillStyle = c.suit; g.fillRect(27, 10, 6, 6);
+    g.save(); g.beginPath(); g.ellipse(30, 32, 14.5, 12.5, 0, 0, Math.PI * 2); g.clip();
+    g.fillStyle = '#1d2550'; g.fillRect(0, 0, 60, 60);
+    ell(g, 30, 36, 10.5, 11.5, c.skin);
+    ell(g, 30, 25.5, 11.5, 6.5, c.hair);
+    if (id === 'bot') ell(g, 39, 24, 4, 4, c.hair);
+    ell(g, 25.5, 35, 1.5, blink ? 0.3 : 1.7, '#1a1238'); ell(g, 34.5, 35, 1.5, blink ? 0.3 : 1.7, '#1a1238');
+    ell(g, 23, 39, 2, 1.1, 'rgba(255,120,120,0.35)'); ell(g, 37, 39, 2, 1.1, 'rgba(255,120,120,0.35)');
+    if (open) ell(g, 30, 41.3, 2.3, 1.9, '#5a1e2e');
+    else { g.strokeStyle = '#5a1e2e'; g.lineWidth = 1.1; g.beginPath(); g.arc(30, 39.5, 2.4, 0.2, Math.PI - 0.2); g.stroke(); }
+    g.restore();
+    g.strokeStyle = 'rgba(255,255,255,0.65)'; g.lineWidth = 1.8; g.lineCap = 'round';
+    g.beginPath(); g.ellipse(30, 32, 11.5, 9.5, 0, Math.PI * 1.08, Math.PI * 1.38); g.stroke();
+    if (id === 'bot') { ell(g, 16, 46, 2.6, 1.4, '#2f8f57'); ell(g, 19, 45, 2.6, 1.4, '#7ddc9f'); }
+    if (id === 'eng') { g.fillStyle = '#24102a'; g.fillRect(15, 47, 10, 2); g.fillRect(19, 44, 2, 8); }
+    if (id === 'cmd') ell(g, 19, 47, 2.4, 2.4, '#ffd166');
+  }
+  g.restore();
+}
+function toggleVoice() {
+  prefs.voice = !prefs.voice; savePrefs(); syncAudioButtons();
+  if (!prefs.voice && TTS) speechSynthesis.cancel();
+  if (!TTS && prefs.voice) toast('This browser can’t speak, so the crew will use subtitles only.', 'bad');
+  else toast(prefs.voice ? 'Crew voices on' : 'Crew voices off (subtitles stay)');
+}
+$('#talk').addEventListener('click', skipLine);
 
 // ---------------------------------------------------------------- autosave
 const SAVE_KEY = 'mmb-save-v1';
@@ -1251,7 +1457,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
 
 // ---------------------------------------------------------------- audio
 let AC = null, sfxBus = null;
-const prefs = { music: true, sfx: true };
+const prefs = { music: true, sfx: true, voice: true };
 try { Object.assign(prefs, JSON.parse(localStorage.getItem('mmb-audio')) || {}); } catch (e) {}
 const savePrefs = () => { try { localStorage.setItem('mmb-audio', JSON.stringify(prefs)); } catch (e) {} };
 
@@ -1420,16 +1626,18 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape') selectTool(null);
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'm' || e.key === 'M') toggleMusic();
+  else if (e.key === 'v' || e.key === 'V') toggleVoice();
+  else if (e.key === 'Enter' && talking) skipLine();
   else if (/^[1-9]$/.test(e.key)) { const n = LEVELS[S.level].tools[+e.key - 1]; if (n) selectTool(tool === n ? null : n); }
 });
 function togglePause() { paused = !paused; const b = $('#btn-pause'); b.textContent = paused ? '▶' : '❚❚'; b.classList.toggle('on', paused); }
 $('#btn-pause').addEventListener('click', togglePause);
 $('#btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $('#btn-speed').textContent = speed + '×'; $('#btn-speed').classList.toggle('on', speed > 1); });
 function syncAudioButtons() {
-  for (const [id, key, label] of [['#btn-music', 'music', 'Music'], ['#btn-sound', 'sfx', 'Sound effects']]) {
+  for (const [id, key, label] of [['#btn-music', 'music', 'Music'], ['#btn-voice', 'voice', 'Crew voices'], ['#btn-sound', 'sfx', 'Sound effects']]) {
     const b = $(id), on = prefs[key];
     b.classList.toggle('off', !on); b.setAttribute('aria-pressed', String(on));
-    b.title = `${label}: ${on ? 'on' : 'off'}${key === 'music' ? ' (M)' : ''}`;
+    b.title = `${label}: ${on ? 'on' : 'off'}${key === 'music' ? ' (M)' : key === 'voice' ? ' (V)' : ''}`;
   }
 }
 function toggleMusic() {
@@ -1438,6 +1646,7 @@ function toggleMusic() {
   toast(prefs.music ? 'Music on' : 'Music off');
 }
 $('#btn-music').addEventListener('click', toggleMusic);
+$('#btn-voice').addEventListener('click', toggleVoice);
 $('#btn-sound').addEventListener('click', () => {
   prefs.sfx = !prefs.sfx; savePrefs(); syncAudioButtons();
   if (prefs.sfx) sfx('chime');
@@ -1455,6 +1664,7 @@ function frame(now) {
   const simDt = running ? rdt * speed : 0;
   if (running) tick(simDt);
   if (S) updateFX(running ? rdt * Math.min(speed, 2) : rdt * 0.3, simDt);
+  talkUpdate(rdt);
   uiT += rdt;
   if (uiT > 0.12 && S) { uiT = 0; updateUI(); layout(); }
   saveT += rdt;

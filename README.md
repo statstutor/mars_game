@@ -12,6 +12,14 @@ Open `index.html` in a browser. It's a single file with no build step and no dep
 - Hover a tile to learn what it is.
 - The music and sound-effect buttons sit next to pause; `M` toggles the music. Sound starts after your first click or key press (browsers require it). On iPhone, the silent switch also mutes the game.
 
+## The crew
+
+Four crew members talk you through each level and nudge you when you're stuck:
+Commander Reyes (mission lead), Chief Engineer Haddad (power and construction),
+Dr. Sato (botanist) and KIP-7 (a survey robot). Lines are spoken with the browser's
+built-in speech synthesis, so the voices depend on your device, and always appear as
+subtitles. Click the crew card or press `Enter` to skip a line; `V` turns the voices off.
+
 ## Levels
 
 1. **Touchdown**: build solar arrays, mines on purple ore, an ice drill on the polar cap and a
