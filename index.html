@@ -110,6 +110,11 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .lvl small { color: var(--muted); font-size: 13px; }
 .lvl .go { font: 600 14px var(--display); color: var(--mars); }
 .lvl.two .go { color: var(--sky); }
+.lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
+.lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
+.lvl.cont .n { background: var(--leaf); font-size: 16px; }
+.lvl.cont .go { color: var(--leaf); }
+#saved { margin: 10px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn { border: 0; border-radius: 999px; padding: 12px 22px; font: 600 16px var(--display); cursor: pointer; background: var(--mars); color: #24102a; }
 .btn.alt { background: rgba(255, 255, 255, 0.1); color: var(--ink); }
@@ -152,6 +157,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
         <h2 id="lvl-name">Touchdown</h2>
       </summary>
       <ul id="goal-list"></ul>
+      <p id="saved">Progress saves automatically</p>
     </details>
     <div class="stats">
       <div class="group" aria-label="Colony">
@@ -349,6 +355,7 @@ let paused = false, speed = 1, modalOpen = false;
 let RT = 0;              // real time (animations)
 let fx = [], comets = [], clouds = [], stars = [];
 let shake = 0, shortageWarned = false;
+let playing = false;     // true once a level has been started or resumed; only then do we autosave
 let view = { x: 0, y: 0, s: 1, W: 0, H: 0, dpr: 1 };
 
 const tileAt = (x, y) => (x >= 0 && y >= 0 && x < N && y < N) ? S.tiles[y * N + x] : null;
@@ -475,6 +482,7 @@ function tick(dt) {
   if (!S.won && S.goalsDone.every(Boolean)) {
     S.won = true;
     try { localStorage.setItem('mmb-best', String(Math.max(S.level + 1, +localStorage.getItem('mmb-best') || 0))); } catch (e) {}
+    saveGame();
     setTimeout(showComplete, 1400);
   }
 }
@@ -510,6 +518,7 @@ function place(name, t) {
   if (!ok) { if (why) toast(why, 'bad'); sfx('nope'); return; }
   const d = B[name];
   for (const [k, v] of Object.entries(d.cost)) S[k] -= v;
+  dirty = true;
   const c = center(t);
   if (name === 'recycle') {
     const refund = Math.floor((B[t.b].cost.metal || 0) / 2);
@@ -533,6 +542,7 @@ function place(name, t) {
 
 function cometImpact(t) {
   const c = center(t);
+  dirty = true;
   S.planet.press += 2.5;
   S.planet.temp = Math.min(22, S.planet.temp + 1.5);
   if (t.type === 'crater' || t.type === 'frozen') {
@@ -1129,6 +1139,7 @@ function openModal(html) {
 function closeModal() { $('#modal').hidden = true; modalOpen = false; }
 
 function showTitle() {
+  const cont = playing ? { S, savedAt: Date.now() } : readSave();
   openModal(`
     <span class="eyebrow">A tiny terraforming game</span>
     <h1><span class="m">Make Mars</span><br><span class="b">Blue</span></h1>
@@ -1139,10 +1150,16 @@ function showTitle() {
       <div><b>Terraform</b>Warm the planet, thicken the air.</div>
     </div>
     <div class="levels">
+      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>Level ${cont.S.level + 1}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
       <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
       <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes and lichen.</small></span><span class="go">Play</span></button>
     </div>`);
-  $('#modal').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => { audioInit(); startLevel(+b.dataset.l); }));
+  $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => { audioInit(); startLevel(+b.dataset.l); }));
+  if (cont) $('#continue').addEventListener('click', () => {
+    audioInit();
+    if (!playing) loadSave(cont);
+    closeModal();
+  });
 }
 
 function showBrief() {
@@ -1179,6 +1196,7 @@ function showComplete() {
 function startLevel(li, brief = true) {
   S = newState(li);
   afterLoad();
+  playing = true; saveGame();
   if (brief) showBrief(); else closeModal();
 }
 
@@ -1187,6 +1205,45 @@ function afterLoad() {
   tool = null; hover = null; fx = []; comets = []; once.clear(); shortageWarned = false;
   selectTool(null); layout(); updateUI();
 }
+
+// ---------------------------------------------------------------- autosave
+const SAVE_KEY = 'mmb-save-v1';
+function saveGame() {
+  dirty = false; saveT = 0;
+  if (!playing || !S) return;
+  try {
+    const data = { S, comets: comets.map(c => S.tiles.indexOf(c.t)), savedAt: Date.now() };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    $('#saved').textContent = 'Autosaved ' + new Date(data.savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  } catch (e) {
+    $('#saved').textContent = 'This browser is blocking saves, so progress is lost when you leave.';
+  }
+}
+function readSave() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === N * N) return d;
+  } catch (e) {}
+  return null;
+}
+function loadSave(d) {
+  S = d.S;
+  for (const t of S.tiles) t.born = -9;
+  S.goalsDone = LEVELS[S.level].goals.map((g, i) => !!(S.goalsDone && S.goalsDone[i]));
+  afterLoad();
+  comets = (d.comets || []).filter(i => S.tiles[i]).map(i => ({ t: S.tiles[i], p: 0 }));
+  playing = true;
+  $('#saved').textContent = 'Resumed from your autosave';
+}
+function ago(ts) {
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60);
+  return h < 24 ? h + ' h ago' : Math.round(h / 24) + ' days ago';
+}
+addEventListener('pagehide', saveGame);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 
 // ---------------------------------------------------------------- audio
 let AC = null, muted = false;
@@ -1249,7 +1306,7 @@ addEventListener('resize', layout);
 $('#goals').addEventListener('toggle', () => requestAnimationFrame(layout));
 
 // ---------------------------------------------------------------- loop
-let last = performance.now(), uiT = 0;
+let last = performance.now(), uiT = 0, saveT = 0, dirty = false;
 function frame(now) {
   const rdt = Math.min(0.1, (now - last) / 1000); last = now; RT += rdt;
   const running = S && !paused && !modalOpen;
@@ -1258,6 +1315,8 @@ function frame(now) {
   if (S) updateFX(running ? rdt * Math.min(speed, 2) : rdt * 0.3, simDt);
   uiT += rdt;
   if (uiT > 0.12 && S) { uiT = 0; updateUI(); layout(); }
+  saveT += rdt;
+  if (playing && (dirty || (saveT > 5 && running))) saveGame();
   render();
   requestAnimationFrame(frame);
 }
@@ -1268,13 +1327,18 @@ function boot(data) {
   if (data && data.S) {
     S = data.S; for (const t of S.tiles) t.born = -9;
     afterLoad();
+    playing = !!data.playing;
     if (data.modal === false) closeModal(); else showTitle();
   } else {
-    S = newState(0); afterLoad(); showTitle();
+    const save = readSave();
+    if (save) loadSave(save); else { S = newState(0); afterLoad(); }
+    playing = false;   // stay on the title screen until the player picks Continue or a level
+    $('#saved').textContent = 'Progress saves automatically';
+    showTitle();
   }
   requestAnimationFrame(frame);
 }
-window.claude?.hot?.snapshot?.(() => ({ S, modal: modalOpen }));
+window.claude?.hot?.snapshot?.(() => ({ S, modal: modalOpen, playing }));
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
 })();
 </script>

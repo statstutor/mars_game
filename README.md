@@ -19,3 +19,5 @@ Open `index.html` in a browser. It's a single file with no build step and no dep
    12 kPa, fill two craters with lakes, and spread lichen across 12 tiles.
 
 Everything runs on solar power. If you use more energy than you make, every building slows down.
+
+Progress autosaves in your browser every few seconds and whenever you build. Reopen the page and press **Continue** on the title screen to pick up where you left off. Starting a level from the title screen replaces the save.
