@@ -16,9 +16,14 @@ Open `index.html` in a browser. It's a single file with no build step and no dep
 
 Four crew members talk you through each level and nudge you when you're stuck:
 Commander Reyes (mission lead), Chief Engineer Haddad (power and construction),
-Dr. Sato (botanist) and KIP-7 (a survey robot). Lines are spoken with the browser's
-built-in speech synthesis, so the voices depend on your device, and always appear as
-subtitles. Click the crew card or press `Enter` to skip a line; `V` turns the voices off.
+Dr. Sato (botanist) and KIP-7 (a survey robot). Every line is pre-recorded with the
+[Kokoro](https://github.com/hexgrad/kokoro) neural text-to-speech model (Apache-2.0) and
+stored in `audio/voice/`; lines always appear as subtitles too. If a clip can't be played,
+the game falls back to the browser's built-in speech.
+
+To change a line, edit it in `index.html` and re-record with `tools/make_voices.py`
+(instructions at the top of that file). Clips are named by a hash of the speaker and text,
+so only new or changed lines are recorded. Click the crew card or press `Enter` to skip a line; `V` turns the voices off.
 
 ## Levels
 

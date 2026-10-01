@@ -1276,11 +1276,11 @@ function afterLoad() {
 const CREW = {
   cmd: { name: 'Commander Reyes', role: 'Mission lead', suit: '#ff7a45', bg: '#3b2352', skin: '#9a6440', hair: '#2a1712', pitch: 1.0, rate: 1.0,
          prefs: ['Google US English', 'Samantha', 'Microsoft Aria', 'Microsoft Jenny', 'Allison', 'Ava', 'Victoria'] },
-  eng: { name: 'Chief Engineer Haddad', role: 'Power & construction', suit: '#f6c453', bg: '#3a3120', skin: '#c68a5e', hair: '#1b1514', pitch: 0.85, rate: 1.03,
+  eng: { name: 'Chief Engineer Haddad', role: 'Power & construction', suit: '#f6c453', bg: '#3a3120', skin: '#c68a5e', hair: '#1b1514', pitch: 0.95, rate: 1.0,
          prefs: ['Google UK English Male', 'Daniel', 'Microsoft Guy', 'Microsoft David', 'Microsoft Ryan', 'Alex', 'Tom', 'Fred'] },
-  bot: { name: 'Dr. Sato', role: 'Botanist', suit: '#5fd38d', bg: '#1d3a2e', skin: '#f0c9a2', hair: '#3a2318', pitch: 1.15, rate: 0.98,
+  bot: { name: 'Dr. Sato', role: 'Botanist', suit: '#5fd38d', bg: '#1d3a2e', skin: '#f0c9a2', hair: '#3a2318', pitch: 1.05, rate: 0.98,
          prefs: ['Google UK English Female', 'Karen', 'Moira', 'Tessa', 'Microsoft Sonia', 'Microsoft Libby', 'Microsoft Zira', 'Serena', 'Kate'] },
-  kip: { name: 'KIP-7', role: 'Survey robot', suit: '#5cc8ff', bg: '#1b2e4b', robot: true, pitch: 1.7, rate: 1.12,
+  kip: { name: 'KIP-7', role: 'Survey robot', suit: '#5cc8ff', bg: '#1b2e4b', robot: true, pitch: 1.35, rate: 1.08,
          prefs: ['Zarvox', 'Trinoids', 'Ralph', 'Microsoft Mark', 'Google US English', 'Fred'] },
 };
 const PRAISE = { cmd: 'Good work, team.', eng: 'Solid work.', bot: 'Lovely!', kip: 'Excellent! Beep.' };
@@ -1288,17 +1288,60 @@ const TTS = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 const talkQ = [];
 let talking = null, talkGen = 0;
 
+// Fallback only: used when a recorded clip can't be played. Prefers the device's most natural voices.
+const NOVELTY = /Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Good News|Hysterical|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Kathy|Fred|Princess|eSpeak/i;
+function voiceScore(v, c) {
+  let s = 0;
+  if (/Natural|Neural|Premium|Enhanced|Siri|Online/i.test(v.name)) s += 100;
+  if (/Google/i.test(v.name)) s += 40;
+  const i = c.prefs.findIndex(n => v.name.includes(n));
+  if (i >= 0) s += 30 - i;
+  if (NOVELTY.test(v.name)) s -= 1000;
+  return s;
+}
 function assignVoices() {
   if (!TTS) return;
   const voices = speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
   const used = new Set();
   for (const c of Object.values(CREW)) {
-    let v = null;
-    for (const name of c.prefs) { v = voices.find(x => x.name.includes(name) && !used.has(x.name)); if (v) break; }
-    v = v || voices.find(x => !used.has(x.name) && x.localService) || voices.find(x => !used.has(x.name)) || voices[0] || null;
+    const ranked = voices.slice().sort((a, b) => voiceScore(b, c) - voiceScore(a, c));
+    const v = ranked.find(x => !used.has(x.name)) || ranked[0] || null;
     if (v) used.add(v.name);
     c.voice = v;
   }
+}
+
+// Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00f174a9 043eaa72 1515b2c3 1f6dbb97 2cd98069 2f8a9231 39f0c086 3c2a2c0e 400f80c3 59461109 5b62dcdc 73578833 7794c923 8b8bdc7a 8f5e7712 8f9a16c5 9635d846 97dacf1c 9ad2d653 b9fc496b bfcf3810 c007124e cf2fb74d d217d5e6 da768766 dd7ea9a4 de0c5c70 df6af503 dfee1638 e1692048 e8dc2b4c ee7e156f efd02516 f5b21430 f8521c9a f9295486 f9a4e05d f9e98a6a fd117f3c'/*END*/.split(' ').filter(Boolean));
+function clipKey(who, text) {
+  let h = 0x811c9dc5;
+  const s = who + '|' + text;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+const clipCache = new Map();
+function loadClip(key) {
+  if (!clipCache.has(key)) {
+    const pr = fetch(`audio/voice/${key}.mp3`).then(r => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); }).then(b => AC.decodeAudioData(b));
+    pr.catch(() => {});
+    clipCache.set(key, pr);
+  }
+  return clipCache.get(key);
+}
+let voiceBus = null, voiceMeter = null, meterBuf = null;
+function voiceOut() {
+  if (!voiceBus) {
+    voiceBus = AC.createGain(); voiceBus.gain.value = 1;
+    voiceMeter = AC.createAnalyser(); voiceMeter.fftSize = 512; meterBuf = new Float32Array(512);
+    voiceBus.connect(voiceMeter); voiceBus.connect(AC.destination);
+  }
+  return voiceBus;
+}
+function voiceLevel() {
+  if (!voiceMeter) return 0;
+  voiceMeter.getFloatTimeDomainData(meterBuf);
+  let s = 0; for (const v of meterBuf) s += v * v;
+  return Math.sqrt(s / meterBuf.length);
 }
 if (TTS) { assignVoices(); speechSynthesis.addEventListener?.('voiceschanged', assignVoices); }
 
@@ -1310,6 +1353,7 @@ function say(who, text, key = null, force = false) {
   talkQ.push({ who, text, force, shown: 0 });
 }
 function hush() {
+  if (talking) { try { talking.src && talking.src.stop(); } catch (e) {} if (talking.el) talking.el.pause(); }
   talkQ.length = 0; talking = null; talkGen++;
   if (TTS) speechSynthesis.cancel();
   $('#talk').hidden = true; duck(false);
@@ -1328,24 +1372,49 @@ function nextLine() {
   talking.until = Infinity;
   const minEnd = RT + 1.6 + talking.text.length * 0.04; // enough time to read, even if speech fails instantly
   const done = () => { if (gen === talkGen && talking) talking.until = Math.max(RT + 1.1, minEnd); };
-  if (TTS && prefs.voice && !document.hidden) {
-    const u = new SpeechSynthesisUtterance(talking.text);
-    if (c.voice) { u.voice = c.voice; u.lang = c.voice.lang; }
-    u.pitch = c.pitch; u.rate = c.rate; u.volume = 1;
-    u.onend = done; u.onerror = done;
-    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-    talking.spoken = true;
-    // fallback in case the speech engine never reports the end
-    talking.safety = RT + 4 + talking.text.length * 0.085;
+  const key = clipKey(talking.who, talking.text);
+  if (prefs.voice && AC && VOICE_CLIPS.has(key) && !document.hidden) {
+    const line = talking;
+    line.clip = true; line.safety = RT + 8; // time allowed for the file to load
     duck(true);
+    const fallback = () => { if (gen === talkGen && talking === line) { line.clip = false; speakTTS(line, c, done); } };
+    // the file:// fallback: a plain audio element also works when fetch is blocked
+    const viaElement = () => {
+      const a = new Audio(`audio/voice/${key}.mp3`);
+      line.el = a; a.onended = done; a.onerror = fallback;
+      a.play().then(() => { line.safety = Infinity; }).catch(fallback);
+    };
+    loadClip(key).then(buf => {
+      if (gen !== talkGen || talking !== line) return;
+      const src = AC.createBufferSource(); src.buffer = buf; src.connect(voiceOut());
+      src.onended = done; src.start();
+      line.src = src; line.safety = RT + buf.duration + 3;
+    }).catch(viaElement);
+    if (talkQ[0] && VOICE_CLIPS.has(clipKey(talkQ[0].who, talkQ[0].text))) loadClip(clipKey(talkQ[0].who, talkQ[0].text));
+  } else if (TTS && prefs.voice && !document.hidden) {
+    speakTTS(talking, c, done);
   } else {
     talking.until = RT + 2.2 + talking.text.length * 0.05;
   }
 }
+function speakTTS(line, c, done) {
+  if (!TTS) { line.until = RT + 2.2 + line.text.length * 0.05; return; }
+  const u = new SpeechSynthesisUtterance(line.text);
+  if (c.voice) { u.voice = c.voice; u.lang = c.voice.lang; }
+  u.pitch = c.pitch; u.rate = c.rate; u.volume = 1;
+  u.onend = done; u.onerror = done;
+  if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+  line.spoken = true;
+  // fallback in case the speech engine never reports the end
+  line.safety = RT + 4 + line.text.length * 0.085;
+  duck(true);
+}
 function skipLine() {
   if (!talking) return;
   talkGen++; if (TTS && talking.spoken) speechSynthesis.cancel();
+  try { talking.src && talking.src.stop(); } catch (e) {}
+  if (talking.el) talking.el.pause();
   talking = null;
   if (!talkQ.length) { $('#talk').hidden = true; duck(false); }
 }
@@ -1358,8 +1427,12 @@ function talkUpdate(dt) {
   }
   if (!talking && talkQ.length && (!modalOpen || talkQ[0].force)) nextLine();
   if (talking) {
-    const speaking = talking.spoken ? (TTS && speechSynthesis.speaking && talking.until === Infinity) : talking.shown < talking.text.length;
-    const mouth = speaking && Math.sin(RT * 22) > -0.1;
+    let mouth;
+    if (talking.src) mouth = voiceLevel() > 0.03;
+    else {
+      const speaking = talking.el ? !talking.el.paused : talking.spoken ? (TTS && speechSynthesis.speaking && talking.until === Infinity) : talking.shown < talking.text.length;
+      mouth = speaking && Math.sin(RT * 22) > -0.1;
+    }
     const blink = (RT % 3.7) < 0.12;
     drawPortrait(faceCtx, talking.who, mouth, blink);
   }
