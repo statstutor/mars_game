@@ -341,7 +341,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 12;
+const BUILD = 13;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -1421,7 +1421,7 @@ function foundGold() {
 }
 function goGlorp() {
   closeModal();
-  if (playing && S) { saveGame(); try { localStorage.setItem('mmb-return', localStorage.getItem(SAVE_KEY)); } catch (e) {} }
+  if (playing && S) { saveGame(); keepHomeSave(); }
   store.set('mmb-glorp', true);
   startLevel(GLORP);
 }
@@ -1710,6 +1710,13 @@ function showGlorpDone() {
   }));
   if (back) $('#fly-home').addEventListener('click', flyHome);
   $('#glorp-menu').addEventListener('click', showTitle);
+}
+function keepHomeSave() {
+  try {
+    const cur = readSave();
+    if (cur && !LEVELS[cur.S.level].bonus) localStorage.setItem('mmb-return', localStorage.getItem(SAVE_KEY));
+    else if (!cur) localStorage.removeItem('mmb-return');
+  } catch (e) {}
 }
 function flyHome() {
   let raw = null;
@@ -3867,7 +3874,7 @@ function showTitle() {
       <div><b>Defend</b>Tap critters, feed your colonists.</div>
     </div>
     <div class="levels">
-      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>Level ${cont.S.level + 1}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
+      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${LEVELS[cont.S.level].bonus ? 'Bonus' : 'Level ' + (cont.S.level + 1)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
       <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
       <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes, lichen and strange ruins.</small></span><span class="go">Play</span></button>
       <button class="lvl three" data-l="2"><span class="n">3</span><span><b>Boomtown</b><small>Settlers, restaurants, night raids and alien visitors.</small></span><span class="go">Play</span></button>
@@ -3877,12 +3884,20 @@ function showTitle() {
       <button class="lvl seven" data-l="6"><span class="n">7</span><span><b>Phobos Outpost</b><small>Beyond Mars: a tiny moon, low gravity, falling meteors.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
+  else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 10 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
   else if (HEARTS > 0) $('#modal .levels').insertAdjacentHTML('afterend', `<p class="friend small-note">Zorp’s friendship ${heartRow()} ${HEARTS}/10</p>`);
+  let home = null;
+  try { const raw = localStorage.getItem('mmb-return'); home = raw && JSON.parse(raw); } catch (e) {}
+  if (home && home.S && LEVELS[home.S.level] && !LEVELS[home.S.level].bonus) {
+    $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl cont" id="go-home"><span class="n">⌂</span><span><b>Back to your Mars game</b><small>Level ${home.S.level + 1}: ${LEVELS[home.S.level].name}, as you left it before visiting Glorp</small></span><span class="go">Return</span></button>`);
+    $('#go-home').addEventListener('click', () => { audioInit(); flyHome(); });
+  }
   if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">Zorp-tech upgrade: ${PERKS[PERK].name}</p>`);
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
   $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => {
     audioInit();
-    if (+b.dataset.l === GLORP) try { localStorage.removeItem('mmb-return'); } catch (e) {} // a visit from the menu has no game to return to
+    if (+b.dataset.l === GLORP) keepHomeSave(); // set the current game aside so the visit can't overwrite it
+    if (b.dataset.trial) store.set('mmb-glorp-trial', true); // the free visit is used up as soon as it starts
     startLevel(+b.dataset.l);
   }));
   if (cont) $('#continue').addEventListener('click', () => {
