@@ -341,7 +341,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 13;
+const BUILD = 14;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3984,7 +3984,7 @@ const CREW = {
          prefs: ['Google UK English Male', 'Daniel', 'Microsoft Guy', 'Microsoft David', 'Microsoft Ryan', 'Alex', 'Tom', 'Fred'] },
   bot: { name: 'Dr. Sato', role: 'Botanist', suit: '#5fd38d', bg: '#1d3a2e', skin: '#f0c9a2', hair: '#3a2318', pitch: 1.05, rate: 0.98,
          prefs: ['Google UK English Female', 'Karen', 'Moira', 'Tessa', 'Microsoft Sonia', 'Microsoft Libby', 'Microsoft Zira', 'Serena', 'Kate'] },
-  kip: { name: 'KIP-7', role: 'Survey robot', suit: '#5cc8ff', bg: '#1b2e4b', robot: true, pitch: 1.35, rate: 1.08,
+  kip: { name: 'Bebop', role: 'Survey robot', suit: '#5cc8ff', bg: '#1b2e4b', robot: true, pitch: 1.35, rate: 1.08,
          prefs: ['Zarvox', 'Trinoids', 'Ralph', 'Microsoft Mark', 'Google US English', 'Fred'] },
 };
 CREW.zorp = { name: 'Zorp', role: 'Alien trader', suit: '#b6f36a', bg: '#2a1f4a', alien: true, pitch: 1.6, rate: 1.15, prefs: ['Google US English', 'Samantha'] };

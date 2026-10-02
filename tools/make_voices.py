@@ -24,7 +24,7 @@ VOICES = {
     'cmd': ('af_heart', 'en-us', 1.0),    # Commander Reyes
     'eng': ('am_michael', 'en-us', 1.0),  # Chief Engineer Haddad
     'bot': ('bf_emma', 'en-gb', 0.97),    # Dr. Sato
-    'kip': ('am_puck', 'en-us', 1.05),    # KIP-7, robot effect added below
+    'kip': ('am_puck', 'en-us', 1.05),    # Bebop the survey robot, robot effect added below
     'zorp': ('am_puck', 'en-us', 1.1),    # Zorp the alien trader, alien effect added below
     'vell': ('bm_george', 'en-gb', 0.9),  # Elder Vell, ancient-being effect added below
     'mrs': ('af_bella', 'en-us', 1.05),   # Mrs. Zorp
@@ -107,7 +107,7 @@ def main():
         if os.path.exists(path):
             continue
         voice, lang, speed = VOICES[who]
-        spoken = text.replace('’', "'").replace('KIP-7', 'Kip seven')
+        spoken = text.replace('’', "'")
         y, sr = kokoro.create(spoken, voice=voice, speed=speed, lang=lang)
         if who == 'kip':
             y = robotize(y, sr)

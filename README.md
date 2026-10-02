@@ -16,7 +16,7 @@ Open `index.html` in a browser. It's a single file with no build step and no dep
 
 Four crew members talk you through each level and nudge you when you're stuck:
 Commander Reyes (mission lead), Chief Engineer Haddad (power and construction),
-Dr. Sato (botanist) and KIP-7 (a survey robot). Every line is pre-recorded with the
+Dr. Sato (botanist) and Bebop (a survey robot). Every line is pre-recorded with the
 [Kokoro](https://github.com/hexgrad/kokoro) neural text-to-speech model (Apache-2.0) and
 stored in `audio/voice/`; lines always appear as subtitles too. If a clip can't be played,
 the game falls back to the browser's built-in speech.
