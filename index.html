@@ -341,7 +341,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 14;
+const BUILD = 15;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4320,15 +4320,43 @@ function audioInit() {
     try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; return; }
     sfxBus = AC.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(AC.destination);
   }
-  if (AC.state === 'suspended') AC.resume().catch(() => {});
+  // iPhones can leave the context 'suspended' or 'interrupted' (after a call or app switch)
+  if (AC.state !== 'running') {
+    AC.resume().catch(() => {});
+    // a silent blip inside the tap is what finally unlocks audio on older iPhones
+    try { const s = AC.createBufferSource(); s.buffer = AC.createBuffer(1, 1, 22050); s.connect(AC.destination); s.start(0); } catch (e) {}
+  }
+  iosPlayback();
   if (prefs.music) musicStart();
+}
+// iPhones mute web audio when the ring/silent switch is on. Asking for the 'playback' audio
+// session (newer Safari) or keeping a silent media element playing (older Safari) lets the
+// game be heard like a video would be.
+let silentEl = null;
+function iosPlayback() {
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
+  if (navigator.audioSession || !/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return;
+  if (!silentEl) {
+    // half a second of 8 kHz silence as a WAV
+    const n = 4000, b = new DataView(new ArrayBuffer(44 + n));
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) b.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); b.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); b.setUint32(16, 16, true);
+    b.setUint16(20, 1, true); b.setUint16(22, 1, true); b.setUint32(24, 8000, true); b.setUint32(28, 8000, true);
+    b.setUint16(32, 1, true); b.setUint16(34, 8, true); str(36, 'data'); b.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) b.setUint8(44 + i, 128);
+    silentEl = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' })));
+    silentEl.loop = true; silentEl.setAttribute('playsinline', '');
+  }
+  if (silentEl.paused && !document.hidden) silentEl.play().catch(() => {});
 }
 addEventListener('pointerdown', audioInit, true);
 addEventListener('keydown', audioInit, true);
 addEventListener('touchend', audioInit, true);
+addEventListener('click', audioInit, true);
 document.addEventListener('visibilitychange', () => {
   if (!AC) return;
-  if (document.hidden) AC.suspend().catch(() => {}); else AC.resume().catch(() => {});
+  if (document.hidden) { AC.suspend().catch(() => {}); if (silentEl) silentEl.pause(); }
+  else AC.resume().catch(() => {});
 });
 
 // ---- generative soundtrack: an uplifting, alien synth-orchestra score.
