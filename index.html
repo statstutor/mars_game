@@ -1335,7 +1335,7 @@ function updateRocket(dt) {
 }
 function drawRocket(g, T) {
   const R_ = S.rocket;
-  if (!R_ || R_.launched) return;
+  if (!R_ || R_.launched || A) return;
   const up = S.launchT ? Math.pow(S.launchT, 2) * 260 : 0, shakeX = S.launchT ? (Math.random() - 0.5) * 2 : 0;
   g.save(); g.translate(shakeX, -up);
   if (S.launchT) {
@@ -1353,7 +1353,7 @@ function drawRocket(g, T) {
   }
 }
 function startLaunch() {
-  if (!S.rocket || S.rocket.launched) return;
+  if (!S.rocket || S.rocket.launched || S.launchT || A) return;
   S.launchT = 0.001; sfx('whoosh'); sfx('boom');
   say('cmd', 'Three, two, one. Liftoff! Hold on, everyone. We are not out of trouble yet.', 'liftoff');
   const timer = setInterval(() => {
@@ -1361,7 +1361,7 @@ function startLaunch() {
     S.launchT += 0.05; shake = RM ? 0 : 6;
     const pad = S.tiles.find(t => t.b === 'pad');
     if (pad) { const c = center(pad); for (let i = 0; i < 3; i++) fx.push(puff(c.x + (Math.random() - 0.5) * 40, c.y, '#f3e6dc', 2)); }
-    if (S.launchT >= 2.4) { clearInterval(timer); S.launchT = 0; S.rocket.launched = true; startArcade(); }
+    if (S.launchT >= 2.4) { clearInterval(timer); S.launchT = 0; startArcade(); }
   }, 50);
 }
 
@@ -3371,6 +3371,10 @@ function afterLoad() {
   buildOrder(); buildToolbar(); buildGoals();
   tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; once.clear(); shortageWarned = false;
   if (S.launchT) S.launchT = 0;
+  if (S.rocket && S.rocket.launched && !S.escaped) {
+    S.rocket.launched = false;
+    say('cmd', 'The flight was interrupted, but the rocket is safe on the pad. Click the launch pad to try again.', 'relaunch');
+  }
   selectTool(null); updateLayerTabs(); updateUI(); layout(true);
 }
 
@@ -3417,7 +3421,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 043eaa72 06e150f9 06e3e69e 09033633 0a01a313 0a3e2be9 0a938044 0da086cf 0f9d9a55 0fc77d48 1331cada 13adf42b 143d51b6 14443303 14e62512 1515b2c3 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 1a73deff 1d2363f8 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 317b5667 3212792b 34b3668a 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 39ac3311 3a2a3dd2 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 42bbdd55 4320630f 4b62a538 4ecb63fb 5033e388 51218f66 51a5c1d2 51aaff27 528abda2 53481673 56eebfbb 581a7c01 58fc90dd 59461109 5a0049d9 5a7be0e7 5d5c0d57 5e7aea23 5fec72b2 60144cc1 60b858de 60cd53e0 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64ec0701 6527de87 65698d37 66c95ee9 66df857e 68ecfd5d 692ba820 69a1d5c5 6c30f428 6cec85ae 6d03b059 6d4a394e 6d8933a2 6f723cdd 6f8a37f9 6fd1527e 70319bb5 7090a6f6 750f794b 75790582 7794c923 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 859101f7 8796f0db 87bc0a6e 88755faf 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 916e3e57 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9ad8d525 9b646edd 9bad23e5 9cdc007a 9e14341c 9e563fed a2413960 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b37e7352 b8f1f2bb b9fc496b bc664788 bf202cf8 bfcf3810 c007124e c293bbd8 c34f5141 c4677edd c587d92c c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d8352bff d8551ff8 d87b48be d956d672 d983031a da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e233cd11 e4acaf8a e77d6a46 e8dc2b4c e9d2abdc ee7e156f ef1f18a3 ef43016a efd02516 f024b752 f16d66a6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 043eaa72 06e150f9 06e3e69e 09033633 0a01a313 0a3e2be9 0a938044 0da086cf 0f9d9a55 0fc77d48 1331cada 13adf42b 143d51b6 14443303 14e62512 1515b2c3 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 1a73deff 1d2363f8 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 317b5667 3212792b 34b3668a 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 39ac3311 3a2a3dd2 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 42bbdd55 4320630f 43461594 4b62a538 4ecb63fb 5033e388 51218f66 51a5c1d2 51aaff27 528abda2 53481673 56eebfbb 581a7c01 58fc90dd 59461109 5a0049d9 5a7be0e7 5d5c0d57 5e7aea23 5fec72b2 60144cc1 60b858de 60cd53e0 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64ec0701 6527de87 65698d37 66c95ee9 66df857e 68ecfd5d 692ba820 69a1d5c5 6c30f428 6cec85ae 6d03b059 6d4a394e 6d8933a2 6f723cdd 6f8a37f9 6fd1527e 70319bb5 7090a6f6 750f794b 75790582 7794c923 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 859101f7 8796f0db 87bc0a6e 88755faf 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 916e3e57 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9ad8d525 9b646edd 9bad23e5 9cdc007a 9e14341c 9e563fed a2413960 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b37e7352 b8f1f2bb b9fc496b bc664788 bf202cf8 bfcf3810 c007124e c293bbd8 c34f5141 c4677edd c587d92c c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d8352bff d8551ff8 d87b48be d956d672 d983031a da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e233cd11 e4acaf8a e77d6a46 e8dc2b4c e9d2abdc ee7e156f ef1f18a3 ef43016a efd02516 f024b752 f16d66a6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -3626,7 +3630,7 @@ $('#talk').addEventListener('click', skipLine);
 const SAVE_KEY = 'mmb-save-v2';
 function saveGame() {
   dirty = false; saveT = 0;
-  if (!playing || !S) return;
+  if (!playing || !S || A || S.launchT) return;
   try {
     const data = { S, comets: comets.map(c => S.tiles.indexOf(c.t)), savedAt: Date.now() };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -4030,7 +4034,7 @@ function frame(now) {
   uiT += rdt;
   if (uiT > 0.12 && S && !A) { uiT = 0; updateUI(); layout(); }
   saveT += rdt;
-  if (playing && (dirty || (saveT > 5 && running))) saveGame();
+  if (playing && !A && !(S && S.launchT) && (dirty || (saveT > 5 && running))) saveGame();
   if (A) arcadeUpdate(rdt);
   if (A) arcadeRender(); else render();
 }
