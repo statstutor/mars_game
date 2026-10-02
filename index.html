@@ -119,6 +119,9 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .lvl.five .n { background: #c9a7ff; } .lvl.five .go { color: #c9a7ff; }
 .lvl.six .n { background: #ff9fb1; } .lvl.six .go { color: #ff9fb1; }
 .lvl.seven .n { background: #b5aeb0; } .lvl.seven .go { color: #d6d0d2; }
+.lvl.eight .n { background: #c9a28f; } .lvl.eight .go { color: #e0bfae; }
+.lvl.nine .n { background: #cfe3f2; } .lvl.nine .go { color: #cfe3f2; }
+.lvl.ten .n { background: #ffd166; } .lvl.ten .go { color: #ffd166; }
 .levels { max-height: 46vh; overflow-y: auto; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
@@ -341,7 +344,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 15;
+const BUILD = 16;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -469,6 +472,8 @@ const B = {
              desc: 'A quiet, cosy pod so Baby Zuzu can nap through the party.' },
   lantern: { name: 'Sky Lantern', cost: { metal: 10 }, on: ['plain', 'ore', 'lake'], onText: 'Lanterns float over ground or goo.',
              desc: 'Floating festival lights. Zorp wants at least four.' },
+  castle:  { name: 'Castle', cost: { metal: 60 }, on: ['plain', 'ore'], onText: 'Castles need flat ground.',
+             desc: 'Trains up to 3 knights, one every 12 seconds (5 food each). Knights guard everything within 4 tiles, and they are the only thing that can hurt shell-beasts.' },
   zhouse:  { name: 'The Zorp Family Home', cost: {}, on: [], onText: '',
              desc: 'A giant mushroom house. Mind your head on the way in.' },
   comet:   { name: 'Comet', cost: { energy: 40 }, ability: true,
@@ -492,7 +497,7 @@ const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 const WHERE = {
   solar: ['surface', 'sky'], mine: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
-  cmine: ['under'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
+  cmine: ['under'], castle: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
 
@@ -918,8 +923,179 @@ LEVELS.push({
   },
   done: {
     title: 'A home beyond Mars',
-    body: 'A tiny outpost on a tiny moon, under a huge blue and green Mars. Europa and Titan are next, someday.',
+    body: 'A tiny outpost on a tiny moon, under a huge blue and green Mars. Next stop: Deimos, Mars’s other moon.',
     fact: '<b>Real plans:</b> Japan’s MMX mission is set to land on Phobos, scoop up some of its dust and bring it back to Earth to learn where the moon came from.',
+  },
+});
+LEVELS.push({
+  name: 'Deimos Watch',
+  seed: 89, n: 11, offworld: true, knights: true, sky: 'far-mars',
+  map: { ice: 0, mountains: [[9, 2, 1.0]], craters: [[2, 4], [7, 7], [4, 9]], frost: [[2, 3], [3, 4], [8, 7], [7, 8]], ore: [[6, 3, 1.3], [2, 7, 1.2]], ruins: [] },
+  start: { metal: 90, energy: 40, water: 40, food: 50 },
+  planet: { temp: -40, press: 0, o2: 0 },
+  tools: ['solar', 'mine', 'drill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'recycle'],
+  prebuilt: [['habitat', 5, 9], ['solar', 6, 9]],
+  critters: { every: [15, 21], max: 5, speed: 0.75, after: () => S.time > 30, mix: { basic: 2, zippy: 1, shell: 3 } },
+  traders: true, traderFirst: 70,
+  tileInfo: {
+    plain: ['Smooth dust', 'Deimos is smoother than Phobos. A thick blanket of dust has filled in most of its craters.'],
+    ore: ['Ore field', 'Metal-rich rock under the dust. Mines go here.'],
+    crater: ['Crater', 'An old crater, half filled with dust. Something with a shell lives down there.'],
+    ice: ['Crater frost', 'Ice hiding in the shadow of a crater rim. Ice drills go here.'],
+    rock: ['Hill', 'Too steep to build on.'],
+  },
+  pal: {
+    plain: ['#b39d90', '#8a766c', '#715f57'], ore: ['#a8928a', '#8a766c', '#715f57'], ice: ['#e8eef4', '#bcc6d2', '#98a5b6'],
+    crater: ['#9c877c', '#8a766c', '#715f57'], rock: ['#bfa99d', '#9c877c', '#7e6b62'], sides: ['#8a766c', '#715f57', '#58484a', '#46393b'],
+  },
+  deco: { pebble: '#cbb7ac', rim: '#c4afa4', pit: '#7d6a61', pit2: '#8a776d', cone: ['#cdb9ae', '#9c877c', '#b39d90'] },
+  goals: [
+    { text: 'Build 4 solar arrays', get: () => count('solar'), target: 4,
+      who: 'eng', hint: 'Deimos is even smaller than Phobos, and there is no air at all. Four solar arrays to start.' },
+    { text: 'Mine 2 ore fields', get: () => count('mine'), target: 2,
+      who: 'eng', hint: 'We need metal for what comes next. Put mines on the ore fields.' },
+    { text: 'Build a castle', get: () => count('castle'), target: 1,
+      who: 'cmd', hint: 'Something with a hard shell has been seen near the craters, and our lasers will not stop it. Build a castle. It trains knights.' },
+    { text: 'Train 3 knights', get: () => knightCount(), target: 3,
+      who: 'kip', hint: 'The castle trains knights one at a time, and each one eats five food first. Keep the food coming and wait for three.' },
+    { text: 'Drill the crater frost', get: () => count('drill'), target: 1,
+      who: 'bot', hint: 'There is frost in the shadows by the craters. Put an ice drill on it so we have water.' },
+    { text: 'House 12 colonists', get: () => S.pop, target: 12,
+      who: 'cmd', hint: 'Build habitats for the settlers. Keep them close to the castle, where the knights can protect them.' },
+    { text: 'Defeat 6 shell-beasts', get: () => S.shellBeaten || 0, target: 6,
+      who: 'eng', hint: 'Shell-beasts shrug off zappers. Knights guard everything within four tiles of their castle, so build near it, or build another castle.' },
+  ],
+  intro: [['cmd', 'Deimos, the little outer moon of Mars. Quiet, dusty, and the perfect place to keep watch over our world.'],
+          ['kip', 'My sensors say the craters here are full of something with a very hard shell. My sensors also say: uh oh.']],
+  outro: [['cmd', 'Deimos is safe, thanks to our knights. Next stop: Jupiter, and its ice moon Europa.']],
+  brief: {
+    eyebrow: 'Level 8',
+    title: 'Deimos Watch',
+    body: [
+      'Deimos is Mars’s smaller, farther moon, only 12 kilometres across. From here Mars looks like a bright little marble.',
+      '<b>New enemy: shell-beasts.</b> Zappers, drones and taps bounce right off them. <b>New building: the castle.</b> It trains knights who guard everything nearby, and knights are the only ones who can beat a shell-beast.',
+    ],
+    fact: '<b>Panic and Terror:</b> Phobos and Deimos are named after the twin sons of Ares, the Greek god of war. Their names mean fear and dread.',
+  },
+  done: {
+    title: 'The watch is kept',
+    body: 'Castles on a tiny moon, and knights keeping the shell-beasts away. The colony ship is refuelled and ready for the long trip to Jupiter.',
+    fact: '<b>Deimos is shrinking away:</b> Phobos is slowly falling toward Mars, but Deimos is very slowly drifting away from it.',
+  },
+});
+LEVELS.push({
+  name: 'Europa: The Ice Shell',
+  seed: 97, n: 11, offworld: true, knights: true, sky: 'jupiter', sun: 0.5,
+  map: { ice: 2.2, mountains: [[9, 2, 1.0]], craters: [[3, 5], [8, 8], [2, 9]], ore: [[6, 5, 1.3], [2, 2, 1.1], [9, 5, 1.0]], vents: [[5, 9], [7, 3]], ruins: [] },
+  start: { metal: 110, energy: 40, water: 40, food: 60 },
+  planet: { temp: -160, press: 0, o2: 0 },
+  tools: ['solar', 'geo', 'mine', 'drill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'recycle'],
+  prebuilt: [['habitat', 5, 7], ['solar', 6, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 25, mix: { basic: 1, zippy: 1, shell: 3, shellbig: 1 } },
+  traders: true, traderFirst: 60,
+  pal: {
+    plain: ['#ece6db', '#cfc6b8', '#b2a796'], ore: ['#c98a5a', '#a86e46', '#8a5636'], ice: ['#d3ebfa', '#a7cae6', '#84abd0'],
+    crater: ['#ddd5c8', '#c4baa9', '#a99e8c'], rock: ['#f7f4ee', '#d4cdc0', '#b5ad9e'], vent: ['#b9d4ea', '#8fb3d3', '#7096bd'],
+    sides: ['#b7c5d8', '#96a6bd', '#6f7f9b', '#5a6985'],
+  },
+  deco: { pebble: '#c98a5a', rim: '#f9f6f0', pit: '#bcb2a3', pit2: '#cbc2b4', cone: ['#ffffff', '#d4cdc0', '#e9e3d8'] },
+  tileInfo: {
+    plain: ['Ice plain', 'Water ice, frozen as hard as rock at −160 °C. Flat and buildable.'],
+    ore: ['Chaos terrain', 'Jumbled reddish-brown ice full of salts and minerals from the ocean below. Mines go here.'],
+    ice: ['Fresh blue ice', 'Clean, young ice that welled up from below. Ice drills go here.'],
+    crater: ['Crater', 'Europa has very few craters. Its surface is young, because the ice keeps cracking and refreezing.'],
+    rock: ['Double ridge', 'Europa is covered in long ridges where the ice shell cracked and squeezed up. Too steep to build on.'],
+    vent: ['Warm crack', 'Jupiter squeezes Europa as it orbits, and the squeezing heats the inside. A geothermal plant here makes lots of power.'],
+  },
+  goals: [
+    { text: 'Build 2 geothermal plants', get: () => count('geo'), target: 2,
+      who: 'eng', hint: 'Out here the sun is weak, so solar arrays make half as much. But Jupiter squeezes Europa and warms it inside. Put geothermal plants on the warm cracks.' },
+    { text: 'Build 2 castles', get: () => count('castle'), target: 2,
+      who: 'cmd', hint: 'The shell-beasts followed us all the way to Jupiter, and there are more of them. Build two castles.' },
+    { text: 'Train 6 knights', get: () => knightCount(), target: 6,
+      who: 'kip', hint: 'Six knights, please. Each castle holds three. Remember, every knight eats five food before they march out.' },
+    { text: 'Mine 3 ore fields', get: () => count('mine'), target: 3,
+      who: 'eng', hint: 'The reddish chaos terrain is full of minerals. Put three mines on it.' },
+    { text: 'Open a restaurant and a café', get: () => (count('restaurant') > 0) + (count('cafe') > 0), target: 2,
+      who: 'bot', hint: 'It is minus one hundred and sixty degrees out there. Our people need hot meals and hot chocolate. A restaurant and a café, please.' },
+    { text: 'House 20 colonists', get: () => S.pop, target: 20,
+      who: 'cmd', hint: 'More settlers are waking up on the ship. Build habitats for twenty people.' },
+    { text: 'Defeat 15 shell-beasts', get: () => S.shellBeaten || 0, target: 15,
+      who: 'eng', hint: 'Watch out for the giant purple shell-beasts. They smash buildings flat if they nibble too long. Keep the knights close to everything.' },
+  ],
+  intro: [['cmd', 'Europa. An ice moon of Jupiter, and under this ice is an ocean bigger than all of Earth’s oceans put together.'],
+          ['kip', 'Look up! Jupiter is enormous. Also, that crater just moved. Craters should not move.']],
+  outro: [['cmd', 'A real town on Europa. But something big has been knocking on the ice from underneath. Rest up, team.']],
+  brief: {
+    eyebrow: 'Level 9',
+    title: 'Europa: The Ice Shell',
+    body: [
+      'Europa is one of Jupiter’s moons, a ball of ice with a salty ocean hidden underneath. Jupiter fills the sky.',
+      'The sun is far away, so <b>solar arrays make half as much power</b>. Use <b>geothermal plants on the warm cracks</b> instead. Shell-beasts are back, including giant ones that smash buildings. Build castles and train knights.',
+    ],
+    fact: '<b>Hidden ocean:</b> Europa’s ocean may hold twice as much water as all of Earth’s oceans. NASA’s Europa Clipper spacecraft is on its way to study it.',
+  },
+  done: {
+    title: 'A town on the ice',
+    body: 'Warm cracks for power, hot chocolate for the colonists, and castles all around. But the ice keeps shaking…',
+    fact: '<b>Water geysers:</b> the Hubble Space Telescope may have spotted plumes of water vapour shooting out of Europa’s ice, up to 200 kilometres high.',
+  },
+});
+LEVELS.push({
+  name: 'Europa: The Shell King',
+  seed: 101, n: 12, offworld: true, knights: true, king: true, sky: 'jupiter', sun: 0.5,
+  map: { ice: 2.0, mountains: [[10, 2, 1.0], [1, 6, 0.8]], craters: [[6, 4], [3, 9], [9, 9]], ore: [[7, 7, 1.3], [3, 3, 1.2], [10, 5, 1.0]], vents: [[5, 10], [8, 2], [2, 7]], ruins: [] },
+  start: { metal: 150, energy: 50, water: 60, food: 80 },
+  planet: { temp: -160, press: 0, o2: 0 },
+  tools: ['solar', 'geo', 'mine', 'drill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['geo', 5, 10], ['greenhouse', 8, 10], ['castle', 6, 8]],
+  critters: { every: [10, 14], max: 8, speed: 0.9, after: () => S.time > 20, mix: { zippy: 1, basic: 1, shell: 3, shellbig: 2 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#ece6db', '#cfc6b8', '#b2a796'], ore: ['#c98a5a', '#a86e46', '#8a5636'], ice: ['#d3ebfa', '#a7cae6', '#84abd0'],
+    crater: ['#ddd5c8', '#c4baa9', '#a99e8c'], rock: ['#f7f4ee', '#d4cdc0', '#b5ad9e'], vent: ['#b9d4ea', '#8fb3d3', '#7096bd'],
+    sides: ['#b7c5d8', '#96a6bd', '#6f7f9b', '#5a6985'],
+  },
+  deco: { pebble: '#c98a5a', rim: '#f9f6f0', pit: '#bcb2a3', pit2: '#cbc2b4', cone: ['#ffffff', '#d4cdc0', '#e9e3d8'] },
+  tileInfo: {
+    plain: ['Ice plain', 'Water ice, frozen as hard as rock at −160 °C. Flat and buildable.'],
+    ore: ['Chaos terrain', 'Jumbled reddish-brown ice full of salts and minerals from the ocean below. Mines go here.'],
+    ice: ['Fresh blue ice', 'Clean, young ice that welled up from below. Ice drills go here.'],
+    crater: ['Crater', 'Europa has very few craters. Its surface is young, because the ice keeps cracking and refreezing.'],
+    rock: ['Double ridge', 'Europa is covered in long ridges where the ice shell cracked and squeezed up. Too steep to build on.'],
+    vent: ['Warm crack', 'Jupiter squeezes Europa as it orbits, and the squeezing heats the inside. A geothermal plant here makes lots of power.'],
+  },
+  goals: [
+    { text: 'Build 3 castles', get: () => count('castle'), target: 3,
+      who: 'cmd', hint: 'Something huge is moving under the ice. We need three castles, spread around the colony.' },
+    { text: 'Train 9 knights', get: () => knightCount(), target: 9,
+      who: 'kip', hint: 'Nine knights. Three castles, three knights each. It is going to take a lot of food.' },
+    { text: 'Build 3 geothermal plants', get: () => count('geo'), target: 3,
+      who: 'eng', hint: 'Every warm crack should have a geothermal plant on it. We will need the power.' },
+    { text: 'House 24 colonists', get: () => S.pop, target: 24,
+      who: 'bot', hint: 'Let us get everyone off the ship and into proper homes. Twenty four colonists.' },
+    { text: 'Defeat 12 shell-beasts', get: () => S.shellBeaten || 0, target: 12,
+      who: 'eng', hint: 'The shell-beasts are coming out faster. Keep the knights busy.' },
+    { text: 'Defeat the Shell-beast King', get: () => S.kingDefeated ? 1 : 0, target: 1, flag: true, king: true,
+      who: 'kip', hint: 'The Shell-beast King! Lasers and taps bounce off him. Only knights can hurt him, so keep the castles standing and the food coming.' },
+  ],
+  intro: [['cmd', 'The shaking under the ice is getting worse. Whatever is down there is the boss of every shell-beast we have met.'],
+          ['eng', 'Then we get ready. Three castles, nine knights, and plenty of food.']],
+  outro: [['cmd', 'The King is beaten and Europa is safe. Somewhere under this ice is a whole ocean to explore. Well done, everyone.'],
+          ['kip', 'I would like to formally apologise to all craters. Most of you are fine.']],
+  brief: {
+    eyebrow: 'Level 10',
+    title: 'Europa: The Shell King',
+    body: [
+      'The shell-beasts have a ruler, and he is waking up under the ice. Build up the colony, raise <b>three castles</b> and train <b>nine knights</b>.',
+      'When everything is ready, the <b>Shell-beast King</b> breaks through. Zappers and taps cannot hurt him. He marches on your castles and stomps the knights around him, so keep the food coming so the castles can train more.',
+    ],
+    fact: '<b>Squeezed moon:</b> Jupiter’s gravity stretches and squeezes Europa every 3.5 days as it orbits. That flexing heats the inside, keeping the ocean liquid.',
+  },
+  done: {
+    title: 'King of the Ice',
+    body: 'The Shell-beast King has crawled back to the deep, and Europa belongs to the colonists. From a rusty desert on Mars to an ice moon of Jupiter: what a journey.',
+    fact: '<b>Could anything live there?</b> Europa’s ocean touches a rocky sea floor, maybe with warm vents like the ones on Earth’s sea floor, where life thrives without any sunlight at all.',
   },
 });
 LEVELS.push({
@@ -1028,7 +1204,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, time: 0, won: false,
+    level: li, v3: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -1067,7 +1243,7 @@ function tick(dt) {
   const L = LEVELS[S.level], bonus = S.bonus;
   if (L.dayNight) dayNight(dt);
   if (L.storms) dustStorms(dt);
-  const sun = (S.night ? 0.4 : 1) * (S.storm > 0 ? 0.35 : 1);
+  const sun = (S.night ? 0.4 : 1) * (S.storm > 0 ? 0.35 : 1) * (L.sun || 1);
   const skySun = (S.night ? 0.4 : 1) * 1.6;
   let prod = 0, cons = 0;
   const tiles = ALL();
@@ -1161,6 +1337,7 @@ function tick(dt) {
   for (const t of tiles) if (t.b === 'habitat' || t.b === 'hover') { t.res = Math.min(homeSize(t.b), left); left -= t.res; }
 
   updateCritters(dt);
+  if (L.knights) { updateKnights(dt); maybeKing(L); }
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
@@ -1832,6 +2009,7 @@ function updateBoss(dt) {
     }
     return;
   }
+  if (b.kind === 'king') { kingStep(b, dt); return; }
   let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
   if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
@@ -1857,27 +2035,32 @@ function updateBoss(dt) {
     say('cmd', 'She is attacking the rocket and the fuel is leaking! Drive her back!', 'stomp1');
   }
 }
-function hurtBoss(dmg) {
+function hurtBoss(dmg, knight = false) {
   const b = S.boss;
   if (!b || b.state === 'dead' || b.state === 'burrow' || b.state === 'emerge') return;
+  if (b.kind === 'king' && !knight) return;
   b.hp -= dmg; b.hit = 0.2;
   const w = bossWorld();
   fx.push({ kind: 'text', x: w.x + (Math.random() - 0.5) * 30, y: w.y - 70 * QS, text: '-' + dmg, life: 0.8, max: 0.8, color: dmg > 1 ? '#7ff7ff' : '#ffffff' });
   if (b.hp <= b.maxhp / 2 && !b.enraged && !b.burrowed) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
-    if (b.kind === 'cousin') { toast('Queen Skyla flew off into the clouds!', 'bad'); say('kip', 'She flew away, but she will be back, and angrier.', 'skyla2'); }
+    if (b.kind === 'king') { toast('The King smashed down through the ice!', 'bad'); say('kip', 'He dived under the ice! He will burst out somewhere else, and now he is really cross.', 'king-burrow'); }
+    else if (b.kind === 'cousin') { toast('Queen Skyla flew off into the clouds!', 'bad'); say('kip', 'She flew away, but she will be back, and angrier.', 'skyla2'); }
     else { toast('The queen dug underground!', 'bad'); say('kip', 'She went underground! She will pop up somewhere else, and she looks angry.', 'burrow1'); }
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
     burst(w.x, w.y - 30, 60, ['#ff6b81', '#ffd166', '#7ff7ff', '#ffffff', '#c2417a'], 2.2);
     if (b.kind === 'cousin') { crasherDown('Queen Skyla'); }
-    else {
+    else if (b.kind === 'king') {
+      toast('The Shell-beast King is defeated! +25 crystals', 'good');
+      say('kip', 'The knights did it! The Shell-beast King has crawled back under the ice, and his beasts are going with him.', 'kingdown');
+    } else {
       toast('The Critter Queen is defeated! +25 crystals', 'good');
       say('kip', 'We did it! The Critter Queen has retreated deep underground. Her pets are going with her.', 'queendown');
     }
@@ -1889,6 +2072,7 @@ function zapBoss(t, range) {
   if (Math.hypot(b.x - (t.gx + 0.5), b.y - (t.gy + 0.5)) > range + 0.6) return false;
   const a = center(t), w = bossWorld();
   fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: w.x, y2: w.y - 30, life: 0.3, max: 0.3 });
+  if (b.kind === 'king') { fx.push({ kind: 'text', x: w.x, y: w.y - 60, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' }); sfx('clang'); return true; }
   hurtBoss(hasTech('arc') ? 2 : 1); sfx('zap');
   return true;
 }
@@ -1896,6 +2080,13 @@ function bossAt(mx, my) {
   const b = S.boss;
   if (!b || b.state === 'dead' || b.state === 'burrow' || (S.view && S.view !== 'surface')) return false;
   const w = bossWorld(), sc = view.s;
+  if (b.kind === 'king') {
+    const bx = view.x + w.x * sc, by = view.y + (w.y - 35 * QS) * sc;
+    if (Math.abs(mx - bx) > 46 * QS * sc || Math.abs(my - by) > 40 * QS * sc) return false;
+    sfx('clang'); fx.push({ kind: 'text', x: w.x, y: w.y - 70 * QS, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
+    say('eng', 'Tapping him does nothing. He is too tough! Only the knights can hurt the King.', 'king-tap');
+    return true;
+  }
   const [sx_, sy_] = SPOTS[b.spot];
   const spotX = view.x + (w.x + sx_ * QS * (b.face || 1)) * sc, spotY = view.y + (w.y + sy_ * QS) * sc;
   if (Math.hypot(mx - spotX, my - spotY) < Math.max(20, 16 * QS * sc)) {
@@ -1913,6 +2104,16 @@ function drawBoss(g) {
   if (b.state === 'emerge') k = easeBack(clamp(b.t / 2, 0, 1));
   if (b.state === 'dead') { alpha = clamp(1 - b.t / 2, 0, 1); k = 1 + b.t * 0.2; }
   k *= QS;
+  if (b.kind === 'king') {
+    drawKing(g, b, w, k, alpha);
+    if (b.state !== 'dead') {
+      const top = w.y - 100 * QS;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#ff6b81'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('SHELL-BEAST KING', w.x, top - 6);
+    }
+    return;
+  }
   const walk = b.state === 'walk' ? Math.abs(Math.sin(b.t * 5)) * 4 : b.state === 'stomp' ? Math.abs(Math.sin(b.t * 9)) * 6 : 0;
   g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
   ell(g, 0, 2, 44 * k, 14 * k, 'rgba(60,10,30,0.35)');
@@ -1943,6 +2144,96 @@ function drawBoss(g) {
     g.fillStyle = '#ff6b81'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
     g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(b.kind === 'cousin' ? 'QUEEN SKYLA' : 'CRITTER QUEEN', w.x, top - 6);
   }
+}
+
+// ---------------------------------------------------------------- the Shell-beast King (Europa)
+// Lasers, drones and taps bounce off him. Only knights can hurt him. He marches on the castles,
+// stomps any knights around him, and calls more shell-beasts out of the craters.
+function maybeKing(L) {
+  if (!L.king || S.boss || S.kingDefeated) return;
+  const ki = L.goals.findIndex(g => g.king);
+  if (L.goals.every((g, i) => i >= ki || S.goalsDone[i])) spawnKing();
+}
+function spawnKing() {
+  const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'king', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 160, maxhp: 160, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 10, atk: 2, enraged: false, hs: crater.h };
+  shake = RM ? 0 : 16; sfx('boom'); sfx('roar');
+  toast('The SHELL-BEAST KING has broken through the ice!', 'bad');
+  say('kip', 'The ice is cracking! That is the Shell-beast King! Lasers will not even scratch him. Only our knights can.', 'king1');
+  say('cmd', 'He is going after the castles. Keep the knights fed and fighting, and do not let him flatten our homes!', 'king2');
+}
+function kingStep(b, dt) {
+  b.spawnT -= dt;
+  if (b.spawnT <= 0) {
+    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
+    b.spawnT = b.enraged ? 9 : 13;
+  }
+  b.slam = Math.max(0, (b.slam || 0) - dt);
+  b.atk -= dt;
+  const near = knights.filter(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - b.x, k.y - b.y) < 1.8);
+  if (b.atk <= 0 && near.length) {
+    b.atk = b.enraged ? 1.5 : 2.1; b.slam = 0.35;
+    for (const k of near) hurtKnight(k, 1, b);
+    const w = bossWorld();
+    fx.push({ kind: 'ring', x: w.x, y: w.y, r: 10, life: 0.6, max: 0.6, color: '#c9cee8', big: true });
+    shake = RM ? 0 : 6; sfx('boom');
+  }
+  let tgt = S.tiles[b.ti];
+  if (!tgt || !tgt.b) {
+    const castles = S.tiles.filter(t => t.b === 'castle'), opts = castles.length ? castles : S.tiles.filter(t => t.b);
+    tgt = opts.sort((p, q) => Math.hypot(p.gx + 0.5 - b.x, p.gy + 0.5 - b.y) - Math.hypot(q.gx + 0.5 - b.x, q.gy + 0.5 - b.y))[0];
+    b.ti = S.tiles.indexOf(tgt); b.chew = 0;
+    if (tgt && tgt.b === 'castle') say('eng', 'The King is marching on a castle! Every knight nearby will rush to defend it.', 'king-castle');
+  }
+  if (!tgt) return;
+  const tx = tgt.gx + 0.5, ty = tgt.gy + 0.5, d = Math.hypot(tx - b.x, ty - b.y);
+  if (d > 1.2) {
+    const sp = (b.enraged ? 0.3 : 0.2) * (near.length ? 0.5 : 1) * dt;
+    b.x += (tx - b.x) / d * sp; b.y += (ty - b.y) / d * sp; b.face = (tx - b.x) - (ty - b.y) > 0 ? 1 : -1;
+    b.state = 'walk';
+  } else {
+    b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4);
+    b.chew = (b.chew || 0) + dt * (near.length ? 0.5 : 1);
+    if (b.chew > 12) {
+      toast(`The Shell-beast King flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      const w = center(tgt); burst(w.x, w.y - 10, 26, ['#b8afd8', '#ffd166', '#ffffff'], 1.4);
+      tgt.b = null; b.chew = 0; sfx('boom'); shake = RM ? 0 : 10;
+    }
+  }
+}
+function drawKing(g, b, w, k, alpha) {
+  const walk = b.state === 'walk' ? Math.abs(Math.sin(b.t * 4)) * 4 : b.state === 'stomp' ? Math.abs(Math.sin(b.t * 7)) * 5 : 0;
+  g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+  ell(g, 0, 2, 50 * k, 17 * k, 'rgba(20,30,60,0.35)');
+  g.scale(k * (b.face || 1), k);
+  const shellC = b.hit > 0 ? '#ffffff' : b.enraged ? '#8a4fd8' : '#4f6fb8', dark = shade(b.enraged ? '#8a4fd8' : '#4f6fb8', -0.4), light = shade(shellC, 0.3);
+  const by = -30 - walk + (b.slam > 0 ? 7 : 0);
+  g.strokeStyle = dark; g.lineWidth = 6; g.lineCap = 'round';
+  for (const x of [-30, -18, 16, 28]) { g.beginPath(); g.moveTo(x * 0.6, by + 12); g.lineTo(x * 1.12, by + 10); g.lineTo(x * 1.2, 0); g.stroke(); }
+  for (const [cx, cy, s_] of [[42, by + 2, 1], [36, by + 16, 0.8]]) {
+    g.lineWidth = 5; g.beginPath(); g.moveTo(20, by + 8); g.lineTo(cx - 8, cy); g.stroke();
+    const open = 0.25 + 0.35 * Math.abs(Math.sin(RT * 3 + s_ * 4));
+    g.save(); g.translate(cx, cy); g.scale(s_, s_);
+    g.fillStyle = light; g.beginPath(); g.ellipse(2, -4, 13, 6, -open, 0, Math.PI * 2); g.fill();
+    g.fillStyle = shellC; g.beginPath(); g.ellipse(2, 4, 12, 5, open, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+  ell(g, 0, by + 10, 38, 14, dark);
+  g.fillStyle = shellC; g.beginPath(); g.ellipse(0, by + 6, 44, 36, 0, Math.PI, 0); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 2;
+  g.beginPath(); g.ellipse(0, by + 6, 30, 36, 0, Math.PI, 0); g.stroke();
+  g.beginPath(); g.ellipse(0, by + 6, 13, 36, 0, Math.PI, 0); g.stroke();
+  g.beginPath(); g.ellipse(0, by + 6, 44, 18, 0, Math.PI, 0); g.stroke();
+  ell(g, -16, by - 18, 11, 5, 'rgba(255,255,255,0.3)');
+  g.fillStyle = light; g.fillRect(-44, by + 4, 88, 5);
+  // crown
+  g.fillStyle = '#ffd166'; g.fillRect(-20, by - 32, 40, 6);
+  for (let i = -2; i <= 2; i++) poly(g, [[i * 8 - 4, by - 31], [i * 8, by - 44 - (i ? 0 : 6)], [i * 8 + 4, by - 31]]);
+  ell(g, 0, by - 29, 2.6, 2.6, '#ff6b81'); ell(g, -11, by - 29, 2, 2, '#7ff7ff'); ell(g, 11, by - 29, 2, 2, '#7ff7ff');
+  g.strokeStyle = dark; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(26, by); g.lineTo(30, by - 16); g.moveTo(32, by + 2); g.lineTo(39, by - 10); g.stroke();
+  for (const [ex, ey] of [[30, by - 18], [39, by - 12]]) { ell(g, ex, ey, 5, 5.5, b.enraged ? '#ff6b81' : '#fff3a0'); ell(g, ex + 1.5, ey + 0.5, 2.2, 2.6, '#1a1238'); }
+  g.restore();
 }
 
 // ---------------------------------------------------------------- meteors (Phobos)
@@ -2213,7 +2504,7 @@ function showDestinations() {
     <p>The colony rocket is free of Mars. Pick a destination for the settlers.</p>
     <div class="dest">
       <div class="world"><canvas width="144" height="144" data-p="phobos"></canvas><b>Phobos</b><span class="stars">★☆☆☆☆</span><small>A tiny lumpy moon just above Mars. Low gravity, no air, lots of meteors.</small><button class="btn" id="go-phobos">Fly to Phobos</button></div>
-      <div class="world soon"><canvas width="144" height="144" data-p="europa"></canvas><b>Europa</b><span class="stars">★★★☆☆</span><small>Jupiter’s ice moon, with an ocean hidden under the shell.</small><span class="tag">Coming soon</span></div>
+      <div class="world soon"><canvas width="144" height="144" data-p="europa"></canvas><b>Europa</b><span class="stars">★★★☆☆</span><small>Jupiter’s ice moon, with an ocean hidden under the shell.</small><span class="tag">Levels 9–10, after Deimos</span></div>
       <div class="world soon"><canvas width="144" height="144" data-p="titan"></canvas><b>Titan</b><span class="stars">★★★★★</span><small>Saturn’s hazy giant moon, with lakes of liquid methane at −180 °C.</small><span class="tag">Coming soon</span></div>
     </div>
     <div class="row"><button class="btn alt" id="dest-menu">Level select</button></div>`, true);
@@ -2250,17 +2541,26 @@ const KINDS = {
   zippy:  { hp: 1, spd: 1.7,  size: 0.85, steal: 0.7 },
   sneaky: { hp: 2, spd: 1,    size: 1,    steal: 1.2 },
   brute:  { hp: 4, spd: 0.6,  size: 1.55, steal: 2.2 },
+  // shell-beasts: lasers, drones and taps bounce off; only knights can hurt them
+  shell:    { hp: 5, spd: 0.7,  size: 1.5, steal: 1.4, immune: true },
+  shellbig: { hp: 9, spd: 0.55, size: 1.95, steal: 2, immune: true, smash: 10 },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
   zippy: ['kip', 'Whoa, that critter is fast! It is a zippy one. Tap quickly!'],
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
+  shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  shellbig: ['kip', 'A giant shell-beast! The big ones smash buildings flat if nobody stops them. Send the knights!'],
 };
 function pickKind() {
   const mix = (LEVELS[S.level].critters || {}).mix || { basic: 1 };
   let r = Math.random() * Object.values(mix).reduce((a, b) => a + b, 0);
-  for (const [k, w] of Object.entries(mix)) { r -= w; if (r <= 0) return k; }
+  for (const [k, w] of Object.entries(mix)) {
+    r -= w;
+    // shell-beasts hold off until you have a castle, or until you have had plenty of time to build one
+    if (r <= 0) return KINDS[k].immune && !count('castle') && S.time < 180 ? 'basic' : k;
+  }
   return 'basic';
 }
 function spawnCritter(kind = pickKind(), from = null) {
@@ -2273,7 +2573,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   else { const e = Math.random() * N; [hx, hy] = Math.random() < 0.5 ? [e, N - 0.3] : [N - 0.3, e]; }
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
-  const col = kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: K.hp, maxhp: K.hp, hit: 0, col, seed: Math.random() * 10 });
   if (KIND_LINES[kind]) say(KIND_LINES[kind][0], KIND_LINES[kind][1], 'kind-' + kind);
@@ -2316,6 +2616,15 @@ function updateCritters(dt) {
     const K = KINDS[c.kind || 'basic'], speed = base * K.spd;
     const tgt = S.tiles[c.ti];
     if (!tgt) { c.gone = true; continue; }
+    if (c.fighting > 0 && c.state !== 'bonked' && c.state !== 'emerge') { // a knight has it pinned down
+      c.fighting -= dt; c.atk = (c.atk ?? 0.8) - dt;
+      if (c.atk <= 0) {
+        c.atk = K.immune ? 1.4 : 2.5;
+        const kn = knights.find(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - c.x, k.y - c.y) < 0.6 + 0.3 * K.size);
+        if (kn) hurtKnight(kn, 1, c);
+      }
+      continue;
+    }
     if (c.state === 'emerge') { if (c.t > 0.7) { c.state = 'walk'; c.t = 0; } }
     else if (c.state === 'walk') {
       if (!tgt.b) { c.state = 'flee'; c.t = 0; continue; }
@@ -2326,7 +2635,15 @@ function updateCritters(dt) {
       const key = LOOT[tgt.b] || 'metal';
       const amt = Math.min(S[key] || 0, 1.4 * K.steal * (S.techs && S.techs.includes('shields') ? 0.5 : 1) * dt);
       S[key] -= amt; c.loot[key] = (c.loot[key] || 0) + amt;
-      if (c.t > (c.kind === 'brute' ? 10 : 7)) { c.state = 'flee'; c.t = 0; }
+      if (c.t > (K.smash || (c.kind === 'brute' ? 10 : 7))) {
+        if (K.smash && tgt.b !== 'zhouse') {
+          const w = center(tgt);
+          toast(`A giant shell-beast smashed the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+          burst(w.x, w.y - 10, 22, ['#b8afd8', '#ffd166', '#ffffff'], 1.3);
+          shake = RM ? 0 : 6; sfx('boom'); tgt.b = null;
+        }
+        c.state = 'flee'; c.t = 0;
+      }
     } else if (c.state === 'flee') {
       if (stepToward(c, c.hx, c.hy, speed * 1.25 * dt) <= 0.05) {
         c.gone = true;
@@ -2345,8 +2662,15 @@ function updateCritters(dt) {
     if (t.cd > 0) continue;
     const tesla = t.b === 'tesla', arc = hasTech('arc');
     const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = tesla ? 3 : PERK === 'tesla' ? 2 : 1;
-    const prey = crits.filter(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range).slice(0, chain);
-    if (prey.length) {
+    const inRange = crits.filter(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range);
+    const prey = inRange.filter(c => !KINDS[c.kind || 'basic'].immune).slice(0, chain);
+    const shell = !prey.length && inRange[0];
+    if (shell) { // the zap just bounces off
+      const a = center(t), b = critWorld(shell);
+      fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: b.x, y2: b.y - 12, life: 0.3, max: 0.3 });
+      bonk(shell, true);
+      t.cd = 2.5;
+    } else if (prey.length) {
       let a = center(t), from = [a.x, a.y - 38];
       for (const c of prey) {
         const b = critWorld(c);
@@ -2363,9 +2687,9 @@ function updateCritters(dt) {
     t.cd = (t.cd || 0) - dt * S.eff;
     if (t.cd > 0) continue;
     const near = (x, y) => Math.hypot(x - (t.gx + 0.5), y - (t.gy + 0.5)) <= 4.2;
-    let target = crits.find(c => c.state !== 'bonked' && near(c.x, c.y));
+    let target = crits.find(c => c.state !== 'bonked' && !KINDS[c.kind || 'basic'].immune && near(c.x, c.y));
     let nest = !target && S.tiles.find(o => o.type === 'nest' && near(o.gx + 0.5, o.gy + 0.5));
-    let boss = !target && !nest && S.boss && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
+    let boss = !target && !nest && S.boss && S.boss.kind !== 'king' && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
     if (!target && !nest && !boss) continue;
     const a = center(t);
     const to = target ? (() => { const w = critWorld(target); return [w.x, w.y - 8]; })() : nest ? (() => { const c = center(nest); return [c.x, c.y - 4]; })() : [bossWorld().x, bossWorld().y - 30];
@@ -2375,8 +2699,18 @@ function updateCritters(dt) {
   }
   crits = crits.filter(c => !c.gone);
 }
-function bonk(c, zapped = false, dmg = 1) {
+function bonk(c, zapped = false, dmg = 1, knight = false) {
   if (c.state === 'bonked') return;
+  if (KINDS[c.kind || 'basic'].immune && !knight) {
+    c.hit = 0.2;
+    const p = critWorld(c);
+    burst(p.x, p.y - 14, 6, ['#ffffff', '#9be3ff']);
+    fx.push({ kind: 'text', x: p.x, y: p.y - 30, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
+    sfx('clang');
+    if (count('castle')) say('kip', 'Tink! Lasers and bonks bounce right off. Leave the shell-beasts to the knights.', 'shell-tink2');
+    else say('eng', 'Our zaps just bounce off that shell! Build a castle. Its knights are the only thing that can beat a shell-beast.', 'shell-tink');
+    return;
+  }
   c.hp = (c.hp ?? 1) - dmg;
   if (c.hp > 0) {
     // still standing: knock it back a little toward its burrow
@@ -2390,6 +2724,11 @@ function bonk(c, zapped = false, dmg = 1) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
+  if (KINDS[c.kind || 'basic'].immune) {
+    S.shellBeaten = (S.shellBeaten || 0) + 1;
+    say('kip', 'The knights beat a shell-beast! It dropped a whole handful of crystals.', 'shell-down');
+    S.crystals += 2;
+  }
   for (const [k, v] of Object.entries(c.loot)) S[k] += v;
   c.loot = {};
   S.crystals += 1; S.bonks += 1; dirty = true;
@@ -3069,6 +3408,29 @@ const DRAW = {
       ell(g, x, y - 10, r, r, '#3fae6b'); ell(g, x - 2, y - 12, r * 0.55, r * 0.5, '#7ddc9f');
     }
   },
+  castle(g, T, v) {
+    shadow(g, 27, 12);
+    const stone = ['#d9d3e6', '#aaa2c0', '#8a82a3'];
+    const tower = (x, y, h, r) => {
+      g.fillStyle = stone[1]; g.fillRect(x - r, y - h, r, h); g.fillStyle = stone[2]; g.fillRect(x, y - h, r, h);
+      ell(g, x, y, r, r * 0.5, stone[2]);
+      ell(g, x, y - h, r, r * 0.5, stone[0]);
+      g.fillStyle = stone[0]; for (const dx of [-r + 1, -1, r - 3]) g.fillRect(x + dx, y - h - 4, 2.4, 4);
+    };
+    tower(0, -8, 30, 6);                                    // back tower
+    isoBox(g, 0, 4, 21, 10.5, 13, stone[0], stone[1], stone[2]); // curtain walls
+    g.fillStyle = stone[0];
+    for (let i = 1; i < 6; i++) { const f = i / 6; g.fillRect(-21 + 21 * f - 1.2, 4 - 13 + 10.5 * f - 13 * 0 - 3.5, 2.4, 3.5); g.fillRect(21 * f - 1.2, 4 - 13 + 10.5 - 10.5 * f - 3.5, 2.4, 3.5); }
+    tower(-19, 4, 24, 5.5); tower(19, 4, 24, 5.5);          // side towers
+    tower(0, 14, 20, 5.5);                                   // gate tower
+    g.fillStyle = '#3a2f55'; g.beginPath(); g.moveTo(-3, 14); g.lineTo(-3, 8); g.arc(0, 8, 3, Math.PI, 0); g.lineTo(3, 14); g.closePath(); g.fill();
+    g.fillStyle = '#ffd36e'; for (const [x, y] of [[-19, -10], [19, -10], [0, -26]]) g.fillRect(x - 0.9, y, 1.8, 3);
+    // banner on the back tower
+    g.strokeStyle = '#6f6888'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -42); g.lineTo(0, -56); g.stroke();
+    const wv = Math.sin(T * 4 + v * 6) * 1.5;
+    g.fillStyle = '#3d5bd9'; poly(g, [[0, -56], [11, -54 + wv], [0, -49]]);
+    g.fillStyle = '#ffd166'; ell(g, 4, -53 + wv * 0.5, 1.4, 1.4, '#ffd166');
+  },
   zapper(g, T, v) {
     shadow(g, 14, 6);
     isoBox(g, 0, 3, 11, 5.5, 5, '#9aa0c4', '#757aa0', '#5d6186');
@@ -3358,6 +3720,10 @@ function drawBuildingOn(g, t) {
     const y = -30 + Math.sin(RT * 2 + t.v * 5) * 1.5;
     g.fillStyle = '#5cc8ff'; g.beginPath(); g.moveTo(14, y - 5); g.quadraticCurveTo(18, y, 14, y + 2); g.quadraticCurveTo(10, y, 14, y - 5); g.fill();
   }
+  if (t.b === 'castle' && t.born < RT - 0.5) {
+    for (let i = 0; i < KNIGHTS_PER; i++) ell(g, (i - 1) * 7, -58, 2.6, 2.6, i < (t.kn || 0) ? '#ffd166' : 'rgba(255,255,255,0.22)');
+    if ((t.kn || 0) < KNIGHTS_PER) { g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-14, -53, 28, 4); g.fillStyle = '#ffd166'; g.fillRect(-13, -52, 26 * clamp(t.train || 0, 0, 1), 2); }
+  }
   if (t.b === 'dig') {
     g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-16, -34, 32, 5);
     g.fillStyle = '#7ff7ff'; g.fillRect(-15, -33, 30 * clamp(t.prog || 0, 0, 1), 3);
@@ -3379,9 +3745,172 @@ const LIGHTS = {
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
   zapper: [[0, -37, 16, '#9be3ff']],
+  castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
   solar: [], mine: [[0, -30, 6, '#ffe08a']],
 };
 let lights = [];
+
+// a shell-beast: a squat armoured crab with a big plated dome
+function drawShell(g, c, p, k, alpha, walking, bob) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  ell(g, 0, 1, 11 * k, 4 * k, 'rgba(20,30,60,0.3)');
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -30 * k, w, 4);
+    g.fillStyle = '#ff6b81'; g.fillRect(-w / 2 + 1, -30 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  if (c.state === 'bonked') { g.translate(0, -6); g.scale(1, -0.9); } // flipped onto its back
+  const by = -6 - bob * 0.6, col = c.hit > 0 ? '#ffffff' : c.col, dark = shade(c.col, -0.35), light = shade(c.col, 0.35);
+  g.strokeStyle = dark; g.lineWidth = 1.6; g.lineCap = 'round';
+  const step = walking ? Math.sin(c.t * 12 + c.seed) * 1.5 : 0;
+  g.beginPath();
+  for (const [x, s_] of [[-7, 1], [-3, -1], [3, 1], [7, -1]]) { g.moveTo(x * 0.7, by + 3); g.lineTo(x + step * s_, 0); }
+  g.stroke();
+  // pincers out front
+  const snap = c.state === 'nibble' || c.fighting > 0 ? Math.abs(Math.sin(c.t * 14)) * 0.5 : 0.15;
+  g.lineWidth = 1.4; g.beginPath(); g.moveTo(6, by + 2); g.lineTo(10, by + 1); g.stroke();
+  g.save(); g.translate(11.5, by + 1);
+  g.fillStyle = light; g.beginPath(); g.ellipse(0, -1.2, 3.2, 1.6, -snap, 0, Math.PI * 2); g.fill();
+  g.fillStyle = dark; g.beginPath(); g.ellipse(0, 1.2, 3.2, 1.4, snap, 0, Math.PI * 2); g.fill();
+  g.restore();
+  ell(g, 0, by + 2.5, 9, 3.5, dark);
+  g.fillStyle = col; g.beginPath(); g.ellipse(0, by + 2, 10, 9, 0, Math.PI, 0); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 0.9;
+  g.beginPath(); g.ellipse(0, by + 2, 6, 9, 0, Math.PI, 0); g.stroke();
+  g.beginPath(); g.ellipse(0, by + 2, 10, 5, 0, Math.PI, 0); g.stroke();
+  ell(g, -3.5, by - 4.5, 3, 1.5, 'rgba(255,255,255,0.35)');
+  g.fillStyle = light; g.fillRect(-10, by + 1.5, 20, 1.6);
+  if (c.kind === 'shellbig') { g.fillStyle = '#ffd166'; for (const x of [-5, 0, 5]) poly(g, [[x - 1.6, by - 5 - (x ? 0 : 1.5)], [x, by - 10.5 - (x ? 0 : 1.5)], [x + 1.6, by - 5 - (x ? 0 : 1.5)]]); }
+  // eyes on stalks
+  g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); g.moveTo(6, by - 2); g.lineTo(8, by - 7); g.moveTo(8, by - 1); g.lineTo(10.5, by - 5.5); g.stroke();
+  for (const [ex, ey] of [[8, by - 7.5], [10.5, by - 6]]) {
+    if (c.state === 'bonked') { g.strokeStyle = '#1a1238'; g.beginPath(); g.moveTo(ex - 1.2, ey - 1.2); g.lineTo(ex + 1.2, ey + 1.2); g.moveTo(ex + 1.2, ey - 1.2); g.lineTo(ex - 1.2, ey + 1.2); g.stroke(); }
+    else { ell(g, ex, ey, 1.9, 2, c.fighting > 0 ? '#ff9b9b' : '#fff3a0'); ell(g, ex + 0.6, ey + 0.2, 0.8, 0.9, '#1a1238'); }
+  }
+  const loot = Object.keys(c.loot)[0];
+  if (c.state === 'flee' && loot) ell(g, -2, by - 10, 3.5, 3, loot === 'food' ? '#c98a4a' : loot === 'water' ? '#5cc8ff' : '#b8a2ff');
+  if (c.state === 'bonked') for (let i = 0; i < 3; i++) { const a = c.t * 8 + i * 2.1; ell(g, Math.cos(a) * 9, by - 12 + Math.sin(a) * 2.5, 1.5, 1.5, '#ffd166'); }
+  g.restore();
+}
+
+// ---------------------------------------------------------------- castles & knights
+// Castles train knights. Knights guard everything within a few tiles of home, chase critters
+// and shell-beasts, and fight them sword-to-shell. A knight who gets knocked out walks home,
+// rests, and comes back out good as new. Each castle remembers how many knights it has (t.kn)
+// so they come back after a reload.
+let knights = [];
+const KNIGHTS_PER = 3, GUARD = 4.3;
+const knightCount = () => S.tiles.reduce((n, t) => n + (t.b === 'castle' ? t.kn || 0 : 0), 0);
+function newKnight(t, i) {
+  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, hp: 4, maxhp: 4, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
+}
+function updateKnights(dt) {
+  for (const t of S.tiles) {
+    if (t.b !== 'castle') { if (t.kn) { t.kn = 0; t.train = 0; } continue; }
+    t.kn = t.kn || 0;
+    let have = knights.filter(k => k.home === t).length;
+    while (have < t.kn) knights.push(newKnight(t, have++));
+    if (t.kn >= KNIGHTS_PER) continue;
+    if (S.food < 5) { say('bot', 'The castle needs food to train knights. Each one eats five food before they are ready. Build more greenhouses!', 'castle-food'); continue; }
+    t.train = (t.train || 0) + dt / 12;
+    if (t.train >= 1) {
+      t.train = 0; t.kn++; S.food -= 5; dirty = true;
+      knights.push(newKnight(t, have));
+      const c = center(t);
+      burst(c.x, c.y - 20, 12, ['#ffd166', '#ffffff', '#5c7cfa']);
+      fx.push({ kind: 'text', x: c.x, y: c.y - 46, text: 'Knight!', life: 1.2, max: 1.2, color: '#ffd166' });
+      sfx('chime');
+      say('kip', 'A knight just marched out of the castle! They will guard everything nearby, all on their own.', 'knight1');
+    }
+  }
+  knights = knights.filter(k => k.home.b === 'castle');
+  const king = S.boss && S.boss.kind === 'king' && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  for (const k of knights) {
+    k.t += dt; k.cd -= dt; k.swing = Math.max(0, k.swing - dt); k.hit = Math.max(0, k.hit - dt);
+    const hx = k.home.gx + 0.5, hy = k.home.gy + 0.5;
+    if (k.state === 'hurt') { if (stepToward(k, hx, hy, 0.8 * dt) < 0.3) { k.state = 'heal'; k.t = 0; } continue; }
+    if (k.state === 'heal') { if (k.t > 6) { k.hp = k.maxhp; k.state = 'guard'; } continue; }
+    // keep the current foe while it is still standing and near home; otherwise look for a new one
+    const live = f => f === 'king' ? king && Math.hypot(king.x - hx, king.y - hy) <= GUARD + 3
+      : f && !f.gone && f.state !== 'bonked' && f.state !== 'emerge' && Math.hypot(f.x - hx, f.y - hy) <= GUARD + 1;
+    if (!live(k.tgt)) {
+      k.tgt = null;
+      if (live('king')) k.tgt = 'king';
+      else {
+        let best = null, bd = Infinity;
+        for (const c of crits) {
+          if (!live(c)) continue;
+          const d = Math.hypot(c.x - k.x, c.y - k.y) - (KINDS[c.kind || 'basic'].immune ? 3 : 0); // shell-beasts first
+          if (d < bd) { bd = d; best = c; }
+        }
+        k.tgt = best;
+      }
+    }
+    if (k.tgt) {
+      const f = k.tgt === 'king' ? king : k.tgt;
+      const reach = k.tgt === 'king' ? 1.25 : 0.35 + 0.2 * KINDS[f.kind || 'basic'].size;
+      // spread out around the foe instead of stacking on one spot
+      const a = k.seed + k.i * 2.1, ox = Math.cos(a) * reach * 0.8, oy = Math.sin(a) * reach * 0.8;
+      if (Math.hypot(f.x - k.x, f.y - k.y) > reach) { stepToward(k, f.x + ox, f.y + oy, 1.45 * dt); k.state = 'chase'; }
+      else {
+        k.state = 'fight'; k.face = (f.x - k.x) - (f.y - k.y) > 0 ? 1 : -1;
+        if (k.tgt !== 'king') f.fighting = 0.4;
+        if (k.cd <= 0) {
+          k.cd = 0.75; k.swing = 0.25;
+          if (k.tgt === 'king') hurtBoss(1, true); else bonk(f, false, 1, true);
+          if (Math.random() < 0.5) sfx('clang');
+        }
+      }
+    } else {
+      const a = k.i * 2.1 + k.home.gx + RT * 0.05, px = hx + Math.cos(a) * 0.8, py = hy + Math.sin(a) * 0.8;
+      k.state = stepToward(k, px, py, 0.7 * dt) > 0.05 ? 'walk' : 'guard';
+    }
+  }
+}
+function hurtKnight(k, dmg, from) {
+  k.hp -= dmg; k.hit = 0.3;
+  const dx = k.x - from.x, dy = k.y - from.y, d = Math.hypot(dx, dy) || 1;
+  k.x += dx / d * 0.3; k.y += dy / d * 0.3;
+  const p = critWorld(k);
+  burst(p.x, p.y - 10, 5, ['#ffffff', '#c9cee8']);
+  if (k.hp <= 0) {
+    k.hp = 0; k.state = 'hurt'; k.tgt = null; k.t = 0;
+    say('kip', 'A knight got knocked out! Do not worry, they will walk back to the castle and patch up.', 'knight-ko');
+  }
+}
+function drawKnight(g, k) {
+  const p = critWorld(k);
+  const moving = k.state === 'chase' || k.state === 'walk' || k.state === 'hurt';
+  const bob = moving ? Math.abs(Math.sin(k.t * 12 + k.seed)) * 1.6 : 0;
+  g.save(); g.translate(p.x, p.y);
+  if (k.state === 'heal') g.globalAlpha = 0.55;
+  ell(g, 0, 1, 5.5, 2.2, 'rgba(70,16,24,0.25)');
+  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - 1.5) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
+  g.scale(1.25 * k.face, 1.25);
+  const by = -6 - bob, steel = k.hit > 0 ? '#ffffff' : k.state === 'hurt' ? '#a3a7bd' : '#e3e8f5', dark = '#7d849e';
+  g.fillStyle = dark;
+  const st = moving ? Math.sin(k.t * 12 + k.seed) * 1.2 : 0;
+  g.fillRect(-2.4 + st, by + 2.5, 1.9, 3.8 + bob); g.fillRect(0.6 - st, by + 2.5, 1.9, 3.8 + bob);
+  // shield on the far arm
+  ell(g, -3.6, by + 0.5, 2.6, 3.8, '#3d5bd9'); g.fillStyle = '#ffd166'; g.fillRect(-4, by - 2.5, 0.9, 6);
+  ell(g, 0, by, 3.8, 4.4, steel);
+  g.fillStyle = '#3d5bd9'; poly(g, [[-2.6, by - 1.5], [2.6, by - 1.5], [2, by + 4], [-2, by + 4]]);
+  g.fillStyle = '#ffd166'; g.fillRect(-0.5, by - 1.5, 1, 5.5);
+  ell(g, 0.4, by - 6, 3.2, 3.3, steel);
+  g.fillStyle = '#2a2550'; g.fillRect(0.6, by - 6.6, 3, 1.1);
+  g.fillStyle = '#ff6b81'; poly(g, [[-0.6, by - 9], [-4.5, by - 10.5 + Math.sin(RT * 6 + k.seed)], [-3.5, by - 7.5]]);
+  // sword: raised, then swung down
+  const ang = k.swing > 0 ? -1.4 + (1 - k.swing / 0.25) * 2.4 : k.state === 'fight' ? -1.2 : -0.5;
+  g.save(); g.translate(3.4, by + 0.5); g.rotate(ang);
+  g.fillStyle = '#ffd166'; g.fillRect(-1.6, -0.6, 3.2, 1.2);
+  g.fillStyle = '#f4f7ff'; poly(g, [[-0.7, -0.6], [0.7, -0.6], [0.5, -9], [0, -10.5], [-0.5, -9]]);
+  g.restore();
+  if (k.swing > 0.12) { g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1; g.beginPath(); g.arc(3.4, by + 0.5, 10, -1.3, 0.6); g.stroke(); }
+  if (k.state === 'hurt') for (let i = 0; i < 3; i++) { const a = k.t * 7 + i * 2.1; ell(g, Math.cos(a) * 5, by - 11 + Math.sin(a) * 1.6, 1.1, 1.1, '#ffd166'); }
+  g.restore();
+}
 
 function drawCritter(g, c) {
   const p = critWorld(c);
@@ -3395,6 +3924,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.immune) { drawShell(g, c, p, k, alpha, walking, bob); return; }
   if (c.maxhp > 1 && c.state !== 'bonked' && alpha > 0.5) {
     for (let i = 0; i < c.maxhp; i++) ell(g, (i - (c.maxhp - 1) / 2) * 4.5, -28 * k, 1.7, 1.7, i < c.hp ? '#ff6b81' : 'rgba(255,255,255,0.25)');
   }
@@ -3636,6 +4166,29 @@ function drawBigMars(g, x, y, r) {
   g.fillStyle = sh; g.fillRect(x - r, y - r, r * 2, r * 2);
   g.restore();
 }
+function drawJupiter(g, x, y, r) {
+  const glow = g.createRadialGradient(x, y, r * 0.95, x, y, r * 1.2);
+  glow.addColorStop(0, 'rgba(255,214,160,0.3)'); glow.addColorStop(1, 'rgba(255,214,160,0)');
+  g.fillStyle = glow; g.beginPath(); g.arc(x, y, r * 1.2, 0, Math.PI * 2); g.fill();
+  g.save(); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.clip();
+  g.fillStyle = '#ead7b8'; g.fillRect(x - r, y - r, r * 2, r * 2);
+  const bands = [[-0.95, 0.2, '#b98e68'], [-0.62, 0.13, '#c99a6b'], [-0.4, 0.15, '#a8714d'], [-0.1, 0.12, '#f3e6cc'], [0.1, 0.17, '#b47a52'], [0.38, 0.1, '#d9b48a'], [0.58, 0.15, '#a36d4b'], [0.82, 0.2, '#bf9a78']];
+  for (const [yf, hf, col] of bands) {
+    g.fillStyle = col; g.beginPath(); g.moveTo(x - r, y + yf * r);
+    for (let i = 0; i <= 12; i++) g.lineTo(x - r + i * r / 6, y + yf * r + Math.sin(i * 1.3 + RT * 0.03 + yf * 9) * r * 0.012);
+    g.lineTo(x + r, y + (yf + hf) * r); g.lineTo(x - r, y + (yf + hf) * r); g.fill();
+  }
+  for (let i = 0; i < 7; i++) ell(g, x - r + ((i * 0.37 + RT * 0.004) % 1) * 2 * r, y + (i % 2 ? 0.08 : -0.32) * r, r * 0.07, r * 0.02, 'rgba(255,250,235,0.5)');
+  const rx = x + r * 0.25 + Math.sin(RT * 0.01) * r * 0.1, ry = y + r * 0.27;
+  ell(g, rx, ry, r * 0.19, r * 0.11, '#f0d7bf'); ell(g, rx, ry, r * 0.15, r * 0.08, '#c4552d'); ell(g, rx - r * 0.03, ry - r * 0.015, r * 0.07, r * 0.035, '#d9784a');
+  const sh = g.createLinearGradient(x - r, y, x + r, y);
+  sh.addColorStop(0, 'rgba(10,8,30,0)'); sh.addColorStop(0.55, 'rgba(10,8,30,0)'); sh.addColorStop(1, 'rgba(10,8,30,0.7)');
+  g.fillStyle = sh; g.fillRect(x - r, y - r, r * 2, r * 2);
+  g.restore();
+  // Io, sliding across in front
+  const io = (RT * 0.02) % (Math.PI * 2);
+  if (Math.sin(io) > -0.2) ell(g, x + Math.cos(io) * r * 1.5, y + r * 0.15 + Math.sin(io) * r * 0.1, r * 0.045, r * 0.045, '#f2d35b');
+}
 function drawBG(g, W, H) {
   const p = S ? terra() : 0;
   const grd = g.createLinearGradient(0, 0, 0, H);
@@ -3653,6 +4206,9 @@ function drawBG(g, W, H) {
   g.fillStyle = sg; g.fillRect(sx - 120, sy - 120, 240, 240);
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
+  const sk = S && LEVELS[S.level].sky;
+  if (sk === 'jupiter') { drawJupiter(g, W * 0.84, H * 0.3, Math.min(W, H) * 0.3); return; }
+  if (sk === 'far-mars') { drawBigMars(g, W * 0.86, H * 0.34, Math.min(W, H) * 0.075); return; }
   if (S && LEVELS[S.level].offworld) { drawBigMars(g, W * 0.86, H * 0.3, Math.min(W, H) * 0.28); return; }
   // Phobos drifting by
   const px = ((RT * 9) % (W + 200)) - 100, py = H * 0.3 + Math.sin(RT * 0.05) * 20;
@@ -3678,11 +4234,11 @@ function render() {
   if (surf && !LEVELS[S.level].offworld) drawHalo(ctx);
   if (S.view === 'sky') for (const c of clouds) { ctx.save(); ctx.globalAlpha = 0.5; cloudShape(ctx, c.x, c.y + 260, c.s * 1.4, '#ffffff'); ctx.restore(); }
   const byTile = new Map();
-  for (const c of crits) { const k = critTile(c); if (!byTile.has(k)) byTile.set(k, []); byTile.get(k).push(c); }
+  for (const c of crits.concat(knights)) { const k = critTile(c); if (!byTile.has(k)) byTile.set(k, []); byTile.get(k).push(c); }
   for (const t of order) {
     drawTile(ctx, t);
     if (t.b) drawBuildingOn(ctx, t);
-    const cs = surf && byTile.get(t); if (cs) for (const c of cs) drawCritter(ctx, c);
+    const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.home ? drawKnight : drawCritter)(ctx, c);
   }
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
   if (hover && !tool) {
@@ -3882,6 +4438,9 @@ function showTitle() {
       <button class="lvl five" data-l="4"><span class="n">5</span><span><b>Deep Roots</b><small>Critter nests, new land, caves and sky islands.</small></span><span class="go">Play</span></button>
       <button class="lvl six" data-l="5"><span class="n">6</span><span><b>Exodus</b><small>Build a Greater Mars, or face the Critter Queen and leave.</small></span><span class="go">Play</span></button>
       <button class="lvl seven" data-l="6"><span class="n">7</span><span><b>Phobos Outpost</b><small>Beyond Mars: a tiny moon, low gravity, falling meteors.</small></span><span class="go">Play</span></button>
+      <button class="lvl eight" data-l="7"><span class="n">8</span><span><b>Deimos Watch</b><small>Shell-beasts that lasers can’t hurt. Build castles, train knights.</small></span><span class="go">Play</span></button>
+      <button class="lvl nine" data-l="8"><span class="n">9</span><span><b>Europa: The Ice Shell</b><small>Jupiter’s ice moon: weak sun, warm cracks, giant shell-beasts.</small></span><span class="go">Play</span></button>
+      <button class="lvl ten" data-l="9"><span class="n">10</span><span><b>Europa: The Shell King</b><small>Three castles, nine knights, and the Shell-beast King.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 10 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -3927,7 +4486,7 @@ function showComplete() {
   if (LEVELS[S.level].bonus) return showGlorpDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0 && typeof showDestinations === 'function') return showDestinations();
-  const next = S.level + 1 < LEVELS.length && !LEVELS[S.level + 1].offworld;
+  const nx = LEVELS[S.level + 1], next = !!nx && !nx.bonus && (!nx.offworld || !!L.offworld);
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
@@ -3966,7 +4525,7 @@ function afterLoad() {
   S.view = S.view || 'surface'; S.techs = S.techs || []; S.science = S.science || 0; S.fuel = S.fuel || 0; S.nestsSmashed = S.nestsSmashed || 0;
   S.said = S.said || {}; S.lastProgress = S.lastProgress ?? S.time; S.lastNudge = S.lastNudge ?? 0;
   buildOrder(); buildToolbar(); buildGoals();
-  tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; once.clear(); shortageWarned = false;
+  tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; knights = []; once.clear(); shortageWarned = false;
   if (S.launchT) S.launchT = 0;
   if (S.rocket && S.rocket.launched && !S.escaped) {
     S.rocket.launched = false;
@@ -4022,7 +4581,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 02610b12 043eaa72 06e150f9 06e3e69e 09033633 0a01a313 0a3e2be9 0a938044 0da086cf 0f5e67f5 0f9d9a55 0fc77d48 1331cada 13713eb9 13adf42b 143d51b6 14443303 14e62512 1515b2c3 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 1a73deff 1d2363f8 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 262c9f53 2631b903 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 30cb6362 317b5667 3212792b 325c2975 34b3668a 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 39ac3311 3a2a3dd2 3ca2a321 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 42bbdd55 4320630f 43461594 488637dd 4b62a538 4ecb63fb 5033e388 51218f66 51a5c1d2 51aaff27 52170bf3 528abda2 531550fe 53481673 56eebfbb 581a7c01 58fc90dd 59461109 59d6a190 5a0049d9 5a7be0e7 5d5c0d57 5e7aea23 5fec72b2 60144cc1 602279ef 60b858de 60cd53e0 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64cb995b 64ec0701 6527de87 65698d37 66c95ee9 66df857e 68ecfd5d 692ba820 69a1d5c5 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d4a394e 6d793f09 6d8933a2 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 7090a6f6 7301527c 73a92909 750f794b 75790582 776c07c6 7794c923 7b4aa8fa 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 8588aa9e 859101f7 8796f0db 87bc0a6e 88755faf 8a286a1d 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 8e708bce 916e3e57 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9ad8d525 9b646edd 9bad23e5 9cb181d2 9cdc007a 9dc4c374 9e14341c 9e563fed a07e771b a2413960 a260a4f5 a3308c35 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ac5e0d8b ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b2b9eac6 b37e7352 b8f1f2bb b956ba1f b9da402b b9fc496b bbaad895 bc664788 bf202cf8 bfcf3810 c007124e c293bbd8 c34f5141 c4677edd c587d92c c5eaa696 c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d717036b d805324d d8352bff d8551ff8 d87b48be d956d672 d983031a da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e08912be e233cd11 e4acaf8a e5392f66 e77d6a46 e8dc2b4c e9d2abdc ea28b442 ee7e156f ef1f18a3 ef43016a efd02516 f024b752 f0e32d17 f16d66a6 f450f0b6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 01b054cc 02610b12 04274c70 043eaa72 052e0102 06e150f9 06e3e69e 0732c7bd 07e9d382 09033633 095e8697 0a01a313 0a3e2be9 0a938044 0c594a15 0d9b5e6f 0da086cf 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 1331cada 13713eb9 13adf42b 13e2d8ff 143d51b6 14443303 14e62512 1515b2c3 153b4a48 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 19f04f62 1a73deff 1bd330d0 1d2363f8 1e261bbc 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 262c9f53 2631b903 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 30cb6362 317b5667 3212792b 325c2975 34975786 34b3668a 353c8fab 3626bfee 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39ac3311 3a2a3dd2 3ac5b40e 3b49c630 3ca2a321 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 3f970f04 42bbdd55 4320630f 43461594 44700db2 463d12bf 465ae406 488637dd 4b62a538 4b983c1d 4ecb63fb 5033e388 5095fe75 51218f66 51a5c1d2 51aaff27 51c8c83d 52170bf3 528abda2 531550fe 53481673 55a248b0 56eebfbb 57156cc3 581a7c01 58fc90dd 59461109 59d6a190 5a0049d9 5a7be0e7 5b605ff5 5d255f48 5d5c0d57 5e7aea23 5fec72b2 60144cc1 602279ef 60b858de 60cd53e0 60e25ebf 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64cb995b 64ec0701 6527de87 65698d37 657cd9d8 65876fef 65b781d1 666fe626 66c95ee9 66df857e 671f5d5f 68ecfd5d 692ba820 69605eb6 69910a99 69a1d5c5 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d4a394e 6d793f09 6d8933a2 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 7090a6f6 7301527c 73a92909 73ed37e3 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 767ef75c 77454f28 776c07c6 7794c923 7b4aa8fa 7ba49dc9 7cc4e0a9 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 8588aa9e 859101f7 86587ccf 8796f0db 87bc0a6e 88755faf 8a286a1d 8a787fd6 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 8e708bce 9005a0e9 9007db86 911a18a9 916e3e57 9344e33e 943c33d7 9469484c 9530f060 9599dd43 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9a730ed7 9ad8d525 9b646edd 9bad23e5 9cb181d2 9cdc007a 9d22f9c4 9dc4c374 9e14341c 9e563fed a07e771b a2413960 a260a4f5 a3308c35 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ac5e0d8b ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b2b9eac6 b37e7352 b6750665 b6a1a824 b8f1f2bb b956ba1f b9da402b b9fc496b bbaad895 bc664788 bf202cf8 bfcf3810 c007124e c23bfc92 c293bbd8 c34f5141 c4677edd c587d92c c5eaa696 c7310a3a c904af31 c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d0d50703 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d717036b d805324d d8352bff d8551ff8 d87b48be d956d672 d983031a d9e72f66 da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc6c9907 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e08912be e233cd11 e3526ffc e4acaf8a e5392f66 e7264fe6 e77d6a46 e8dc2b4c e9d2abdc ea28b442 ea492de8 eb2b4d17 ed771340 edaf3095 ee3ccb67 ee7e156f eebfba27 ef1f18a3 ef43016a efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f29daee7 f3236dcb f42b055d f450f0b6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fa93cb7d fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -4284,6 +4843,7 @@ function saveGame() {
 function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (d && d.S && !d.S.v3) { if (d.S.level === 7) d.S.level = GLORP; d.S.v3 = true; } // Glorp used to be level slot 7
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;

@@ -40,7 +40,15 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 6. **Exodus**: two ways to win. Build a **Greater Mars** on every layer, or build the colony
    rocket, beat the **Critter Queen** and fight your way out of orbit past the Swarm Mother.
 7. **Phobos Outpost**: the first world beyond Mars. No air, tiny gravity and falling meteors.
-   Europa and Titan are teased as coming soon.
+8. **Deimos Watch**: Mars's outer moon, and the first **shell-beasts**: armoured aliens that
+   zappers, drones and taps bounce off. Build **castles**, which train up to 3 **knights** each
+   (one every 12 seconds, 5 food apiece). Knights guard everything within 4 tiles of their castle
+   and are the only thing that can hurt a shell-beast. A knocked-out knight walks home to heal.
+9. **Europa: The Ice Shell**: Jupiter's ice moon. Solar arrays make half as much power, so use
+   geothermal plants on the warm cracks. Giant shell-beasts smash buildings if left alone.
+10. **Europa: The Shell King**: three castles and nine knights, then the **Shell-beast King**
+    breaks through the ice. Only knights can hurt him; he marches on the castles, stomps nearby
+    knights and calls more shell-beasts.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
