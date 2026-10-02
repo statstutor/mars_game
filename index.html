@@ -328,6 +328,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BUILD = 11; // shown on the title screen, so it's easy to tell which version is running
 
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
@@ -3307,6 +3308,7 @@ function showTitle() {
       <button class="lvl six" data-l="5"><span class="n">6</span><span><b>Exodus</b><small>Build a Greater Mars, or face the Critter Queen and leave.</small></span><span class="go">Play</span></button>
       <button class="lvl seven" data-l="6"><span class="n">7</span><span><b>Phobos Outpost</b><small>Beyond Mars: a tiny moon, low gravity, falling meteors.</small></span><span class="go">Play</span></button>
     </div>`);
+  $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
   $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => { audioInit(); startLevel(+b.dataset.l); }));
   if (cont) $('#continue').addEventListener('click', () => {
     audioInit();
