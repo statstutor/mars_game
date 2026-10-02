@@ -1551,14 +1551,14 @@ function drawMeteors(g) {
 // ---------------------------------------------------------------- escape! (arcade shooter)
 let A = null;
 function startArcade() {
-  A = { t: 0, x: view.W / 2, tx: view.W / 2, shields: 5, inv: 0, fireT: 0, bullets: [], foes: [], orbs: [], parts: [], spawnT: 1, boss: null, phase: 'waves', endT: 0, keys: {} };
+  A = { t: 0, x: view.W / 2, tx: view.W / 2, shields: 5, inv: 0, fireT: 0, bullets: [], foes: [], picks: [], orbs: [], parts: [], spawnT: 1, boss: null, phase: 'waves', endT: 0, keys: {} };
   $('#ui').hidden = true; selectTool(null);
   toast('Escape Mars orbit! Move to dodge, the rocket fires by itself.', 'good');
   say('kip', 'Space critters! They are guarding the orbit. Move the rocket left and right to dodge. Our cannons fire by themselves!', 'arcade1');
 }
 function endArcade(won) {
   A = null; $('#ui').hidden = false; layout(true);
-  if (won) { S.escaped = true; dirty = true; S.rocket.launched = true; }
+  if (won) { S.escaped = true; dirty = true; if (S.rocket) S.rocket.launched = true; }
 }
 const FOES = {
   jelly:  { hp: 1, r: 14, col: '#c9a7ff', spd: 70 },
@@ -1619,7 +1619,7 @@ function arcadeUpdate(dt) {
   for (const b of A.bullets) {
     for (const f of A.foes) if (!b.gone && f.hp > 0 && Math.hypot(b.x - f.x, b.y - f.y) < FOES[f.kind].r + 4) {
       b.gone = true; f.hp--;
-      if (f.hp <= 0) { arcBurst(f.x, f.y, FOES[f.kind].col, 10); if (prefs.sfx) noise(0.15, 0.06, 2500); if (Math.random() < 0.06) A.foes.push({ kind: 'shield', x: f.x, y: f.y, hp: 1, t: 0 }); }
+      if (f.hp <= 0) { arcBurst(f.x, f.y, FOES[f.kind].col, 10); if (prefs.sfx) noise(0.15, 0.06, 2500); if (Math.random() < 0.06) A.picks.push({ x: f.x, y: f.y }); }
     }
     const m = A.boss;
     if (m && m.hp > 0 && !b.gone && Math.abs(b.x - m.x) < 70 && Math.abs(b.y - m.y) < 40) {
@@ -1632,8 +1632,12 @@ function arcadeUpdate(dt) {
     }
   }
   A.bullets = A.bullets.filter(b => !b.gone);
+  for (const k of A.picks) {
+    k.y += 90 * dt;
+    if (Math.hypot(k.x - A.x, k.y - ry) < 30) { k.got = true; A.shields = Math.min(5, A.shields + 1); sfx('chime'); }
+  }
+  A.picks = A.picks.filter(k => !k.got && k.y < H + 30);
   for (const f of A.foes) {
-    if (f.kind === 'shield') { f.y += 90 * dt; if (Math.hypot(f.x - A.x, f.y - ry) < 30) { f.hp = 0; A.shields = Math.min(5, A.shields + 1); sfx('chime'); } continue; }
     if (f.hp > 0 && Math.hypot(f.x - A.x, f.y - ry) < FOES[f.kind].r + 16) { f.hp = 0; hitRocket(); arcBurst(f.x, f.y, FOES[f.kind].col, 8); }
   }
   for (const o of A.orbs) if (!o.gone && Math.hypot(o.x - A.x, o.y - ry) < 18) { o.gone = true; hitRocket(); }
@@ -1666,8 +1670,8 @@ function arcadeRender() {
   const sx = shake ? (Math.random() - 0.5) * shake : 0;
   g.save(); g.translate(sx, 0);
   for (const b of A.bullets) { g.fillStyle = '#9be3ff'; g.fillRect(b.x - 1.5, b.y - 8, 3, 12); }
+  for (const k of A.picks) { ell(g, k.x, k.y, 11, 11, 'rgba(92,200,255,0.4)'); ell(g, k.x, k.y, 6, 6, '#9be3ff'); }
   for (const f of A.foes) {
-    if (f.kind === 'shield') { ell(g, f.x, f.y, 11, 11, 'rgba(92,200,255,0.4)'); ell(g, f.x, f.y, 6, 6, '#9be3ff'); continue; }
     const F = FOES[f.kind];
     if (f.kind === 'jelly') {
       g.strokeStyle = F.col; g.lineWidth = 2; g.beginPath();
@@ -4035,8 +4039,8 @@ function frame(now) {
   if (uiT > 0.12 && S && !A) { uiT = 0; updateUI(); layout(); }
   saveT += rdt;
   if (playing && !A && !(S && S.launchT) && (dirty || (saveT > 5 && running))) saveGame();
-  if (A) arcadeUpdate(rdt);
-  if (A) arcadeRender(); else render();
+  if (A) { try { arcadeUpdate(rdt); } catch (e) { console.error(e); } }
+  if (A) { try { arcadeRender(); } catch (e) { console.error(e); } } else render();
 }
 
 // ---------------------------------------------------------------- boot
