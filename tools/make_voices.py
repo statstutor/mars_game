@@ -27,7 +27,13 @@ VOICES = {
     'kip': ('am_puck', 'en-us', 1.05),    # KIP-7, robot effect added below
     'zorp': ('am_puck', 'en-us', 1.1),    # Zorp the alien trader, alien effect added below
     'vell': ('bm_george', 'en-gb', 0.9),  # Elder Vell, ancient-being effect added below
+    'mrs': ('af_bella', 'en-us', 1.05),   # Mrs. Zorp
+    'kids': ('af_nicole', 'en-us', 1.1),  # Zib and Zab
+    'baby': ('af_sky', 'en-us', 1.0),     # Baby Zuzu
+    'blorg': ('am_fenrir', 'en-us', 0.95),  # Blorg, Zorp's grumpy rival
 }
+# pitch shift in semitones and warble for the alien family
+ALIEN = {'zorp': (5, 0.2), 'mrs': (3, 0.12), 'kids': (7, 0.18), 'baby': (10, 0.1), 'blorg': (-3, 0.25)}
 
 def clip_key(who, text):
     h = 0x811C9DC5
@@ -65,11 +71,11 @@ def shift(y, semitones):
     factor = 2 ** (semitones / 12)
     return np.interp(np.arange(0, len(y) - 1, factor), np.arange(len(y)), y)
 
-def alienize(y, sr):
-    # bright and bubbly: pitched up with a quick warble
-    y = shift(y, 5)
+def alienize(y, sr, semis=5, warble=0.2):
+    # bubbly alien voice: pitched and given a quick warble
+    y = shift(y, semis)
     t = np.arange(len(y)) / sr
-    return y * (0.8 + 0.2 * np.sin(2 * np.pi * 9 * t))
+    return y * (1 - warble + warble * np.sin(2 * np.pi * 9 * t))
 
 def ancient(y, sr):
     # deep and echoing: pitched down with a few soft reflections
@@ -105,8 +111,8 @@ def main():
         y, sr = kokoro.create(spoken, voice=voice, speed=speed, lang=lang)
         if who == 'kip':
             y = robotize(y, sr)
-        elif who == 'zorp':
-            y = alienize(y, sr)
+        elif who in ALIEN:
+            y = alienize(y, sr, *ALIEN[who])
         elif who == 'vell':
             y = ancient(y, sr)
         sf.write(path, finish(y, sr), sr, format='MP3')

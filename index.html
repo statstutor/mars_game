@@ -148,6 +148,19 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .offer .arrow { color: #b6f36a; font: 600 18px var(--display); }
 .offer .get { font-weight: 800; }
 .small-note { font-size: 12.5px !important; color: var(--muted) !important; }
+.friend { font-weight: 800; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hearts { color: #ff6b9d; letter-spacing: 2px; font-size: 17px; }
+.hearts i { color: rgba(255, 255, 255, 0.18); font-style: normal; }
+.friend small { color: var(--muted); }
+.btn.visit { background: #b6f36a; color: #1a2410; width: 100%; }
+.offer.gold { border-color: #ffd166; background: rgba(255, 209, 102, 0.12); }
+.perks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.perk { text-align: left; padding: 12px 14px; border-radius: 16px; border: 2px solid var(--line); background: rgba(182, 243, 106, 0.06); color: var(--ink); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+.perk b { font: 600 15px var(--display); }
+.perk small { color: var(--muted); font-size: 12.5px; }
+.perk:hover, .perk.on { border-color: #b6f36a; background: rgba(182, 243, 106, 0.16); }
+.perk:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.lvl.bonus .n { background: #b6f36a; font-size: 16px; } .lvl.bonus .go { color: #b6f36a; } .lvl.bonus { border-color: rgba(182, 243, 106, 0.5); }
 .sheet.wide { width: min(1000px, 100%); }
 .dest { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .world { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.05); border: 2px solid var(--line); }
@@ -328,7 +341,13 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 11; // shown on the title screen, so it's easy to tell which version is running
+const BUILD = 12;
+// progress that belongs to the player rather than to one save
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+let HEARTS = store.get('mmb-hearts', 0), GOLD = store.get('mmb-gold', 0), PERK = store.get('mmb-perk', null); // shown on the title screen, so it's easy to tell which version is running
 
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
@@ -430,6 +449,28 @@ const B = {
              desc: 'Splits water into rocket fuel: 0.4 water/s becomes 0.5 fuel/s. Uses 3 energy/s.' },
   pad:     { name: 'Launch Pad', cost: { metal: 120 }, on: ['plain', 'ore'], onText: 'Launch pads need flat ground.', unique: true,
              desc: 'Where the colony rocket will be built. Click the pad to build and launch it.' },
+  flower:  { name: 'Solar Flower', cost: { metal: 12 }, on: ['plain', 'ore'], onText: 'Solar flowers need open ground.', energy: 9,
+             desc: 'Zorp-tech: a giant glowing flower that drinks sunlight. +9 energy/s, three times a solar array.' },
+  gmine:   { name: 'Gloop Mine', cost: { metal: 15 }, on: ['ore'], onText: 'Gloop mines go on crystal ore.', energy: -1, out: { metal: 6 },
+             desc: 'Zorp-tech: slurps metal out of the ore. +6 metal/s, three times a normal mine.' },
+  gpump:   { name: 'Goo Pump', cost: { metal: 15 }, on: ['lake'], onText: 'Goo pumps go in the pink goo pools.', energy: -1, out: { water: 4 },
+             desc: 'Filters pink goo into fresh water. +4 water/s.' },
+  garden:  { name: 'Glorp Garden', cost: { metal: 15 }, on: ['plain', 'ore'], onText: 'Gardens need open ground.', energy: -1, out: { food: 3 },
+             desc: 'Bouncy alien fruit trees. +3 food/s.' },
+  hover:   { name: 'Hover Habitat', cost: { metal: 40 }, on: ['plain', 'ore', 'lake'], onText: 'Hover habitats float over ground or goo.', energy: -1,
+             desc: 'A floating bubble home for 10 festival guests.' },
+  tesla:   { name: 'Tesla Zapper', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Tesla zappers need open ground.', energy: -1,
+             desc: 'Zorp-tech lightning that jumps between up to 3 targets and hits twice as hard. Zaps meteors and party crashers too.' },
+  kitchen: { name: 'Mega Kitchen', cost: { metal: 60 }, on: ['plain', 'ore'], onText: 'The kitchen needs open ground.', energy: -2, out: { food: 4 }, unique: true,
+             desc: 'Mrs. Zorp’s festival kitchen. It can cook a feast for a thousand guests.' },
+  bounce:  { name: 'Bounce Dome', cost: { metal: 50 }, on: ['plain', 'ore'], onText: 'The bounce dome needs open ground.', unique: true,
+             desc: 'A giant jelly dome for jumping on. Zib and Zab’s idea.' },
+  nappod:  { name: 'Snooze Pod', cost: { metal: 30 }, on: ['plain', 'ore'], onText: 'The snooze pod needs open ground.', unique: true,
+             desc: 'A quiet, cosy pod so Baby Zuzu can nap through the party.' },
+  lantern: { name: 'Sky Lantern', cost: { metal: 10 }, on: ['plain', 'ore', 'lake'], onText: 'Lanterns float over ground or goo.',
+             desc: 'Floating festival lights. Zorp wants at least four.' },
+  zhouse:  { name: 'The Zorp Family Home', cost: {}, on: [], onText: '',
+             desc: 'A giant mushroom house. Mind your head on the way in.' },
   comet:   { name: 'Comet', cost: { energy: 40 }, ability: true,
              desc: 'Nudge an icy comet into Mars: +2.5 kPa, +1.5 °C. A comet into a crater leaves a lake. Hitting open ground digs a new crater.' },
   recycle: { name: 'Recycle', cost: {}, ability: true,
@@ -440,6 +481,8 @@ const B = {
 const ALL = () => (S.under || S.sky) ? S.tiles.concat(S.under || [], S.sky || []) : S.tiles;
 const count = type => ALL().reduce((n, t) => n + (t.b === type ? 1 : 0), 0);
 const FARMS = ['greenhouse', 'coop', 'ranch', 'fishery'];
+const homeSize = b => b === 'hover' ? 10 : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : 0;
+const popCap = () => ALL().reduce((n, t) => n + homeSize(t.b), 0);
 const wetFarms = () => ALL().filter(t => FARMS.includes(t.b) && t.wet).length;
 const hasTech = id => !!(S.techs && S.techs.includes(id));
 const curTiles = () => S.view === 'under' ? S.under : S.view === 'sky' ? S.sky : S.tiles;
@@ -565,6 +608,7 @@ const LEVELS = [
     prebuilt: [],
     critters: { every: [28, 40], max: 2, speed: 0.65, after: () => count('habitat') > 0, mix: { basic: 1 } },
     storms: { first: 150, every: [110, 160] },
+    traders: true, traderFirst: 80, early: true,
     goals: [
       { text: 'Build 4 solar arrays', get: () => count('solar'), target: 4,
         who: 'eng', hint: 'Power comes first. Pick the solar array and set four of them down on flat ground.' },
@@ -606,6 +650,7 @@ const LEVELS = [
     prebuilt: [['habitat', 8, 9], ['solar', 7, 9], ['solar', 9, 8], ['solar', 9, 7], ['mine', 8, 4], ['drill', 1, 1], ['greenhouse', 6, 9]],
     critters: { every: [15, 22], max: 4, speed: 0.8, after: () => S.time > 20, mix: { basic: 3, armor: 1 } },
     storms: { first: 90, every: [90, 140] },
+    traders: true, traderFirst: 60,
     goals: [
       { text: 'Warm Mars to 5 °C', get: () => S.planet.temp, target: 5, unit: '°C', dec: 1,
         who: 'eng', hint: 'Mirror links steer giant mirrors in orbit to focus extra sunlight on us. Build a few and get us above five degrees.' },
@@ -832,7 +877,14 @@ LEVELS.push({
   planet: { temp: -40, press: 0, o2: 0 },
   tools: ['solar', 'mine', 'drill', 'greenhouse', 'habitat', 'zapper', 'recycle'],
   prebuilt: [],
-  meteors: true,
+  meteors: true, traders: true, traderFirst: 50,
+  tileInfo: {
+    plain: ['Grey dust', 'Phobos is covered in fine dust, smashed up by billions of years of tiny meteor hits.'],
+    ore: ['Ore field', 'Metal-rich rock. Mines go here.'],
+    crater: ['Crater', 'Phobos is covered in craters. The biggest, Stickney, is nearly half as wide as the moon itself.'],
+    ice: ['Crater frost', 'Ice hiding in the permanent shadow of a crater. Ice drills go here.'],
+    rock: ['Ridge', 'Too steep to build on.'],
+  },
   pal: {
     plain: ['#a29a9c', '#7b7274', '#655d60'], ore: ['#9a9195', '#7b7274', '#655d60'], ice: ['#e4ebf3', '#b9c4d2', '#95a3b6'],
     crater: ['#8b8285', '#7b7274', '#655d60'], rock: ['#ada5a6', '#8b8285', '#6f686a'], sides: ['#7b7274', '#655d60', '#4e474a', '#3e383b'],
@@ -870,6 +922,59 @@ LEVELS.push({
     fact: '<b>Real plans:</b> Japan’s MMX mission is set to land on Phobos, scoop up some of its dust and bring it back to Earth to learn where the moon came from.',
   },
 });
+LEVELS.push({
+  name: 'Planet Glorp',
+  seed: 83, n: 11, offworld: true, bonus: true,
+  map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
+  start: { metal: 120, energy: 40, water: 30, food: 30 },
+  planet: { temp: 24, press: 140, o2: 30 },
+  tools: ['flower', 'gmine', 'gpump', 'garden', 'hover', 'tesla', 'kitchen', 'bounce', 'nappod', 'lantern', 'recycle'],
+  prebuilt: [['zhouse', 5, 5]],
+  meteors: true, meteorStorms: true,
+  tileInfo: {
+    plain: ['Glorp meadow', 'Soft teal moss dotted with tiny glowing mushrooms. It squeaks when you step on it.'],
+    ore: ['Crystal ore', 'Glorp’s ore grows like crystals. Gloop mines go here.'],
+    lake: ['Goo pool', 'Warm pink goo. Goo pumps filter it into water. Do not drink it straight.'],
+    rock: ['Purple peak', 'Too steep to build on. The Zorp kids climb them anyway.'],
+  },
+  pal: {
+    plain: ['#5fd1b9', '#2f9e8c', '#237a6d'], ore: ['#57c7b0', '#2f9e8c', '#237a6d'], lake: ['#ff7ad9', '#2f9e8c', '#237a6d'],
+    crater: ['#4fb8a2', '#2f9e8c', '#237a6d'], rock: ['#9a6fd6', '#7a52b8', '#5e3d96'], sides: ['#2f9e8c', '#237a6d', '#1a5c52', '#134640'],
+  },
+  deco: { pebble: '#ffd166', rim: '#8ff0dc', pit: '#3a9c8a', pit2: '#47ab98', cone: ['#b48cec', '#7a52b8', '#9a6fd6'], lake: '#ff8fe0', lakeDeep: '#e45cc0', mush: true },
+  goals: [
+    { text: 'Plant 3 Solar Flowers', get: () => count('flower'), target: 3,
+      who: 'zorp', hint: 'Welcome to Glorp! First, power. Solar flowers make three times more power than your little panels. Plant three!' },
+    { text: 'Build Mrs. Zorp’s Mega Kitchen', get: () => count('kitchen'), target: 1,
+      who: 'mrs', hint: 'Oh, hello, dear! The festival feast is tomorrow and my old kitchen is far too small. Could you build me a mega kitchen?' },
+    { text: 'Build the kids a Bounce Dome', get: () => count('bounce'), target: 1,
+      who: 'kids', hint: 'Bounce dome! Bounce dome! We want a giant bounce dome! Please, please, please!' },
+    { text: 'Build Baby Zuzu a Snooze Pod', get: () => count('nappod'), target: 1,
+      who: 'baby', hint: 'Glorp? Glorp glorp. Waaah!' },
+    { text: 'Hang 4 Sky Lanterns', get: () => count('lantern'), target: 4,
+      who: 'zorp', hint: 'It is not a festival without sky lanterns. Hang four of them, so the whole valley glows.' },
+    { text: 'Stop 20 meteors', get: () => S.meteorsStopped || 0, target: 20,
+      who: 'mrs', hint: 'Glorp gets meteor storms, dear. Tap them before they land, or build tesla zappers to shoot them down.' },
+    { text: 'Chase off the party crasher', get: () => S.crasherBeaten ? 1 : 0, target: 1, flag: true,
+      who: 'zorp', hint: 'Someone is trying to ruin the festival! Tap them, and let the tesla zappers do the rest.' },
+    { text: 'Start the Glorp Festival!', get: () => S.festivalDone ? 1 : 0, target: 1, flag: true,
+      who: 'kids', hint: 'Is it time? Is it time? It is festival time!' },
+  ],
+  intro: [['zorp', 'Welcome to Glorp, soft builders! Zorp’s home planet. Mind the goo, it is very sticky.'],
+          ['mrs', 'So you are the famous builders Zorp never stops talking about. Welcome, welcome! You arrived just in time for the festival.']],
+  outro: [['baby', 'Glorp!'], ['zorp', 'The best festival ever. Zorp’s family says thank you, friends. Come back anytime!']],
+  brief: {
+    eyebrow: 'Bonus level',
+    title: 'Planet Glorp',
+    body: [
+      'Zorp flew you home to meet the family: Mrs. Zorp, the twins Zib and Zab, and Baby Zuzu. The great Glorp Festival is tomorrow, and nothing is ready.',
+      'Build with super-powered Zorp tech: solar flowers, gloop mines and tesla zappers. Finish the family’s jobs, watch out for meteor storms, and deal with whoever tries to crash the party.',
+    ],
+    fact: '<b>Two suns:</b> about half the stars in our galaxy come in pairs. A planet like Glorp, circling two suns at once, is called a circumbinary planet. Astronomers have found more than a dozen of them.',
+  },
+  done: { title: 'The Glorp Festival!', body: '', fact: '' },
+});
+const GLORP = LEVELS.findIndex(L => L.bonus);
 // levels with two ways to win list their goals per path; flatten them for the HUD and saves
 for (const L of LEVELS) if (L.paths) L.goals = L.paths.flatMap((p, pi) => p.goals.map(g => ({ ...g, path: pi })));
 
@@ -926,7 +1031,7 @@ function newState(li) {
     level: li, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
-    clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
+    clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
     planet: { ...L.planet }, cometCd: 0, eff: 1,
     n: N, view: 'surface', science: L.start.science || 0, fuel: 0, techs: startTechs(li), nestsSmashed: 0,
     rates: { energy: 0, metal: 0, water: 0, food: 0, foodGross: 0, temp: 0, press: 0, science: 0 },
@@ -970,7 +1075,7 @@ function tick(dt) {
     if (t.off > 0) t.off = Math.max(0, t.off - dt);
     if (!t.b || t.off > 0) continue;
     const e = B[t.b].energy || 0;
-    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1);
+    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1) * (PERK === 'flower' ? 1.5 : 1);
     else if (e > 0) prod += e; else cons -= e;
   }
   updateWater();
@@ -988,7 +1093,7 @@ function tick(dt) {
     const d = B[t.b];
     if (d.out) {
       const farm = FARMS.includes(t.b) ? (t.wet ? 2 : 1) * cropBoost : 1;
-      metal += (d.out.metal || 0) * eff * work * (bonus.metal || 1);
+      metal += (d.out.metal || 0) * eff * work * (bonus.metal || 1) * (t.b === 'mine' && PERK === 'gloop' ? 1.5 : 1);
       water += (d.out.water || 0) * eff * work * (bonus.water || 1);
       food += (d.out.food || 0) * eff * work * (bonus.food || 1) * farm;
     }
@@ -1036,7 +1141,7 @@ function tick(dt) {
   S.moodTarget = target;
 
   // settlers arrive when there is room and life is good, and leave when it isn't
-  const cap = count('habitat') * 4;
+  const cap = popCap();
   if (S.pop > cap) S.pop = cap;
   S.arriveT -= dt;
   if (S.pop < cap && S.mood >= 35 && S.arriveT <= 0) {
@@ -1053,10 +1158,11 @@ function tick(dt) {
     }
   } else S.leaveT = 15;
   let left = S.pop;
-  for (const t of tiles) if (t.b === 'habitat') { t.res = Math.min(4, left); left -= t.res; }
+  for (const t of tiles) if (t.b === 'habitat' || t.b === 'hover') { t.res = Math.min(homeSize(t.b), left); left -= t.res; }
 
   updateCritters(dt);
   updateRocket(dt); updateBoss(dt);
+  if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
   if (L.traders) updateTrader(dt);
   if (S.vellT > 0) S.vellT -= dt;
@@ -1082,12 +1188,12 @@ function tick(dt) {
     }
   }
 
-  if (S.planet.temp >= -10) say('kip', 'The snow on the mountains is melting. Fun fact: it was mostly frozen carbon dioxide, so now it is more atmosphere!', 'snow');
-  if (S.planet.press >= 4) say('kip', 'Look up! Those are clouds. Real clouds, on Mars! I am taking several hundred photos.', 'clouds');
+  if (S.planet.temp >= -10 && !L.offworld) say('kip', 'The snow on the mountains is melting. Fun fact: it was mostly frozen carbon dioxide, so now it is more atmosphere!', 'snow');
+  if (S.planet.press >= 4 && !L.offworld) say('kip', 'Look up! Those are clouds. Real clouds, on Mars! I am taking several hundred photos.', 'clouds');
 
   // lichen
   const canGrow = S.planet.temp >= -20 && S.planet.press >= 5;
-  if (canGrow && S.level === 1) say('bot', 'It’s warm enough and the air is thick enough for lichen now. Get a seeder down!', 'lichen-ok');
+  if (canGrow && S.level === 1 && !L.offworld) say('bot', 'It’s warm enough and the air is thick enough for lichen now. Get a seeder down!', 'lichen-ok');
   if (canGrow) {
     const open = t => t && !t.b && (t.type === 'plain' || t.type === 'ore');
     for (const t of S.tiles) if (t.b === 'seeder') {
@@ -1203,6 +1309,7 @@ function hitNest(t, dmg = 1) {
   if (t.nhp > 0) { burst(c.x, c.y - 6, 5, ['#8a5a3c', '#ffd166']); sfx('clang'); return; }
   t.type = t.layer === 'under' ? 'cave' : 'plain'; t.nhp = 0;
   S.nestsSmashed++; S.crystals += 5; dirty = true;
+  if (Math.random() < 0.15) foundGold();
   burst(c.x, c.y - 6, 26, ['#8a5a3c', '#ffd166', '#ffffff', '#7fe0c4'], 1.4);
   fx.push({ kind: 'ring', x: c.x, y: c.y, r: 8, life: 0.9, max: 0.9, color: '#ffd166', big: true });
   fx.push({ kind: 'text', x: c.x, y: c.y - 24, text: '+5', life: 1.2, max: 1.2, color: '#c9a7ff' });
@@ -1293,6 +1400,326 @@ function updateLayerTabs() {
   box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view || 'surface')));
 }
 
+// ---------------------------------------------------------------- friendship with Zorp
+function addHearts(n) {
+  const before = HEARTS;
+  HEARTS = Math.min(10, HEARTS + n); store.set('mmb-hearts', HEARTS);
+  if (HEARTS === before) return;
+  toast(`Zorp’s friendship: ${HEARTS}/10 ♥`, 'good');
+  if (before < 3 && HEARTS >= 3) say('zorp', 'Zorp likes you, soft builders. You trade fair and you smell nice.');
+  if (before < 6 && HEARTS >= 6) say('zorp', 'Zorp told Mrs. Zorp all about you. She wants to meet you!');
+  if (before < 10 && HEARTS >= 10) {
+    store.set('mmb-glorp', true);
+    say('zorp', 'You are Zorp’s best friends in the whole galaxy! Come visit Zorp’s home planet. Click Zorp’s saucer whenever you are ready.');
+    if (S.trader) { S.trader.phase = 'wait'; S.trader.t = Math.max(S.trader.t, 40); }
+  }
+}
+function foundGold() {
+  GOLD++; store.set('mmb-gold', GOLD);
+  toast('You found a GOLDEN CRYSTAL! Zorp would love this.', 'good'); sfx('relic');
+  say('kip', 'A golden crystal! They are very rare. I bet Zorp would love it as a gift.', 'gold1');
+}
+function goGlorp() {
+  closeModal();
+  if (playing && S) { saveGame(); try { localStorage.setItem('mmb-return', localStorage.getItem(SAVE_KEY)); } catch (e) {} }
+  store.set('mmb-glorp', true);
+  startLevel(GLORP);
+}
+
+// ---------------------------------------------------------------- Planet Glorp: the festival
+const PERKS = {
+  flower: { name: 'Solar Flower seeds', desc: 'Solar arrays make 50% more power.' },
+  tesla: { name: 'Tesla coils', desc: 'Zappers zap two critters at once.' },
+  gloop: { name: 'Gloop drills', desc: 'Mines dig 50% more metal.' },
+  hover: { name: 'Hover homes', desc: 'Habitats hold 6 colonists instead of 4.' },
+};
+let bots = [];
+function updateGlorp(dt) {
+  // meteor storms: calm spells, then a burst of meteors
+  S.mstormT = (S.mstormT ?? 35) - dt;
+  if (S.mstormT <= 0) {
+    S.mstorm = S.mstorm ? 0 : 14; S.mstormT = S.mstorm ? 14 : 30 + Math.random() * 15;
+    if (S.mstorm) { toast('Meteor storm!', 'bad'); S.meteorT = 0.5; say('mrs', 'Meteor storm! Everybody under the mushrooms!', 'mstorm1'); }
+  }
+  if (S.mstorm) S.meteorT = Math.min(S.meteorT ?? 2, 1.7);
+  // the party crasher shows up once the family's three jobs are done
+  if (!S.crasher && count('kitchen') && count('bounce') && count('nappod')) {
+    S.crasher = ['worm', 'blorg', 'cousin'][Math.floor(Math.random() * 3)]; S.crashT = 4;
+    say('zorp', 'Uh oh. Zorp hears something coming. Something that was not invited.', 'crash0');
+  }
+  if (S.crashT > 0) { S.crashT -= dt; if (S.crashT <= 0) spawnCrasher(); }
+  if (S.worm) updateWorm(dt);
+  if (S.blorg) updateBlorg(dt);
+  for (const o of bots) {
+    o.t += dt;
+    const tg = S.tiles[o.ti];
+    if (!tg || !tg.b) { const opts = S.tiles.filter(t => t.b && t.b !== 'zhouse'); const n = opts[Math.floor(Math.random() * opts.length)]; if (!n) { o.gone = true; continue; } o.ti = S.tiles.indexOf(n); continue; }
+    const dx = tg.gx + 0.5 - o.x, dy = tg.gy + 0.5 - o.y, d = Math.hypot(dx, dy);
+    if (d > 0.2) { o.x += dx / d * 1.3 * dt; o.y += dy / d * 1.3 * dt; } else tg.off = Math.max(tg.off || 0, 0.4);
+  }
+  bots = bots.filter(o => !o.gone);
+  // the finale: everything ready, the crasher gone
+  const L = LEVELS[S.level];
+  const ready = L.goals.every((g, i) => g.text.startsWith('Start') || S.goalsDone[i]);
+  if (ready && !S.finaleT && !S.festivalDone) {
+    S.finaleT = 0.001;
+    say('zorp', 'Everything is ready. Let the Glorp Festival begin!', 'fest1');
+    say('kids', 'Fireworks! Fireworks! Look at all the fireworks!', 'fest2');
+  }
+  if (S.finaleT) {
+    S.finaleT += dt;
+    if (Math.random() < dt * 5) {
+      const x = (Math.random() - 0.5) * 560, y = -60 - Math.random() * 200, cols = ['#ff7ad9', '#ffd166', '#7ff7d4', '#b6f36a', '#9be3ff'];
+      burst(x, y, 30, [cols[Math.floor(Math.random() * cols.length)], '#ffffff'], 1.6);
+      fx.push({ kind: 'ring', x, y, r: 4, life: 0.8, max: 0.8, color: cols[Math.floor(Math.random() * cols.length)] });
+      if (prefs.sfx && Math.random() < 0.6) noise(0.3, 0.12, 1800);
+    }
+    if (S.finaleT > 14) { S.festivalDone = true; S.finaleT = 0; }
+  }
+}
+function spawnCrasher() {
+  if (S.crasher === 'worm') {
+    S.worm = { hp: 45, maxhp: 45, state: 'under', t: 0, x: 2.5, y: 2.5, tx: 2.5, ty: 2.5, ti: -1 };
+    pickWormSpot(); shake = RM ? 0 : 8; sfx('roar');
+    toast('A GRUMBLE WORM is under the festival grounds!', 'bad');
+    say('kids', 'Grumble worm! It eats everything! Bonk it on the head when it pops up!', 'worm1');
+  } else if (S.crasher === 'blorg') {
+    S.blorg = { hp: 40, maxhp: 40, x: -1, y: S.n / 2, state: 'fly', t: 0, ti: -1, botT: 4 };
+    sfx('saucer');
+    toast('Blorg’s battle saucer is here to ruin the party!', 'bad');
+    say('blorg', 'Zorp throws a party and does not invite Blorg? Blorg will just borrow a few of your buildings. Forever!', 'blorg1');
+    say('zorp', 'Blorg! My grumpy old rival. Tap his saucer to stop the tractor beam, and pop his little robots!', 'blorg2');
+  } else {
+    const crater = S.tiles.filter(t => t.basin)[0] || S.tiles[0];
+    S.boss = { kind: 'cousin', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 70, maxhp: 70, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 6, enraged: false, hs: 1, chew: 0, ti: -1 };
+    shake = RM ? 0 : 12; sfx('roar');
+    toast('QUEEN SKYLA, the Critter Queen’s cousin, followed us here!', 'bad');
+    say('kip', 'That is the Critter Queen’s cousin, Queen Skyla, and she can fly! Tap the glowing crystal on her back!', 'skyla1');
+  }
+}
+function crasherDown(name) {
+  S.crasherBeaten = true; dirty = true; S.crystals += 15;
+  shake = RM ? 0 : 14; sfx('boom'); sfx('win');
+  fx.push({ kind: 'flash', life: 0.4, max: 0.4 });
+  toast(`${name} has been chased off! +15 crystals`, 'good');
+  say('mrs', 'Well done, dears! Now, where were we? Oh yes. A party!', 'crashdown');
+  if (Math.random() < 0.5) foundGold();
+}
+// --- the Grumble Worm: pops up under buildings like a giant whack-a-mole
+function pickWormSpot() {
+  const w = S.worm, opts = S.tiles.filter(t => t.b && t.b !== 'zhouse');
+  const t = opts.length && Math.random() < 0.75 ? opts[Math.floor(Math.random() * opts.length)] : S.tiles[Math.floor(Math.random() * S.tiles.length)];
+  w.ti = S.tiles.indexOf(t); w.sx = w.x; w.sy = w.y; w.tx = t.gx + 0.5; w.ty = t.gy + 0.5;
+}
+function updateWorm(dt) {
+  const w = S.worm; w.t += dt; w.hit = Math.max(0, (w.hit || 0) - dt);
+  if (w.state === 'dead') { if (w.t > 1.5) S.worm = null; return; }
+  if (w.state === 'under') {
+    const k = clamp(w.t / 2.4, 0, 1); w.x = lerp(w.sx, w.tx, k); w.y = lerp(w.sy, w.ty, k);
+    if (Math.random() < dt * 8) { const c = wormGround(); fx.push(puff(c.x, c.y, '#7ad6c2', 0.7)); }
+    if (k >= 1) { w.state = 'rise'; w.t = 0; sfx('roar'); }
+  } else if (w.state === 'rise') { if (w.t > 0.5) { w.state = 'up'; w.t = 0; w.upFor = 3.2; } }
+  else if (w.state === 'up') {
+    if (w.t > w.upFor) {
+      const t = S.tiles[w.ti];
+      if (t && t.b && t.b !== 'zhouse' && w.upFor > 2) { toast(`The Grumble Worm gobbled the ${B[t.b].name.toLowerCase()}!`, 'bad'); t.b = null; sfx('boom'); }
+      w.state = 'dive'; w.t = 0;
+    }
+  } else if (w.state === 'dive') { if (w.t > 0.5) { w.state = 'under'; w.t = 0; pickWormSpot(); } }
+}
+function wormGround() { const w = S.worm, t = tileAt(clamp(Math.floor(w.x), 0, S.n - 1), clamp(Math.floor(w.y), 0, S.n - 1)); return { x: (w.x - w.y) * 32, y: (w.x + w.y) * 16 - (t ? t.h : 1) * HZ }; }
+function wormRise() { const w = S.worm; return w.state === 'rise' ? w.t / 0.5 : w.state === 'up' ? 1 : w.state === 'dive' ? 1 - w.t / 0.5 : w.state === 'dead' ? 1 : 0; }
+function wormHead() { const g = wormGround(), h = wormRise() * 90; return { x: g.x + Math.sin(RT * 2) * 4 * wormRise(), y: g.y - h }; }
+function hurtWorm(dmg) {
+  const w = S.worm;
+  if (!w || (w.state !== 'up' && w.state !== 'rise')) return false;
+  w.hp -= dmg; w.hit = 0.2;
+  const h = wormHead();
+  fx.push({ kind: 'text', x: h.x, y: h.y - 30, text: '-' + dmg, life: 0.8, max: 0.8, color: '#ffffff' });
+  burst(h.x, h.y, 8, ['#c9a7ff', '#ffffff']);
+  w.upFor = Math.min(w.upFor, w.t + 0.7); // bonked: it ducks back down soon, without eating
+  if (w.hp <= 0) { w.state = 'dead'; w.t = 0; burst(h.x, h.y, 40, ['#9b5de5', '#b6f36a', '#ffffff'], 2); crasherDown('The Grumble Worm'); }
+  return true;
+}
+function drawWorm(g) {
+  const w = S.worm; if (!w) return;
+  const gnd = wormGround(), rise = wormRise();
+  ell(g, gnd.x, gnd.y, 18, 8, 'rgba(20,40,40,0.5)');
+  if (w.state === 'under') { ell(g, gnd.x, gnd.y, 10 + Math.sin(RT * 20) * 2, 4, 'rgba(60,120,110,0.6)'); return; }
+  const alpha = w.state === 'dead' ? clamp(1 - w.t / 1.5, 0, 1) : 1;
+  g.save(); g.globalAlpha = alpha;
+  const head = wormHead(), K = 1.5;
+  for (let i = 0; i < 6; i++) {
+    const k = i / 5, x = lerp(gnd.x, head.x, k) + Math.sin(RT * 4 + i) * 3 * rise, y = lerp(gnd.y, head.y, k);
+    ell(g, x, y, (13 - i * 0.6) * K, (10 - i * 0.5) * K, i % 2 ? '#8f4fd6' : '#9b5de5');
+    ell(g, x - 3 * K, y - 2 * K, 4 * K, 2.5 * K, 'rgba(255,255,255,0.18)');
+  }
+  g.save(); g.translate(head.x, head.y); g.scale(K, K);
+  ell(g, 0, 0, 19, 16, w.hit > 0 ? '#ffffff' : '#a86be8');
+  for (const [ex, ey, r] of [[-8, -5, 4.5], [0, -9, 5], [8, -5, 4.5]]) { ell(g, ex, ey, r, r, '#fff3a0'); ell(g, ex + 1, ey + 1, r * 0.5, r * 0.5, '#1a1238'); }
+  ell(g, 0, 6, 9, w.state === 'up' ? 5 : 3, '#3b1f4a');
+  g.fillStyle = '#ffffff'; for (const x of [-5, 0, 5]) poly(g, [[x - 2, 3], [x + 2, 3], [x, 6]]);
+  g.restore();
+  g.restore();
+  if (w.state !== 'dead') bar(g, gnd.x, gnd.y - 140, w.hp / w.maxhp, 'GRUMBLE WORM');
+}
+function bar(g, x, y, f, label) {
+  g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(x - 60, y, 120, 10);
+  g.fillStyle = '#ff6b81'; g.fillRect(x - 59, y + 1, 118 * clamp(f, 0, 1), 8);
+  g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(label, x, y - 6);
+}
+// --- Blorg's battle saucer: tractor-beams buildings away and sends out little robots
+function blorgTarget() {
+  const b = S.blorg, opts = S.tiles.filter(t => t.b && t.b !== 'zhouse');
+  const t = opts[Math.floor(Math.random() * opts.length)];
+  b.ti = t ? S.tiles.indexOf(t) : -1;
+}
+function updateBlorg(dt) {
+  const b = S.blorg; b.t += dt; b.hit = Math.max(0, (b.hit || 0) - dt);
+  if (b.state === 'dead') { b.y -= dt * 3; b.x += dt * 3; if (b.t > 2) S.blorg = null; return; }
+  b.botT -= dt;
+  if (b.botT <= 0) { for (let i = 0; i < 2; i++) bots.push({ x: b.x, y: b.y, ti: -1, t: 0 }); b.botT = 7; }
+  let t = S.tiles[b.ti];
+  if (!t || !t.b) { blorgTarget(); t = S.tiles[b.ti]; b.state = 'fly'; b.t = 0; if (!t) return; }
+  const dx = t.gx + 0.5 - b.x, dy = t.gy + 0.5 - b.y, d = Math.hypot(dx, dy);
+  if (b.state === 'fly') {
+    if (d > 0.12) { b.x += dx / d * Math.min(d, 1.1 * dt); b.y += dy / d * Math.min(d, 1.1 * dt); }
+    else { b.state = 'beam'; b.t = 0; }
+  } else if (b.state === 'beam') {
+    t.off = Math.max(t.off || 0, 0.3);
+    if (b.t > 4.5) {
+      toast(`Blorg beamed up the ${B[t.b].name.toLowerCase()}!`, 'bad'); sfx('saucer');
+      t.b = null; b.state = 'fly'; b.t = 0; blorgTarget();
+    }
+  }
+}
+function blorgWorld() { const b = S.blorg; return { x: (b.x - b.y) * 32, y: (b.x + b.y) * 16 - HZ - 70 + Math.sin(RT * 2) * 3 }; }
+function hurtBlorg(dmg) {
+  const b = S.blorg;
+  if (!b || b.state === 'dead') return false;
+  b.hp -= dmg; b.hit = 0.2;
+  const w = blorgWorld();
+  fx.push({ kind: 'text', x: w.x, y: w.y - 30, text: '-' + dmg, life: 0.8, max: 0.8, color: '#ffffff' });
+  if (b.state === 'beam') { b.state = 'fly'; b.t = 0; blorgTarget(); toast('Beam broken!', 'good'); }
+  if (b.hp <= 0) {
+    b.state = 'dead'; b.t = 0; bots = [];
+    burst(w.x, w.y, 40, ['#ff5d73', '#ffd166', '#ffffff'], 2);
+    say('blorg', 'Fine! Keep your silly festival! Blorg did not want to come anyway!', 'blorgdown');
+    crasherDown('Blorg');
+  }
+  return true;
+}
+function botWorld(o) { return { x: (o.x - o.y) * 32, y: (o.x + o.y) * 16 - HZ - 20 + Math.sin(RT * 6 + o.x) * 2 }; }
+function drawBlorg(g) {
+  for (const o of bots) {
+    const w = botWorld(o);
+    ell(g, w.x, w.y + 18, 5, 2, 'rgba(0,0,0,0.25)');
+    g.strokeStyle = '#ffd166'; g.lineWidth = 1; g.beginPath(); g.moveTo(w.x, w.y - 6); g.lineTo(w.x, w.y - 11); g.stroke(); ell(g, w.x, w.y - 12, 1.6, 1.6, '#ff5d73');
+    ell(g, w.x, w.y, 7, 6, '#3a3050'); ell(g, w.x, w.y - 1, 4, 2.5, '#ff5d73');
+  }
+  const b = S.blorg; if (!b) return;
+  const w = blorgWorld(), t = S.tiles[b.ti];
+  if (b.state === 'beam' && t) {
+    const c = center(t), grd = g.createLinearGradient(0, w.y, 0, c.y);
+    grd.addColorStop(0, 'rgba(255,93,115,0.55)'); grd.addColorStop(1, 'rgba(255,93,115,0.1)');
+    g.fillStyle = grd; poly(g, [[w.x - 8, w.y + 6], [w.x + 8, w.y + 6], [c.x + 26, c.y], [c.x - 26, c.y]]);
+  }
+  g.save(); g.translate(w.x, w.y); if (b.state === 'dead') g.rotate(b.t * 4);
+  ell(g, 0, -6, 11, 9, 'rgba(255,170,190,0.5)'); ell(g, 0, -4, 6, 5, '#9a8cc0'); ell(g, -2, -5, 1.2, 1.2, '#fff3a0'); ell(g, 2, -5, 1.2, 1.2, '#fff3a0');
+  ell(g, 0, 0, 26, 8, b.hit > 0 ? '#ffffff' : '#3a3050'); ell(g, 0, -1.5, 23, 5, '#5a4a70');
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI + 0.25; ell(g, Math.cos(a) * 21, Math.sin(a) * 4.5 + 1, 1.8, 1.8, Math.floor(RT * 5 + i) % 2 ? '#ff5d73' : '#ffd166'); }
+  g.restore();
+  if (b.state !== 'dead') bar(g, w.x, w.y - 40, b.hp / b.maxhp, 'BLORG');
+}
+// tapping and zapping whichever party crasher is around
+function crasherAt(mx, my) {
+  if (!S || !LEVELS[S.level].bonus) return false;
+  const sc = view.s, near = (x, y, r) => Math.hypot(mx - (view.x + x * sc), my - (view.y + y * sc)) < Math.max(22, r * sc);
+  for (const o of bots) { const w = botWorld(o); if (near(w.x, w.y, 14)) { o.gone = true; burst(w.x, w.y, 10, ['#ff5d73', '#ffffff']); sfx('bonk'); S.crystals++; return true; } }
+  if (S.worm && (S.worm.state === 'up' || S.worm.state === 'rise')) { const h = wormHead(); if (near(h.x, h.y, 36)) { hurtWorm(3); sfx('bonk'); return true; } }
+  if (S.blorg && S.blorg.state !== 'dead') { const w = blorgWorld(); if (near(w.x, w.y, 30)) { hurtBlorg(2); sfx('bonk'); return true; } }
+  return false;
+}
+function zapCrasher(t, range, dmg) {
+  if (!S || !LEVELS[S.level].bonus) return false;
+  const a = center(t), from = [a.x, a.y - 38], inRange = (x, y) => Math.hypot(x - (t.gx + 0.5), y - (t.gy + 0.5)) <= range + 0.5;
+  const bot = bots.find(o => inRange(o.x, o.y));
+  if (bot) { const w = botWorld(bot); fx.push({ kind: 'zap', x: from[0], y: from[1], x2: w.x, y2: w.y, life: 0.3, max: 0.3 }); bot.gone = true; sfx('zap'); return true; }
+  const w = S.worm;
+  if (w && (w.state === 'up' || w.state === 'rise') && inRange(w.x, w.y)) { const h = wormHead(); fx.push({ kind: 'zap', x: from[0], y: from[1], x2: h.x, y2: h.y, life: 0.3, max: 0.3 }); hurtWorm(dmg); sfx('zap'); return true; }
+  const b = S.blorg;
+  if (b && b.state !== 'dead' && inRange(b.x, b.y)) { const p = blorgWorld(); fx.push({ kind: 'zap', x: from[0], y: from[1], x2: p.x, y2: p.y, life: 0.3, max: 0.3 }); hurtBlorg(dmg); sfx('zap'); return true; }
+  return false;
+}
+// the Zorp family hanging out by the house (and dancing at the festival)
+function drawFamily(g) {
+  const home = S.tiles.find(t => t.b === 'zhouse'); if (!home) return;
+  const c = center(home), party = S.finaleT > 0 || S.festivalDone;
+  const fam = [['zorp', '#b6f36a', 1, 0], ['mrs', '#ff9fe8', 1, 1.6], ['kid', '#b6f36a', 0.7, 3.1], ['kid', '#7ff7d4', 0.7, 4.3], ['baby', '#ffd166', 0.5, 5.5]];
+  for (const [who, col, sz, ph] of fam) {
+    const a = RT * 0.3 + ph, x = c.x + Math.cos(a) * 36, y = c.y + Math.sin(a) * 15 + 6;
+    const hop = party ? Math.abs(Math.sin(RT * 7 + ph)) * 9 : who === 'kid' ? Math.abs(Math.sin(RT * 5 + ph)) * 4 : 0;
+    const by = y - 8 * sz - hop - (who === 'baby' ? 8 : 0);
+    ell(g, x, y, 5 * sz, 2 * sz, 'rgba(0,0,0,0.2)');
+    if (who === 'baby') { ell(g, x, by, 7, 7, 'rgba(180,240,255,0.35)'); }
+    ell(g, x, by, 6 * sz, 6 * sz, col);
+    g.strokeStyle = shade(col, -0.2); g.lineWidth = 1; g.beginPath(); g.moveTo(x - 2 * sz, by - 5 * sz); g.lineTo(x - 4 * sz, by - 10 * sz); g.moveTo(x + 2 * sz, by - 5 * sz); g.lineTo(x + 4 * sz, by - 10 * sz); g.stroke();
+    const eyes = who === 'zorp' || who === 'mrs' ? [-2.5, 0, 2.5] : who === 'baby' ? [0] : [-1.8, 1.8];
+    for (const ex of eyes) { ell(g, x + ex * sz, by - 1 * sz, 1.3 * sz, 1.4 * sz, '#ffffff'); ell(g, x + ex * sz + 0.3, by - 0.8 * sz, 0.6 * sz, 0.7 * sz, '#1a1238'); }
+    if (who === 'mrs') { g.fillStyle = '#ffd166'; poly(g, [[x + 4, by - 10], [x + 1.5, by - 12], [x + 1.5, by - 8]]); poly(g, [[x + 4, by - 10], [x + 6.5, by - 12], [x + 6.5, by - 8]]); }
+  }
+}
+function drawGlorp(g) {
+  drawFamily(g);
+  drawWorm(g);
+  drawBlorg(g);
+}
+function drawGlorpSky(g, W, H) {
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, '#2a1650'); grd.addColorStop(0.6, '#7a2f7a'); grd.addColorStop(1, '#e0708a');
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  for (const s_ of stars) if (s_.y < 0.5) ell(g, s_.x * W, s_.y * H, s_.z, s_.z, `rgba(255,248,235,${s_.a * 0.6})`);
+  // a ringed giant and two suns
+  const px = W * 0.82, py = H * 0.22, pr = Math.min(W, H) * 0.12;
+  g.save(); g.translate(px, py); g.rotate(-0.35);
+  g.strokeStyle = 'rgba(255,214,170,0.5)'; g.lineWidth = pr * 0.12; g.beginPath(); g.ellipse(0, 0, pr * 1.9, pr * 0.45, 0, Math.PI, 0); g.stroke();
+  ell(g, 0, 0, pr, pr, '#7ab0ff'); ell(g, -pr * 0.2, -pr * 0.3, pr * 0.8, pr * 0.15, 'rgba(255,255,255,0.3)'); ell(g, pr * 0.1, pr * 0.2, pr * 0.85, pr * 0.12, 'rgba(40,60,160,0.3)');
+  g.beginPath(); g.ellipse(0, 0, pr * 1.9, pr * 0.45, 0, 0, Math.PI); g.stroke();
+  g.restore();
+  for (const [x, y, r, col] of [[W * 0.12, H * 0.2, 16, '#fff1c2'], [W * 0.2, H * 0.12, 9, '#ffb3c1']]) {
+    const sg = g.createRadialGradient(x, y, 2, x, y, r * 7);
+    sg.addColorStop(0, rgba(col, 0.6)); sg.addColorStop(1, rgba(col, 0));
+    g.fillStyle = sg; g.fillRect(x - r * 7, y - r * 7, r * 14, r * 14); ell(g, x, y, r, r, col);
+  }
+}
+function showGlorpDone() {
+  sfx('win');
+  for (const [w, txt] of LEVELS[S.level].outro) say(w, txt, null, true);
+  const back = (() => { try { return !!localStorage.getItem('mmb-return'); } catch (e) { return false; } })();
+  openModal(`
+    <span class="eyebrow" style="color:#b6f36a">Bonus level complete</span>
+    <h2>The Glorp Festival!</h2>
+    <p>The kitchen cooked a feast, the twins bounced until they fell over, Baby Zuzu slept through the fireworks, and the party crasher went home with nothing. The Zorp family has a gift for you: <b>take one piece of Zorp-tech home</b>. It works in every level.</p>
+    <div class="perks">${Object.entries(PERKS).map(([id, p]) => `<button class="perk ${PERK === id ? 'on' : ''}" data-id="${id}"><b>${p.name}</b><small>${p.desc}</small></button>`).join('')}</div>
+    <p class="small-note" id="perk-note">${PERK ? 'You can swap your upgrade any time you finish this level.' : 'Pick one.'}</p>
+    <div class="row">${back ? '<button class="btn" id="fly-home">Fly back home</button>' : ''}<button class="btn alt" id="glorp-menu">Level select</button></div>`);
+  $('#modal').querySelectorAll('.perk').forEach(b => b.addEventListener('click', () => {
+    PERK = b.dataset.id; store.set('mmb-perk', PERK); sfx('chime');
+    $('#modal').querySelectorAll('.perk').forEach(x => x.classList.toggle('on', x === b));
+    $('#perk-note').textContent = `${PERKS[PERK].name}: yours to keep.`;
+  }));
+  if (back) $('#fly-home').addEventListener('click', flyHome);
+  $('#glorp-menu').addEventListener('click', showTitle);
+}
+function flyHome() {
+  let raw = null;
+  try { raw = localStorage.getItem('mmb-return'); localStorage.setItem(SAVE_KEY, raw); localStorage.removeItem('mmb-return'); } catch (e) {}
+  const d = readSave();
+  if (!d) return showTitle();
+  loadSave(d); closeModal();
+  say('zorp', 'Home sweet home. Zorp will visit again soon, friends!', 'home1');
+}
+
 // ---------------------------------------------------------------- the colony rocket
 const ROCKET_COST = { metal: 220, crystals: 10 }, FUEL_NEED = 120;
 function showRocket() {
@@ -1378,7 +1805,8 @@ function spawnQueen() {
 function bossWorld() {
   const b = S.boss, t = tileAt(clamp(Math.floor(b.x), 0, S.n - 1), clamp(Math.floor(b.y), 0, S.n - 1));
   b.hs = b.hs == null ? t.h : b.hs + (t.h - b.hs) * 0.1;
-  return { x: (b.x - b.y) * 32, y: (b.x + b.y) * 16 - b.hs * HZ };
+  const lift = b.kind === 'cousin' ? 46 + Math.sin(RT * 2.5) * 6 : 0;
+  return { x: (b.x - b.y) * 32, y: (b.x + b.y) * 16 - b.hs * HZ - lift };
 }
 const SPOTS = [[0, -58], [-20, -40], [20, -40]], QS = 1.6; // weak-spot positions; queen drawing scale
 function updateBoss(dt) {
@@ -1397,13 +1825,22 @@ function updateBoss(dt) {
     }
     return;
   }
-  const pad = S.tiles.find(t => t.b === 'pad');
+  let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
-  if (b.spawnT <= 0) { spawnCritter(Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
+  if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
+  if (b.kind === 'cousin') { // she swoops from building to building, chewing them up
+    pad = S.tiles[b.ti];
+    if (!pad || !pad.b) { const opts = S.tiles.filter(t => t.b && t.b !== 'zhouse'); pad = opts[Math.floor(Math.random() * opts.length)]; b.ti = S.tiles.indexOf(pad); b.chew = 0; }
+    if (pad && Math.hypot(pad.gx + 0.5 - b.x, pad.gy + 0.5 - b.y) <= 1.1) {
+      b.state = 'stomp'; pad.off = Math.max(pad.off || 0, 0.4); b.chew += dt;
+      if (b.chew > 6) { toast(`Queen Skyla wrecked the ${B[pad.b].name.toLowerCase()}!`, 'bad'); pad.b = null; b.chew = 0; sfx('boom'); }
+      return;
+    }
+  }
   if (!pad) return;
   const tx = pad.gx + 0.5, ty = pad.gy + 0.5, d = Math.hypot(tx - b.x, ty - b.y);
   if (d > 1.1) {
-    const sp = (b.enraged ? 0.32 : 0.22) * dt;
+    const sp = (b.enraged ? 0.32 : 0.22) * (b.kind === 'cousin' ? 1.6 : 1) * dt;
     b.x += (tx - b.x) / d * sp; b.y += (ty - b.y) / d * sp; b.face = (tx - b.x) - (ty - b.y) > 0 ? 1 : -1;
     b.state = 'walk';
   } else {
@@ -1422,17 +1859,21 @@ function hurtBoss(dmg) {
   if (b.hp <= b.maxhp / 2 && !b.enraged && !b.burrowed) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
-    toast('The queen dug underground!', 'bad');
-    say('kip', 'She went underground! She will pop up somewhere else, and she looks angry.', 'burrow1');
+    if (b.kind === 'cousin') { toast('Queen Skyla flew off into the clouds!', 'bad'); say('kip', 'She flew away, but she will be back, and angrier.', 'skyla2'); }
+    else { toast('The queen dug underground!', 'bad'); say('kip', 'She went underground! She will pop up somewhere else, and she looks angry.', 'burrow1'); }
   }
   if (b.hp <= 0) {
-    b.state = 'dead'; b.t = 0; S.queenDefeated = true; S.crystals += 25; S.bonks += 10; dirty = true;
+    b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
+    if (b.kind === 'cousin') S.crasherBeaten = true; else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
     burst(w.x, w.y - 30, 60, ['#ff6b81', '#ffd166', '#7ff7ff', '#ffffff', '#c2417a'], 2.2);
-    toast('The Critter Queen is defeated! +25 crystals', 'good');
-    say('kip', 'We did it! The Critter Queen has retreated deep underground. Her pets are going with her.', 'queendown');
+    if (b.kind === 'cousin') { crasherDown('Queen Skyla'); }
+    else {
+      toast('The Critter Queen is defeated! +25 crystals', 'good');
+      say('kip', 'We did it! The Critter Queen has retreated deep underground. Her pets are going with her.', 'queendown');
+    }
   }
 }
 function zapBoss(t, range) {
@@ -1469,8 +1910,12 @@ function drawBoss(g) {
   g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
   ell(g, 0, 2, 44 * k, 14 * k, 'rgba(60,10,30,0.35)');
   g.scale(k * (b.face || 1), k);
-  const by = -34 - walk, col = b.hit > 0 ? '#ffffff' : b.enraged ? '#d6336c' : '#c2417a', dark = shade(col, -0.3);
-  for (const x of [-26, -12, 12, 26]) { g.strokeStyle = dark; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(x * 0.6, by + 18); g.lineTo(x, 0); g.stroke(); }
+  const base = b.kind === 'cousin' ? '#7a52d8' : '#c2417a';
+  const by = -34 - walk, col = b.hit > 0 ? '#ffffff' : b.enraged ? '#d6336c' : base, dark = shade(col, -0.3);
+  if (b.kind === 'cousin') { // wings instead of stomping legs
+    const flap = Math.sin(RT * 14) * 0.5;
+    for (const s_ of [-1, 1]) { g.save(); g.translate(s_ * 18, by - 10); g.rotate(s_ * (0.5 + flap)); ell(g, s_ * 22, -8, 26, 12, 'rgba(201,167,255,0.6)'); ell(g, s_ * 18, -8, 16, 7, 'rgba(255,255,255,0.35)'); g.restore(); }
+  } else for (const x of [-26, -12, 12, 26]) { g.strokeStyle = dark; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(x * 0.6, by + 18); g.lineTo(x, 0); g.stroke(); }
   ell(g, 0, by, 40, 30, col);
   ell(g, 6, by + 10, 26, 14, shade(col, 0.3));
   for (let i = -2; i <= 2; i++) { g.fillStyle = '#ffd166'; poly(g, [[i * 9 - 4, by - 24], [i * 9, by - 40 - Math.abs(i) * -3], [i * 9 + 4, by - 24]]); }
@@ -1489,7 +1934,7 @@ function drawBoss(g) {
     const top = w.y - 112 * QS;
     g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
     g.fillStyle = '#ff6b81'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
-    g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('CRITTER QUEEN', w.x, top - 6);
+    g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(b.kind === 'cousin' ? 'QUEEN SKYLA' : 'CRITTER QUEEN', w.x, top - 6);
   }
 }
 
@@ -1505,7 +1950,7 @@ function updateMeteors(dt) {
   }
   for (const m of meteors) {
     m.p += dt / m.dur;
-    for (const z of S.tiles) if (z.b === 'zapper' && !m.done && m.p > 0.4 && Math.hypot(z.gx - m.t.gx, z.gy - m.t.gy) <= 2.5 && !(z.cd > 0)) {
+    for (const z of S.tiles) if ((z.b === 'zapper' || z.b === 'tesla') && !m.done && m.p > 0.4 && Math.hypot(z.gx - m.t.gx, z.gy - m.t.gy) <= 2.5 && !(z.cd > 0)) {
       const a = center(z), w = meteorWorld(m);
       fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: w.x, y2: w.y, life: 0.3, max: 0.3 });
       stopMeteor(m); z.cd = 2;
@@ -1516,7 +1961,7 @@ function updateMeteors(dt) {
       burst(c.x, c.y - 4, 24, ['#b5aeb0', '#ffd166', '#ffffff'], 1.4);
       fx.push({ kind: 'ring', x: c.x, y: c.y, r: 6, life: 0.8, max: 0.8, color: '#ffffff', big: true });
       shake = RM ? 0 : 8; sfx('boom');
-      if (m.t.b) { toast(`A meteor smashed the ${B[m.t.b].name.toLowerCase()}!`, 'bad'); m.t.b = null; }
+      if (m.t.b && m.t.b !== 'zhouse') { toast(`A meteor smashed the ${B[m.t.b].name.toLowerCase()}!`, 'bad'); m.t.b = null; }
     }
   }
   meteors = meteors.filter(m => !m.done);
@@ -1527,6 +1972,7 @@ function meteorWorld(m) {
 }
 function stopMeteor(m) {
   m.done = true; S.meteorsStopped = (S.meteorsStopped || 0) + 1; S.crystals++; dirty = true;
+  if (Math.random() < 0.03) foundGold();
   const w = meteorWorld(m);
   burst(w.x, w.y, 16, ['#ffd166', '#ffffff', '#b5aeb0']); sfx('zap');
 }
@@ -1887,17 +2333,22 @@ function updateCritters(dt) {
   }
   // zappers
   for (const t of S.tiles) {
-    if (t.b !== 'zapper' || t.off > 0) continue;
+    if ((t.b !== 'zapper' && t.b !== 'tesla') || t.off > 0) continue;
     t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1);
     if (t.cd > 0) continue;
-    const arc = S.techs && S.techs.includes('arc'), range = arc ? 3.2 : 2.3;
-    const prey = crits.find(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range);
-    if (prey) {
-      const a = center(t), b = critWorld(prey);
-      fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: b.x, y2: b.y - 8, life: 0.3, max: 0.3 });
-      bonk(prey, true, arc ? 2 : 1);
+    const tesla = t.b === 'tesla', arc = hasTech('arc');
+    const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = tesla ? 3 : PERK === 'tesla' ? 2 : 1;
+    const prey = crits.filter(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range).slice(0, chain);
+    if (prey.length) {
+      let a = center(t), from = [a.x, a.y - 38];
+      for (const c of prey) {
+        const b = critWorld(c);
+        fx.push({ kind: 'zap', x: from[0], y: from[1], x2: b.x, y2: b.y - 8, life: 0.3, max: 0.3 });
+        from = [b.x, b.y - 8];
+        bonk(c, true, dmg);
+      }
       t.cd = 1.4;
-    } else if (typeof zapBoss === 'function' && zapBoss(t, range)) t.cd = 1.4;
+    } else if (zapBoss(t, range) || zapCrasher(t, range, dmg)) t.cd = 1.4;
   }
   // bonk drones: each bay sends a drone at the nearest critter, nest or boss within 4 tiles
   for (const t of S.tiles) {
@@ -1935,6 +2386,7 @@ function bonk(c, zapped = false, dmg = 1) {
   for (const [k, v] of Object.entries(c.loot)) S[k] += v;
   c.loot = {};
   S.crystals += 1; S.bonks += 1; dirty = true;
+  if (Math.random() < 0.03) foundGold();
   const p = critWorld(c);
   burst(p.x, p.y - 8, 10, ['#ffd166', '#ffffff', c.col]);
   fx.push({ kind: 'text', x: p.x, y: p.y - 22, text: '+1', life: 1, max: 1, color: '#9be3ff' });
@@ -1965,6 +2417,7 @@ function critAlpha(c) {
 function finishDig(t) {
   t.b = null; t.type = 'relic'; t.prog = 0; t.born = RT;
   S.relics++; dirty = true;
+  if (Math.random() < 0.3) foundGold();
   const left = RELICS.filter(r => !S.relicIds.includes(r.id));
   const r = left.length ? left[Math.floor(Math.random() * left.length)] : null;
   const c = center(t);
@@ -2014,20 +2467,32 @@ function saucerAt(mx, my) {
   const p = saucerWorld();
   return Math.hypot(mx - (view.x + p.x * view.s), my - (view.y + p.y * view.s)) < Math.max(28, 26 * view.s);
 }
+function heartRow() { return '<span class="hearts">' + '♥'.repeat(HEARTS) + '<i>' + '♥'.repeat(10 - HEARTS) + '</i></span>'; }
 function showTrade() {
   const tr = S.trader;
   if (!tr) return;
   const offers = tr.offers.map(id => OFFERS.find(o => o.id === id)).filter(Boolean);
+  const invite = HEARTS >= 10 && !LEVELS[S.level].bonus;
   openModal(`
     <span class="eyebrow" style="color:#b6f36a">Alien trader</span>
     <div class="trader"><canvas id="zorp-face" width="120" height="120"></canvas><div><h2>Zorp’s Wares</h2><p>“Zorp gives good deals. Mostly.” Pick one trade.</p></div></div>
+    <p class="friend">Zorp’s friendship ${heartRow()} <small>${HEARTS}/10</small></p>
+    ${invite ? '<button class="btn visit" id="visit">Hop in the saucer: visit Zorp’s home planet!</button>' : ''}
+    ${GOLD > 0 ? `<button class="offer gold" id="gift"><span class="give">Give <b>a Golden Crystal</b></span><span class="arrow">→</span><span class="get">+3 friendship (you have ${GOLD})</span></button>` : ''}
     <div class="offers">${offers.map(o => `<button class="offer" data-id="${o.id}" ${afford(o.give) ? '' : 'disabled'}>
       <span class="give">Give <b>${costText(o.give)}</b></span><span class="arrow">→</span><span class="get">${o.get}</span></button>`).join('')}</div>
     <p class="small-note">You have ${Math.floor(S.crystals)} crystals, ${Math.floor(S.food)} food, ${Math.floor(S.water)} water. Bonk critters to collect crystals.</p>
     <div class="row"><button class="btn alt" id="later">Maybe later</button></div>`);
   const g = $('#zorp-face').getContext('2d'); g.scale(2, 2); drawPortrait(g, 'zorp', false, false);
   $('#later').addEventListener('click', closeModal);
-  $('#modal').querySelectorAll('.offer').forEach(b => b.addEventListener('click', () => {
+  if (invite) $('#visit').addEventListener('click', goGlorp);
+  if (GOLD > 0) $('#gift').addEventListener('click', () => {
+    GOLD--; store.set('mmb-gold', GOLD); sfx('relic');
+    addHearts(3);
+    say('zorp', 'A golden crystal! For Zorp? Zorp is so happy, all three eyes are crying.', 'gift1');
+    showTrade();
+  });
+  $('#modal').querySelectorAll('.offer[data-id]').forEach(b => b.addEventListener('click', () => {
     const o = OFFERS.find(x => x.id === b.dataset.id);
     if (!afford(o.give)) return;
     for (const [k, v] of Object.entries(o.give)) S[k] -= v;
@@ -2037,6 +2502,7 @@ function showTrade() {
     closeModal();
     toast('Traded: ' + o.get, 'good'); sfx('chime');
     say('zorp', 'Pleasure doing business! Zorp will return. Zorp always returns.', 'trade1');
+    addHearts(1);
   }));
 }
 
@@ -2050,7 +2516,7 @@ const costText = c => {
 function canPlace(name, t) {
   if (!t) return [false, ''];
   const d = B[name];
-  if (name === 'recycle') return t.b ? [true, ''] : [false, 'Nothing to recycle here.'];
+  if (name === 'recycle') return t.b === 'zhouse' ? [false, 'That is the Zorp family’s home!'] : t.b ? [true, ''] : [false, 'Nothing to recycle here.'];
   if (name === 'comet') {
     if (t.layer) return [false, 'Comets can only hit the surface.'];
     if (t.b) return [false, 'A comet would flatten that building.'];
@@ -2283,7 +2749,12 @@ function decorate(g, t) {
       if (t.b) break;
       if (v > 0.25) { ell(g, -10 + v * 14, -2 + v * 4, 2.6, 1.4, 'rgba(120,35,20,0.25)'); ell(g, -10 + v * 14, -3 + v * 4, 2.2, 1.2, D.pebble); }
       if (v > 0.6) { ell(g, 9 - v * 6, 4, 1.8, 1, 'rgba(120,35,20,0.25)'); ell(g, 9 - v * 6, 3.4, 1.5, 0.9, D.pebble); }
-      if (v < 0.18) { g.strokeStyle = 'rgba(140,45,25,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(4, 1, 7, 3.2, 0, 0, Math.PI * 2); g.stroke(); }
+      if (v < 0.18 && !D.mush) { g.strokeStyle = 'rgba(140,45,25,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(4, 1, 7, 3.2, 0, 0, Math.PI * 2); g.stroke(); }
+      if (D.mush && v > 0.55) { // alien mushrooms
+        g.fillStyle = '#f3e9ff'; g.fillRect(5, -6, 2, 7); g.fillRect(-9, -3, 1.6, 5);
+        ell(g, 6, -6, 5, 3, v > 0.8 ? '#ff9fe8' : '#ffd166'); ell(g, -8.2, -3, 3.5, 2, '#7ff7d4');
+        ell(g, 4.5, -7, 1, 0.7, '#ffffff');
+      }
       break;
     }
     case 'ore': {
@@ -2323,8 +2794,8 @@ function decorate(g, t) {
       break;
     }
     case 'lake': {
-      if (t.basin) { ell(g, 0, 0, 23, 10.5, '#e98a5a'); ell(g, 0, 1, 20, 9, '#2f8be0'); ell(g, -2, 0, 16, 6.5, '#3fa2f2'); }
-      else { g.fillStyle = '#3fa2f2'; poly(g, [[0, -12], [24, 0], [0, 12], [-24, 0]]); }
+      if (t.basin) { ell(g, 0, 0, 23, 10.5, D.rim); ell(g, 0, 1, 20, 9, D.lakeDeep || '#2f8be0'); ell(g, -2, 0, 16, 6.5, D.lake || '#3fa2f2'); }
+      else { g.fillStyle = D.lake || '#3fa2f2'; poly(g, [[0, -12], [24, 0], [0, 12], [-24, 0]]); }
       g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1.2; g.lineCap = 'round';
       const o = Math.sin(T * 1.6 + v * 7) * 3;
       g.beginPath(); g.moveTo(-9 + o, -2); g.lineTo(-3 + o, -2); g.moveTo(3 - o, 3); g.lineTo(10 - o, 3); g.stroke();
@@ -2740,6 +3211,101 @@ const DRAW = {
     g.fillStyle = '#757aa0'; g.fillRect(16, -34, 3, 34); g.fillRect(12, -34, 8, 2); g.fillRect(12, -20, 8, 2);
     if (typeof drawRocket === 'function') drawRocket(g, T);
   },
+  flower(g, T, v) {
+    shadow(g, 14, 6);
+    g.strokeStyle = '#3fae6b'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, 2); g.quadraticCurveTo(-4, -14, 0, -24); g.stroke();
+    ell(g, -7, -8, 6, 2.5, '#5fd38d'); ell(g, 6, -12, 6, 2.5, '#5fd38d');
+    const sp = T * 0.4 + v * 3;
+    for (let i = 0; i < 8; i++) { const a = sp + i * Math.PI / 4; ell(g, Math.cos(a) * 9, -28 + Math.sin(a) * 4.5, 6, 3.5, i % 2 ? '#ff9fe8' : '#ffb3d9'); }
+    const glow = 0.6 + 0.4 * Math.sin(T * 3 + v * 6);
+    ell(g, 0, -28, 9, 5, `rgba(255,214,120,${glow * 0.4})`); ell(g, 0, -28, 5, 3, '#ffd166');
+  },
+  gmine(g, T) {
+    shadow(g, 18, 8);
+    ell(g, 0, 2, 16, 7, '#9a6fd6'); ell(g, 0, 0, 13, 5.5, '#b48cec');
+    g.fillStyle = '#7a52b8'; g.beginPath(); g.moveTo(-9, 0); g.quadraticCurveTo(0, -38, 9, 0); g.fill();
+    ell(g, 0, -18, 6, 6, '#ff9fe8');
+    const k = (T * 0.8) % 1; ell(g, 0, -24 - k * 16, 3 + k * 2, 3 + k * 2, `rgba(255,159,232,${1 - k})`);
+    ell(g, 12, 4, 5, 2.5, '#7ff7d4');
+  },
+  gpump(g, T) {
+    ell(g, 0, 2, 14, 6, '#7a52b8');
+    g.fillStyle = '#b48cec'; g.fillRect(-6, -18, 12, 18); ell(g, 0, -18, 6, 3, '#e8d8ff');
+    g.fillStyle = '#7ff7d4'; g.fillRect(-6, -10, 12, 3);
+    const k = (T * 1.2) % 1; ell(g, 0, -20 - k * 10, 2, 2, `rgba(158,240,255,${1 - k})`);
+  },
+  garden(g, T, v) {
+    for (const [x, y, r, col] of [[-10, 0, 7, '#5fd38d'], [8, -3, 8, '#3fae6b'], [0, 5, 6, '#7ddc9f']]) {
+      const b = Math.sin(T * 3 + x) * 1.5;
+      g.fillStyle = '#8a5a3c'; g.fillRect(x - 1, y - 8, 2, 8);
+      ell(g, x, y - 10 + b, r, r * 0.9, col);
+      ell(g, x - 2, y - 11 + b, 2, 2, '#ff9fe8'); ell(g, x + 3, y - 8 + b, 1.8, 1.8, '#ffd166');
+    }
+  },
+  hover(g, T, v) {
+    const h = Math.sin(T * 1.6 + v * 6) * 3;
+    ell(g, 0, 3, 16, 6, 'rgba(0,0,0,0.2)');
+    for (let i = 0; i < 3; i++) ell(g, (i - 1) * 8, -4 + h + Math.sin(T * 6 + i) * 1, 2, 3, 'rgba(158,240,255,0.6)');
+    ell(g, 0, -20 + h, 20, 15, 'rgba(180,240,255,0.35)');
+    ell(g, 0, -14 + h, 16, 6, '#e8d8ff'); ell(g, 0, -17 + h, 12, 9, '#f6efff');
+    for (const x of [-6, 0, 6]) ell(g, x, -17 + h, 2, 2, '#ffd36e');
+    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.4; g.beginPath(); g.arc(0, -20 + h, 16, Math.PI * 1.15, Math.PI * 1.4); g.stroke();
+  },
+  tesla(g, T, v) {
+    shadow(g, 14, 6);
+    isoBox(g, 0, 3, 11, 5.5, 5, '#b48cec', '#7a52b8', '#5e3d96');
+    g.fillStyle = '#d6c4ff'; g.fillRect(-2, -30, 4, 30);
+    for (const y of [-10, -17, -24]) { g.strokeStyle = '#7ff7d4'; g.lineWidth = 2; g.beginPath(); g.ellipse(0, y, 6, 2.2, 0, 0, Math.PI * 2); g.stroke(); }
+    ell(g, 0, -34, 7, 7, '#e8d8ff');
+    g.strokeStyle = `rgba(127,247,212,${0.5 + 0.5 * Math.sin(T * 12 + v * 9)})`; g.lineWidth = 1.2; g.beginPath();
+    for (let i = 0; i < 3; i++) { const a = T * 5 + i * 2.1; g.moveTo(0, -34); g.lineTo(Math.cos(a) * 11, -34 + Math.sin(a) * 6); }
+    g.stroke();
+  },
+  kitchen(g, T, v) {
+    shadow(g, 22, 10);
+    isoBox(g, 0, 3, 19, 9.5, 14, '#ffe2f4', '#ff9fe8', '#e070c8');
+    ell(g, 0, -11, 16, 8, '#ff7ad9'); ell(g, 0, -13, 13, 6, '#ffb3e6');
+    g.fillStyle = '#ffffff'; g.fillRect(-4, -26, 8, 10); ell(g, 0, -26, 6, 3, '#ffffff'); ell(g, -3, -28, 3, 2.5, '#ffffff'); ell(g, 3, -28, 3, 2.5, '#ffffff');
+    const k = (T * 0.6 + v) % 1; ell(g, 10, -20 - k * 16, 3 + k * 5, 2.5 + k * 4, `rgba(255,255,255,${0.6 * (1 - k)})`);
+    g.fillStyle = '#ffd36e'; poly(g, [[-15, -2], [-7, 2], [-7, -4], [-15, -8]]);
+  },
+  bounce(g, T, v) {
+    const sq = 1 + Math.sin(T * 6) * 0.05;
+    ell(g, 0, 3, 22, 9, 'rgba(0,0,0,0.2)');
+    g.save(); g.scale(1 / sq, sq);
+    g.beginPath(); g.ellipse(0, 0, 21, 22, 0, Math.PI, 0); g.closePath(); g.fillStyle = 'rgba(127,247,212,0.75)'; g.fill();
+    ell(g, -7, -14, 6, 4, 'rgba(255,255,255,0.5)');
+    g.restore();
+    const hop = Math.abs(Math.sin(T * 4 + v * 3)) * 12;
+    ell(g, 4, -28 - hop, 4, 4, '#b6f36a'); ell(g, 3, -29 - hop, 1, 1, '#1a1238'); ell(g, 5, -29 - hop, 1, 1, '#1a1238');
+  },
+  nappod(g, T, v) {
+    shadow(g, 14, 6);
+    ell(g, 0, 0, 13, 5, '#b48cec');
+    g.beginPath(); g.ellipse(0, -8, 12, 11, 0, 0, Math.PI * 2); g.fillStyle = '#e8d8ff'; g.fill();
+    g.beginPath(); g.ellipse(0, -8, 12, 11, 0, Math.PI * 0.95, Math.PI * 1.9); g.fillStyle = '#b48cec'; g.fill();
+    const z = (T * 0.5 + v) % 1;
+    g.fillStyle = `rgba(255,255,255,${1 - z})`; g.font = '600 9px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('z', 8 + z * 6, -20 - z * 14);
+  },
+  lantern(g, T, v) {
+    const b = Math.sin(T * 1.5 + v * 7) * 3;
+    g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, 2); g.lineTo(0, -22 + b); g.stroke();
+    ell(g, 0, 2, 3, 1.4, 'rgba(0,0,0,0.25)');
+    const col = ['#ff9fe8', '#ffd166', '#7ff7d4'][Math.floor(v * 3)];
+    ell(g, 0, -28 + b, 11, 11, rgba(col, 0.25)); ell(g, 0, -28 + b, 6, 7, col); ell(g, -2, -30 + b, 2, 3, 'rgba(255,255,255,0.6)');
+  },
+  zhouse(g, T, v) {
+    shadow(g, 26, 12);
+    g.fillStyle = '#f3e9ff'; g.beginPath(); g.moveTo(-12, 4); g.quadraticCurveTo(-14, -18, -9, -28); g.lineTo(9, -28); g.quadraticCurveTo(14, -18, 12, 4); g.closePath(); g.fill();
+    g.fillStyle = '#d6c4ff'; g.beginPath(); g.moveTo(2, 4); g.quadraticCurveTo(4, -18, 2, -28); g.lineTo(9, -28); g.quadraticCurveTo(14, -18, 12, 4); g.closePath(); g.fill();
+    g.fillStyle = '#7a52b8'; g.beginPath(); g.ellipse(-2, 0, 4, 7, 0, Math.PI, 0); g.fill(); g.fillRect(-6, 0, 8, 4);
+    ell(g, 6, -14, 3, 3, '#ffd36e');
+    g.beginPath(); g.ellipse(0, -30, 30, 18, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#ff7ad9'; g.fill();
+    ell(g, 0, -30, 30, 5, '#e45cc0');
+    for (const [x, y, r] of [[-16, -38, 4], [-2, -44, 5], [13, -37, 3.5], [20, -33, 2.5], [-24, -32, 2.5]]) ell(g, x, y, r, r * 0.8, '#ffe2f4');
+    g.fillStyle = '#b48cec'; g.fillRect(14, -54, 5, 12);
+    const k = (T * 0.5) % 1; ell(g, 16.5, -58 - k * 14, 2 + k * 3, 2 + k * 3, `rgba(255,214,250,${1 - k})`);
+  },
   comet(g) {
     const grd = g.createLinearGradient(-20, 12, 14, -14);
     grd.addColorStop(0, 'rgba(155,227,255,0)'); grd.addColorStop(1, 'rgba(155,227,255,0.9)');
@@ -2758,7 +3324,7 @@ const DRAW = {
 };
 
 function drawColonists(g, t, front) {
-  for (let k = 0; k < (t.res ?? 4); k++) {
+  for (let k = 0; k < Math.min(4, t.res ?? 4); k++) {
     const dir = k % 2 ? 1 : -1;
     const a = RT * 0.35 * dir + k * 1.57 + t.v * 6;
     const x = Math.cos(a) * 30, y = Math.sin(a) * 13 + 2;
@@ -2796,6 +3362,7 @@ function drawBuildingOn(g, t) {
 }
 // glow spots that show up at night: [x, y, radius, colour] relative to the tile centre
 const LIGHTS = {
+  flower: [[0, -28, 14, '#ffd166']], lantern: [[0, -28, 16, '#ff9fe8']], tesla: [[0, -34, 14, '#7ff7d4']], kitchen: [[-11, -3, 9, '#ffd36e']],
   lab: [[0, -12, 14, '#5cc8ff']], geo: [[6, -9, 14, '#ffb03a']], dronebay: [[0, -5, 12, '#ff7a45']], tower: [[0, -26, 10, '#9fd8ff']],
   coop: [[-5, -1, 8, '#ffd36e']], fuel: [[0, -10, 12, '#ffd166']], cmine: [[0, -6, 12, '#5cf2ff']],
   habitat: [[-12, -5, 9, '#ffd36e'], [-1, -4, 9, '#ffd36e'], [10, -5, 9, '#ffd36e']],
@@ -3078,6 +3645,7 @@ function drawBG(g, W, H) {
   sg.addColorStop(0, 'rgba(255,230,170,0.55)'); sg.addColorStop(1, 'rgba(255,200,120,0)');
   g.fillStyle = sg; g.fillRect(sx - 120, sy - 120, 240, 240);
   ell(g, sx, sy, 11, 11, '#fff3d6');
+  if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   if (S && LEVELS[S.level].offworld) { drawBigMars(g, W * 0.86, H * 0.3, Math.min(W, H) * 0.28); return; }
   // Phobos drifting by
   const px = ((RT * 9) % (W + 200)) - 100, py = H * 0.3 + Math.sin(RT * 0.05) * 20;
@@ -3118,7 +3686,7 @@ function render() {
   drawGhost(ctx);
   if (surf) drawBeams(ctx);
   drawFX(ctx);
-  if (surf) { drawSaucer(ctx); drawVell(ctx); drawClouds(ctx); drawComets(ctx); drawMeteors(ctx); }
+  if (surf) { drawSaucer(ctx); drawVell(ctx); drawClouds(ctx); drawComets(ctx); drawMeteors(ctx); if (LEVELS[S.level].bonus) drawGlorp(ctx); }
   if (S.storm > 0 && S.view !== 'under') {
     const a = clamp(Math.min(S.storm, 22 - S.storm) / 3, 0, 1);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3199,7 +3767,7 @@ function showTip(preview) {
   if (hoverThing === 'saucer') { el.innerHTML = '<strong>Zorp’s flying saucer</strong>An alien trader! Click it to see what Zorp wants to swap.'; return; }
   if (hoverThing === 'critter') { el.innerHTML = '<strong>Critter</strong>A cheeky little native of Mars. Tap it to bonk it before it nibbles something!'; return; }
   if (hover) {
-    const [n, txt] = TILE_INFO[hover.type];
+    const [n, txt] = (LEVELS[S.level].tileInfo || {})[hover.type] || TILE_INFO[hover.type];
     let b = '';
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
     if (hover.b === 'dig') b += ` <b>${Math.round((hover.prog || 0) * 100)}% dug.</b>`;
@@ -3230,7 +3798,7 @@ function updateUI() {
   let when = '';
   if (L.dayNight) { const ph = S.clock % (DAY + NIGHT); when = S.night ? ` · Night (${Math.ceil(DAY + NIGHT - ph)}s)` : ` · Day (${Math.ceil(DAY - ph)}s)`; }
   if (S.storm > 0) when += ' · Dust storm';
-  $('#lvl-eyebrow').textContent = `Level ${S.level + 1} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
+  $('#lvl-eyebrow').textContent = `${L.bonus ? 'Bonus level' : 'Level ' + (S.level + 1)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
   $('#v-energy').textContent = `${Math.floor(S.energy)} / ${ECAP}`;
   const re = $('#r-energy'); re.textContent = rateTxt(S.rates.energy); re.className = S.rates.energy < 0 ? 'neg' : 'pos';
   $('#chip-energy').classList.toggle('warn', S.eff < 1);
@@ -3238,7 +3806,7 @@ function updateUI() {
   $('#r-metal').textContent = rateTxt(S.rates.metal);
   $('#v-water').textContent = Math.floor(S.water);
   $('#r-water').textContent = rateTxt(S.rates.water);
-  $('#v-pop').textContent = `${S.pop}/${count('habitat') * 4}`;
+  $('#v-pop').textContent = `${S.pop}/${popCap()}`;
   $('#v-food').textContent = Math.floor(S.food);
   const rf = $('#r-food'); rf.textContent = rateTxt(S.rates.food); rf.className = S.rates.food < 0 ? 'neg' : '';
   const rw = $('#r-water'); rw.className = S.rates.water < 0 ? 'neg' : '';
@@ -3308,8 +3876,15 @@ function showTitle() {
       <button class="lvl six" data-l="5"><span class="n">6</span><span><b>Exodus</b><small>Build a Greater Mars, or face the Critter Queen and leave.</small></span><span class="go">Play</span></button>
       <button class="lvl seven" data-l="6"><span class="n">7</span><span><b>Phobos Outpost</b><small>Beyond Mars: a tiny moon, low gravity, falling meteors.</small></span><span class="go">Play</span></button>
     </div>`);
+  if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
+  else if (HEARTS > 0) $('#modal .levels').insertAdjacentHTML('afterend', `<p class="friend small-note">Zorp’s friendship ${heartRow()} ${HEARTS}/10</p>`);
+  if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">Zorp-tech upgrade: ${PERKS[PERK].name}</p>`);
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
-  $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => { audioInit(); startLevel(+b.dataset.l); }));
+  $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => {
+    audioInit();
+    if (+b.dataset.l === GLORP) try { localStorage.removeItem('mmb-return'); } catch (e) {} // a visit from the menu has no game to return to
+    startLevel(+b.dataset.l);
+  }));
   if (cont) $('#continue').addEventListener('click', () => {
     audioInit();
     if (!playing) loadSave(cont);
@@ -3334,6 +3909,7 @@ function showBrief() {
 }
 
 function showComplete() {
+  if (LEVELS[S.level].bonus) return showGlorpDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0 && typeof showDestinations === 'function') return showDestinations();
   const next = S.level + 1 < LEVELS.length && !LEVELS[S.level + 1].offworld;
@@ -3398,7 +3974,11 @@ const CREW = {
 };
 CREW.zorp = { name: 'Zorp', role: 'Alien trader', suit: '#b6f36a', bg: '#2a1f4a', alien: true, pitch: 1.6, rate: 1.15, prefs: ['Google US English', 'Samantha'] };
 CREW.vell = { name: 'Elder Vell', role: 'Ancient Martian', suit: '#c9a7ff', bg: '#1a1236', alien: true, pitch: 0.6, rate: 0.85, prefs: ['Daniel', 'Google UK English Male'] };
-const PRAISE = { cmd: 'Good work, team.', eng: 'Solid work.', bot: 'Lovely!', kip: 'Excellent! Beep.' };
+CREW.mrs = { name: 'Mrs. Zorp', role: 'Festival planner', suit: '#ff9fe8', bg: '#3a1f4a', alien: true, pitch: 1.4, rate: 1.1, prefs: ['Samantha', 'Google US English'] };
+CREW.kids = { name: 'Zib & Zab', role: 'Zorp’s kids', suit: '#7ff7d4', bg: '#1f3a4a', alien: true, pitch: 1.8, rate: 1.2, prefs: ['Google US English'] };
+CREW.baby = { name: 'Baby Zuzu', role: 'Very small', suit: '#ffd166', bg: '#4a2f1f', alien: true, pitch: 2, rate: 1, prefs: ['Google US English'] };
+CREW.blorg = { name: 'Blorg', role: 'Rival trader', suit: '#ff5d73', bg: '#2a1422', alien: true, pitch: 0.7, rate: 1, prefs: ['Daniel', 'Google UK English Male'] };
+const PRAISE = { cmd: 'Good work, team.', eng: 'Solid work.', bot: 'Lovely!', kip: 'Excellent! Beep.', zorp: 'Zorp is impressed!', mrs: 'Wonderful, dear!', kids: 'Yay!', baby: 'Glorp!' };
 const TTS = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 const talkQ = [];
 let talking = null, talkGen = 0;
@@ -3427,7 +4007,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 043eaa72 06e150f9 06e3e69e 09033633 0a01a313 0a3e2be9 0a938044 0da086cf 0f9d9a55 0fc77d48 1331cada 13adf42b 143d51b6 14443303 14e62512 1515b2c3 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 1a73deff 1d2363f8 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 317b5667 3212792b 34b3668a 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 39ac3311 3a2a3dd2 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 42bbdd55 4320630f 43461594 4b62a538 4ecb63fb 5033e388 51218f66 51a5c1d2 51aaff27 528abda2 53481673 56eebfbb 581a7c01 58fc90dd 59461109 5a0049d9 5a7be0e7 5d5c0d57 5e7aea23 5fec72b2 60144cc1 60b858de 60cd53e0 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64ec0701 6527de87 65698d37 66c95ee9 66df857e 68ecfd5d 692ba820 69a1d5c5 6c30f428 6cec85ae 6d03b059 6d4a394e 6d8933a2 6f723cdd 6f8a37f9 6fd1527e 70319bb5 7090a6f6 750f794b 75790582 7794c923 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 859101f7 8796f0db 87bc0a6e 88755faf 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 916e3e57 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9ad8d525 9b646edd 9bad23e5 9cdc007a 9e14341c 9e563fed a2413960 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b37e7352 b8f1f2bb b9fc496b bc664788 bf202cf8 bfcf3810 c007124e c293bbd8 c34f5141 c4677edd c587d92c c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d8352bff d8551ff8 d87b48be d956d672 d983031a da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e233cd11 e4acaf8a e77d6a46 e8dc2b4c e9d2abdc ee7e156f ef1f18a3 ef43016a efd02516 f024b752 f16d66a6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 02610b12 043eaa72 06e150f9 06e3e69e 09033633 0a01a313 0a3e2be9 0a938044 0da086cf 0f5e67f5 0f9d9a55 0fc77d48 1331cada 13713eb9 13adf42b 143d51b6 14443303 14e62512 1515b2c3 158473ac 15d616f2 16aed961 17c35d32 18465b88 199300de 19bcfabb 19d57ccf 1a73deff 1d2363f8 1ec6befa 1f6bc700 1f6dbb97 2078c341 22c96318 262c9f53 2631b903 2638cdf0 293c4750 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 30cb6362 317b5667 3212792b 325c2975 34b3668a 3654501f 36f30872 36f7cfab 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 39ac3311 3a2a3dd2 3ca2a321 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 42bbdd55 4320630f 43461594 488637dd 4b62a538 4ecb63fb 5033e388 51218f66 51a5c1d2 51aaff27 52170bf3 528abda2 531550fe 53481673 56eebfbb 581a7c01 58fc90dd 59461109 59d6a190 5a0049d9 5a7be0e7 5d5c0d57 5e7aea23 5fec72b2 60144cc1 602279ef 60b858de 60cd53e0 611c5aca 61907eff 63407f03 63b15a97 63c78b92 644f3086 64cb995b 64ec0701 6527de87 65698d37 66c95ee9 66df857e 68ecfd5d 692ba820 69a1d5c5 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d4a394e 6d793f09 6d8933a2 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 7090a6f6 7301527c 73a92909 750f794b 75790582 776c07c6 7794c923 7b4aa8fa 7cc90c76 806aa390 819d9083 82c27015 83ff31b7 8517b105 8588aa9e 859101f7 8796f0db 87bc0a6e 88755faf 8a286a1d 8a9c604c 8b8bdc7a 8ca1d89d 8d92f6c0 8e2fcde9 8e708bce 916e3e57 967a76e4 972b45ed 972b9bba 97dacf1c 98df24cc 99187467 9a22a375 9ad8d525 9b646edd 9bad23e5 9cb181d2 9cdc007a 9dc4c374 9e14341c 9e563fed a07e771b a2413960 a260a4f5 a3308c35 a5acc6dc a698e1a4 a6b9d9dd a7e99e36 ab13bb98 ac519962 ac5e0d8b ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2968a4e b2b9eac6 b37e7352 b8f1f2bb b956ba1f b9da402b b9fc496b bbaad895 bc664788 bf202cf8 bfcf3810 c007124e c293bbd8 c34f5141 c4677edd c587d92c c5eaa696 c9c4682a cb28cba4 cbd82633 cbde5b59 cc8e851e cebb6a16 cedb1184 d1a244a4 d1f74b36 d3cf6a98 d5d49ebb d5e98a5e d717036b d805324d d8352bff d8551ff8 d87b48be d956d672 d983031a da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dd7ea9a4 df4f235d dfbe7e1b dfee1638 e08912be e233cd11 e4acaf8a e5392f66 e77d6a46 e8dc2b4c e9d2abdc ea28b442 ee7e156f ef1f18a3 ef43016a efd02516 f024b752 f0e32d17 f16d66a6 f450f0b6 f46ef84f f5b21430 f6b9aead f6cb9570 f8521c9a f85b5644 f9295486 f9e98a6a fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -3565,7 +4145,48 @@ function drawPortrait(g, id, open, blink) {
   ell(g, 44, 14, 2, 2, 'rgba(255,255,255,0.25)'); ell(g, 12, 20, 1.2, 1.2, 'rgba(255,255,255,0.25)');
   ell(g, 30, 64, 27, 19, c.suit);
   ell(g, 30, 50, 9, 4, shade(c.suit, -0.2));
-  if (id === 'zorp') {
+  if (id === 'mrs' || id === 'kids' || id === 'baby' || id === 'blorg') {
+    if (id === 'mrs') {
+      ell(g, 30, 60, 20, 14, '#e070c8');
+      g.strokeStyle = '#e070c8'; g.lineWidth = 2; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(22, 18); g.quadraticCurveTo(16, 8, 20, 4); g.moveTo(38, 18); g.quadraticCurveTo(44, 8, 40, 4); g.stroke();
+      g.fillStyle = '#ffd166'; poly(g, [[40, 4], [34, 0], [34, 8]]); poly(g, [[40, 4], [46, 0], [46, 8]]); ell(g, 40, 4, 2, 2, '#ffb347');
+      ell(g, 30, 33, 18, 16, c.suit);
+      for (const [x, y] of [[21, 29], [30, 25], [39, 29]]) {
+        ell(g, x, y, 4.2, blink ? 0.6 : 4.2, '#ffffff'); if (!blink) ell(g, x + 0.8, y + 0.6, 1.9, 1.9, '#1a1238');
+        g.strokeStyle = '#1a1238'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 3, y - 4.5); g.lineTo(x - 5, y - 6.5); g.moveTo(x + 3, y - 4.5); g.lineTo(x + 5, y - 6.5); g.stroke();
+      }
+      ell(g, 22, 38, 2.4, 1.4, 'rgba(255,90,150,0.45)'); ell(g, 38, 38, 2.4, 1.4, 'rgba(255,90,150,0.45)');
+      if (open) ell(g, 30, 40, 5, 3, '#5a1e4a'); else { g.strokeStyle = '#5a1e4a'; g.lineWidth = 1.6; g.beginPath(); g.arc(30, 37, 5, 0.3, Math.PI - 0.3); g.stroke(); }
+      for (let i = 0; i < 7; i++) ell(g, 19 + i * 3.7, 50 + Math.sin(i / 6 * Math.PI) * 2, 1.7, 1.7, '#ffffff');
+    } else if (id === 'kids') {
+      for (const [x, col, d] of [[20, '#b6f36a', 0], [41, c.suit, 1]]) {
+        const by = 36 + Math.sin(RT * 6 + d * 2) * 1.5;
+        ell(g, x, 62, 11, 9, shade(col, -0.15));
+        g.strokeStyle = shade(col, -0.15); g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, by - 10); g.lineTo(x + (d ? 3 : -3), by - 18); g.stroke();
+        ell(g, x + (d ? 3 : -3), by - 18, 2, 2, '#ff9fe8');
+        ell(g, x, by, 11, 10, col);
+        for (const ex of [-4, 4]) { ell(g, x + ex, by - 2, 3, blink ? 0.5 : 3.2, '#ffffff'); if (!blink) ell(g, x + ex + 0.6, by - 1.5, 1.4, 1.5, '#1a1238'); }
+        if (open) ell(g, x, by + 5, 3, 2, '#3b1f4a'); else { g.strokeStyle = '#3b1f4a'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, by + 3, 3, 0.3, Math.PI - 0.3); g.stroke(); }
+      }
+    } else if (id === 'baby') {
+      ell(g, 30, 32, 21, 21, 'rgba(180,240,255,0.25)');
+      g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1.5; g.beginPath(); g.arc(30, 32, 21, Math.PI * 1.1, Math.PI * 1.4); g.stroke();
+      ell(g, 30, 35, 13, 12, c.suit);
+      g.strokeStyle = shade(c.suit, -0.2); g.lineWidth = 1.5; g.beginPath(); g.moveTo(30, 23); g.quadraticCurveTo(34, 17, 31, 15); g.stroke();
+      ell(g, 30, 32, 6, blink ? 0.8 : 6, '#ffffff'); if (!blink) { ell(g, 31, 33, 3, 3, '#1a1238'); ell(g, 32, 31, 1, 1, '#ffffff'); }
+      ell(g, 30, 42, open ? 3 : 2.4, open ? 2.4 : 1.6, open ? '#5a1e2e' : '#ff9fe8');
+      if (!open) ell(g, 30, 42, 4, 1, '#ff9fe8');
+    } else {
+      ell(g, 30, 60, 20, 14, '#3a3050');
+      ell(g, 30, 32, 18, 16, '#9a8cc0');
+      g.fillStyle = c.suit; g.beginPath(); g.ellipse(30, 22, 18, 9, 0, Math.PI, 0); g.fill();
+      ell(g, 23, 32, 3.6, blink ? 0.6 : 3, '#fff3a0'); ell(g, 37, 32, 3.6, blink ? 0.6 : 3, '#fff3a0');
+      if (!blink) { ell(g, 24, 32.5, 1.5, 1.5, '#1a1238'); ell(g, 36, 32.5, 1.5, 1.5, '#1a1238'); }
+      g.strokeStyle = '#2a2040'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(18, 26); g.lineTo(30, 29); g.lineTo(42, 26); g.stroke();
+      if (open) ell(g, 30, 41, 5, 3, '#2a1422'); else { g.strokeStyle = '#2a1422'; g.lineWidth = 1.8; g.beginPath(); g.arc(30, 44, 5, Math.PI + 0.4, -0.4); g.stroke(); }
+    }
+  } else if (id === 'zorp') {
     ell(g, 30, 60, 20, 14, '#8fd14f');
     g.strokeStyle = '#8fd14f'; g.lineWidth = 2; g.lineCap = 'round';
     g.beginPath(); g.moveTo(22, 18); g.quadraticCurveTo(16, 8, 20, 4); g.moveTo(38, 18); g.quadraticCurveTo(44, 8, 40, 4); g.stroke();
@@ -3984,6 +4605,7 @@ cv.addEventListener('pointerdown', e => {
   const crit = critterAt(e.clientX, e.clientY);
   if (crit) { bonk(crit); return; }
   if (bossAt(e.clientX, e.clientY)) return;
+  if (crasherAt(e.clientX, e.clientY)) return;
   const met = meteorAt(e.clientX, e.clientY);
   if (met) { stopMeteor(met); return; }
   setHover(e);
