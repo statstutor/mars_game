@@ -39,6 +39,13 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
    into the caves underground or raise sky islands above the dust.
 6. **Exodus**: two ways to win. Build a **Greater Mars** on every layer, or build the colony
    rocket, beat the **Critter Queen** and fight your way out of orbit past the Swarm Mother.
+**Leaving Mars is your choice.** At the launch pad, open the star map and set a course for
+Phobos (120 fuel), Deimos (160 fuel, needs **Big Engines**) or Europa (300 fuel, needs Big
+Engines and a **Radiation Shield**). Upgrades cost metal and crystals and stay on the rocket
+for good. Farther trips mean a longer, tougher escape battle; Europa adds the Radiation Ray
+boss in Jupiter's radiation belts. After finishing a moon, build a pad and fuel plant there
+and fly on to any other world. The Shell King (Level 10) opens once Europa is done.
+
 7. **Phobos Outpost**: the first world beyond Mars. No air, tiny gravity and falling meteors.
 8. **Deimos Watch**: Mars's outer moon, and the first **shell-beasts**: armoured aliens that
    zappers, drones and taps bounce off. Build **castles**, which train up to 3 **knights** each
