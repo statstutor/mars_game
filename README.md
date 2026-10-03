@@ -56,6 +56,13 @@ and fly on to any other world. The Shell King (Level 10) opens once Europa is do
 10. **Europa: The Shell King**: three castles and nine knights, then the **Shell-beast King**
     breaks through the ice. Only knights can hurt him; he marches on the castles, stomps nearby
     knights and calls more shell-beasts.
+11. **Moonbase Lemonade**: Earth's Moon, with Earth in the sky (on the star map once the Shell
+    King is beaten). **Lemonade stands** make +4 water/s next to a **water tower** and a
+    **lemon grove** (about +1 with only one, a trickle with neither). **Five-headed aliens**
+    take five hits; each hit knocks off a head, and heads grow back if you leave them alone.
+12. **The Five-Head Chief**: build up the moonbase, then the Chief lands and goes after the
+    lemonade stands. Tap his glowing head to knock it off; if nobody hits him for a while, a
+    head grows back.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
