@@ -83,3 +83,14 @@ Research from Levels 4 and 5 carries into the next level when you finish them.
 Everything runs on solar power. If you use more energy than you make, every building slows down.
 
 Progress autosaves in your browser every few seconds and whenever you build. Reopen the page and press **Continue** on the title screen to pick up where you left off. Starting a level from the title screen replaces the save.
+
+## Bonus: Saints Memory
+
+`saints/index.html` is a separate memory game. Each saint's picture is matched with one of their sayings
+instead of with a copy of the same picture. It starts with 3 pairs, and every win adds one more pair, up to 24.
+
+- **Single player**: you get a set number of card flips (4 per pair, plus 2). Match every pair before they run
+  out to win; run out first and you lose and can **Start Over** (same number of pairs) or go to the main menu.
+- **Two players**: take turns. A match earns another go. The player with the most matches wins the round and
+  gets one point. Play as many rounds as you like.
+- The **Main Menu** button is always in the top corner during a game.

@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saints Memory</title>
+<style>
+  :root {
+    --bg: #1b2340;
+    --bg2: #26305a;
+    --panel: #fdf8ec;
+    --ink: #2a2236;
+    --gold: #e8b94a;
+    --gold-dark: #b8862a;
+    --p1: #3b82f6;
+    --p2: #e5484d;
+    --good: #2f9e5b;
+    --bad: #d9534f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: radial-gradient(circle at 50% 0%, var(--bg2), var(--bg) 70%) fixed;
+    color: var(--panel);
+    font-family: Georgia, "Times New Roman", serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .screen { display: none; padding: 16px; max-width: 980px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ---------- Main menu ---------- */
+  #menu { text-align: center; padding-top: 6vh; }
+  #menu h1 {
+    font-size: clamp(2.2rem, 7vw, 3.6rem);
+    margin: 0 0 4px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-shadow: 0 3px 0 #0006;
+  }
+  #menu .sub { margin: 0 0 32px; opacity: .85; font-style: italic; }
+  .menu-buttons { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  .big-btn {
+    width: min(360px, 100%);
+    padding: 18px 20px;
+    border: 3px solid var(--gold);
+    border-radius: 16px;
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 1.3rem;
+    font-weight: bold;
+    box-shadow: 0 5px 0 var(--gold-dark);
+    transition: transform .08s, box-shadow .08s;
+  }
+  .big-btn small { display: block; font-weight: normal; font-size: .85rem; margin-top: 4px; opacity: .75; }
+  .big-btn:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--gold-dark); }
+  .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-dark); }
+  .how {
+    margin: 36px auto 0;
+    max-width: 560px;
+    text-align: left;
+    background: #0003;
+    border-radius: 12px;
+    padding: 14px 20px;
+    line-height: 1.5;
+    font-size: .95rem;
+  }
+  .how h2 { margin: 0 0 6px; font-size: 1.1rem; color: var(--gold); }
+  .how ul { margin: 0; padding-left: 20px; }
+
+  /* ---------- Game header ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .menu-btn {
+    padding: 8px 14px; border-radius: 10px; border: 2px solid var(--gold);
+    background: transparent; color: var(--gold); font-size: 1rem; font-weight: bold;
+  }
+  .menu-btn:hover { background: #ffffff14; }
+  .status { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+  .pill {
+    background: #0004; border-radius: 999px; padding: 6px 14px; font-size: .95rem;
+    border: 2px solid transparent; white-space: nowrap;
+  }
+  .pill b { color: var(--gold); }
+  .pill.turn-p1 { border-color: var(--p1); background: #3b82f633; }
+  .pill.turn-p2 { border-color: var(--p2); background: #e5484d33; }
+  .pill.low { border-color: var(--bad); background: #d9534f44; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .turn-banner { text-align: center; font-size: 1.15rem; margin: -4px 0 12px; min-height: 1.5em; }
+
+  /* ---------- Board ---------- */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-w, 130px), 1fr));
+    gap: 10px;
+    margin: 0 auto;
+  }
+  .card {
+    aspect-ratio: 3 / 4;
+    perspective: 900px;
+    border: none; padding: 0; background: none;
+    container-type: inline-size;
+  }
+  .card .inner {
+    position: relative; width: 100%; height: 100%;
+    transition: transform .45s;
+    transform-style: preserve-3d;
+  }
+  .card.flipped .inner, .card.matched .inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; border-radius: 10px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    overflow: hidden;
+    box-shadow: 0 4px 10px #0006;
+  }
+  .back {
+    background:
+      radial-gradient(circle at 50% 50%, #f6d77c 0 14%, transparent 15%),
+      repeating-linear-gradient(45deg, #7b1e3a 0 8px, #8f2747 8px 16px);
+    border: 4px solid var(--gold);
+    display: grid; place-items: center;
+  }
+  .back span { font-size: 18cqw; color: #7b1e3a; font-weight: bold; }
+  .card:not(.flipped):not(.matched):hover .back { filter: brightness(1.15); }
+  .front {
+    transform: rotateY(180deg);
+    background: var(--panel); color: var(--ink);
+    border: 4px solid var(--gold);
+    display: flex; flex-direction: column;
+  }
+  .front svg { width: 100%; flex: 1; min-height: 0; display: block; }
+  .front .name {
+    background: var(--ink); color: var(--gold);
+    font-size: 8.5cqw; font-weight: bold; text-align: center;
+    padding: 4px 3px; line-height: 1.15;
+  }
+  .front.quote {
+    background: linear-gradient(#fffaf0, #f3e6c4);
+    justify-content: center; align-items: center;
+    padding: 9cqw 8cqw; text-align: center;
+  }
+  .front.quote .mark { font-size: 26cqw; line-height: .6; color: var(--gold-dark); height: 14cqw; }
+  .front.quote p { margin: 0; font-style: italic; line-height: 1.25; }
+  .q-s p { font-size: 11cqw; }
+  .q-m p { font-size: 9.3cqw; }
+  .q-l p { font-size: 8cqw; }
+  .card.matched .front { border-color: var(--good); box-shadow: 0 0 0 3px var(--good), 0 4px 10px #0006; }
+  .card.matched.by-p1 .front { border-color: var(--p1); box-shadow: 0 0 0 3px var(--p1), 0 4px 10px #0006; }
+  .card.matched.by-p2 .front { border-color: var(--p2); box-shadow: 0 0 0 3px var(--p2), 0 4px 10px #0006; }
+  .card.wrong .front { animation: shake .4s; border-color: var(--bad); }
+  @keyframes shake {
+    0%, 100% { transform: rotateY(180deg) translateX(0); }
+    25% { transform: rotateY(180deg) translateX(-5px); }
+    75% { transform: rotateY(180deg) translateX(5px); }
+  }
+
+  /* ---------- Toast & modal ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 150%);
+    width: min(520px, calc(100% - 32px));
+    background: var(--panel); color: var(--ink);
+    border: 3px solid var(--good); border-radius: 14px; padding: 12px 16px;
+    box-shadow: 0 8px 24px #0008; transition: transform .3s, visibility .3s; z-index: 5;
+    visibility: hidden;
+    text-align: center; line-height: 1.4;
+  }
+  .toast.show { transform: translate(-50%, 0); visibility: visible; }
+  .toast b { display: block; color: var(--good); }
+  .toast i { display: block; margin-top: 4px; }
+  .overlay {
+    position: fixed; inset: 0; background: #0b1020cc; display: none;
+    align-items: center; justify-content: center; padding: 16px; z-index: 10;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--panel); color: var(--ink); border-radius: 18px;
+    border: 4px solid var(--gold); padding: 24px; width: min(440px, 100%); text-align: center;
+    box-shadow: 0 12px 40px #000a;
+  }
+  .modal h2 { margin: 0 0 8px; font-size: 1.8rem; }
+  .modal p { margin: 6px 0; line-height: 1.45; }
+  .modal .scores { display: flex; justify-content: center; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+  .modal .score-box { border-radius: 12px; padding: 8px 14px; color: #fff; min-width: 120px; }
+  .modal .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .modal .actions button {
+    padding: 13px; border-radius: 12px; font-size: 1.1rem; font-weight: bold;
+    border: 3px solid var(--gold); background: var(--gold); color: var(--ink);
+  }
+  .modal .actions button.secondary { background: transparent; }
+  @media (max-width: 480px) {
+    .board { gap: 7px; }
+    .board.many { --card-w: 100px !important; }
+    .pill { padding: 5px 10px; font-size: .85rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ MAIN MENU ============ -->
+<section id="menu" class="screen active">
+  <h1>✝ Saints Memory ✝</h1>
+  <p class="sub">Match each saint with the words they spoke</p>
+  <div class="menu-buttons">
+    <button class="big-btn" id="btn-single">🙋 Single Player<small>Match every saint before your flips run out</small></button>
+    <button class="big-btn" id="btn-double">👥 Two Players<small>Take turns, most matches wins the round</small></button>
+  </div>
+  <div class="how">
+    <h2>How to play</h2>
+    <ul>
+      <li>Flip two cards at a time. A <b>saint's picture</b> matches the card with <b>their quote</b>.</li>
+      <li>The game starts with 3 pairs. Each time someone wins, the next game gets one more pair.</li>
+      <li><b>Single player:</b> every card you flip uses one flip. Match them all before the flips run out.</li>
+      <li><b>Two players:</b> make a match and you go again; miss and it's the other player's turn.
+        Whoever has the most matches wins the round and gets 1 point. Play as many rounds as you like.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="menu-btn" id="btn-menu">← Main Menu</button>
+    <div class="status" id="status"></div>
+  </div>
+  <div class="turn-banner" id="turn-banner"></div>
+  <div class="board" id="board"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// The saints. "look" describes the drawn portrait: skin, robe colour, hair
+// colour, whether they have a beard, what they wear on their head, and the
+// symbol (attribute) they are traditionally shown with.
+// ---------------------------------------------------------------------------
+const SAINTS = [
+  { name: "St. Augustine", quote: "Our heart is restless until it rests in you.",
+    look: { skin: "#d9a77c", robe: "#7b2d8b", hair: "#9a9a9a", beard: true, head: "mitre", attr: "📖" } },
+  { name: "St. Francis of Assisi", quote: "Praised be you, my Lord, through Brother Sun.",
+    look: { skin: "#e8bf98", robe: "#7a5230", hair: "#4a3020", beard: true, head: "tonsure", attr: "🐦" } },
+  { name: "St. Teresa of Calcutta", quote: "Not all of us can do great things, but we can do small things with great love.",
+    look: { skin: "#c99572", robe: "#ffffff", veil: "#ffffff", stripe: "#2a5db0", head: "veil", attr: "🤲" } },
+  { name: "St. Thérèse of Lisieux", quote: "My vocation is love!",
+    look: { skin: "#f0cfae", robe: "#6b4a2e", veil: "#1d1d1d", head: "veil", attr: "🌹" } },
+  { name: "St. Catherine of Siena", quote: "Be who God meant you to be and you will set the world on fire.",
+    look: { skin: "#ecc6a2", robe: "#f4f4f4", veil: "#1d1d1d", head: "veil", attr: "🌸" } },
+  { name: "St. Ignatius of Loyola", quote: "Teach us to give and not to count the cost.",
+    look: { skin: "#d9a77c", robe: "#222222", hair: "#3a2a1a", beard: true, head: "bald", attr: "📜" } },
+  { name: "St. Peter", quote: "You are the Christ, the Son of the living God.",
+    look: { skin: "#d39c72", robe: "#2b6cb0", hair: "#e6e6e6", beard: true, head: "bald", attr: "🗝️" } },
+  { name: "St. Paul", quote: "I have fought the good fight, I have finished the race, I have kept the faith.",
+    look: { skin: "#c98f63", robe: "#a83232", hair: "#3a2a1a", beard: true, head: "bald", attr: "⚔️" } },
+  { name: "St. Thomas Aquinas", quote: "Grace does not destroy nature, but perfects it.",
+    look: { skin: "#e8bf98", robe: "#1d1d1d", inner: "#ffffff", hair: "#3a2a1a", head: "tonsure", attr: "☀️" } },
+  { name: "St. John Paul II", quote: "Do not be afraid! Open wide the doors for Christ!",
+    look: { skin: "#f0cfae", robe: "#ffffff", hair: "#d0d0d0", head: "zucchetto", cap: "#ffffff", attr: "✝️" } },
+  { name: "St. Joan of Arc", quote: "I am not afraid. I was born to do this.",
+    look: { skin: "#f0cfae", robe: "#9aa4ad", hair: "#6b3e1e", head: "short", attr: "⚜️" } },
+  { name: "St. Patrick", quote: "Christ with me, Christ before me, Christ behind me.",
+    look: { skin: "#f3d3b5", robe: "#2f8f46", hair: "#f2f2f2", beard: true, head: "mitre", attr: "☘️" } },
+  { name: "St. Jerome", quote: "Ignorance of Scripture is ignorance of Christ.",
+    look: { skin: "#d9a77c", robe: "#b22222", hair: "#f2f2f2", beard: true, head: "galero", attr: "🦁" } },
+  { name: "St. Padre Pio", quote: "Pray, hope, and don't worry.",
+    look: { skin: "#e3b48c", robe: "#6b4a2e", hair: "#a8a8a8", beard: true, head: "hood", attr: "🙏" } },
+  { name: "St. Francis de Sales", quote: "Be who you are and be that well.",
+    look: { skin: "#ecc6a2", robe: "#1d1d1d", hair: "#3a2a1a", beard: true, head: "zucchetto", cap: "#7b2d8b", attr: "✒️" } },
+  { name: "St. Teresa of Ávila", quote: "Let nothing disturb you. All things pass; God never changes.",
+    look: { skin: "#ecc6a2", robe: "#6b4a2e", veil: "#1d1d1d", head: "veil", attr: "🪶" } },
+  { name: "Mary, Mother of God", quote: "Let it be done to me according to your word.",
+    look: { skin: "#d9a77c", robe: "#c0392b", veil: "#2a5db0", head: "mantle", attr: "⭐" } },
+  { name: "St. Benedict", quote: "Listen with the ear of your heart.",
+    look: { skin: "#e8bf98", robe: "#1d1d1d", hair: "#b0b0b0", beard: true, head: "hood", attr: "🍞" } },
+  { name: "St. Thomas More", quote: "I die the King's good servant, but God's first.",
+    look: { skin: "#ecc6a2", robe: "#1d1d1d", chain: true, hair: "#5a4030", head: "cap", attr: "⚖️" } },
+  { name: "St. Clare of Assisi", quote: "Love God, serve God; everything is in that.",
+    look: { skin: "#f0cfae", robe: "#7a5230", veil: "#1d1d1d", head: "veil", attr: "🕯️" } },
+  { name: "St. Maximilian Kolbe", quote: "Hatred is not a creative force. Only love is creative.",
+    look: { skin: "#f0cfae", robe: "#3b5b8c", stripes: true, hair: "#3a2a1a", glasses: true, head: "short", attr: "👑" } },
+  { name: "St. Faustina", quote: "Jesus, I trust in you.",
+    look: { skin: "#f3d3b5", robe: "#1d1d1d", veil: "#1d1d1d", head: "veil", attr: "💗" } },
+  { name: "St. Thomas the Apostle", quote: "My Lord and my God!",
+    look: { skin: "#c98f63", robe: "#c27c0e", hair: "#3a2a1a", beard: true, head: "short", attr: "📐" } },
+  { name: "St. Irenaeus", quote: "The glory of God is a human being fully alive.",
+    look: { skin: "#d39c72", robe: "#1f6f8b", hair: "#8a8a8a", beard: true, head: "mitre", attr: "🛡️" } },
+];
+
+const START_PAIRS = 3;
+const MAX_PAIRS = SAINTS.length;
+// Single player: flips allowed for a board with n pairs.
+const flipsFor = n => n * 4 + 2;
+
+// ---------------------------------------------------------------------------
+// Portrait drawing (inline SVG, so the game works offline as one file)
+// ---------------------------------------------------------------------------
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = v => Math.max(0, Math.min(255, v + amt));
+  const r = c(n >> 16), g = c((n >> 8) & 255), b = c(n & 255);
+  return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+
+function portrait(l, i) {
+  const bgs = ["#cfe3f5", "#f5dccf", "#dcefd5", "#efe0f5", "#f5efcf", "#d5ecef"];
+  const bg = bgs[i % bgs.length];
+  const robeDark = shade(l.robe, -35);
+  let back = "", front = "", hair = "", extra = "";
+
+  // Things behind the head
+  if (l.head === "veil" || l.head === "mantle") {
+    back += `<path d="M24 118 C22 80 28 40 50 30 C72 40 78 80 76 118 Z" fill="${l.veil}" stroke="${shade(l.veil, -30)}" stroke-width="1"/>`;
+  }
+  if (l.head === "hood") {
+    back += `<path d="M28 88 C24 50 34 28 50 28 C66 28 76 50 72 88 Z" fill="${robeDark}"/>`;
+  }
+
+  // Robe & body
+  let body = `<path d="M12 120 C14 94 30 82 50 82 C70 82 86 94 88 120 Z" fill="${l.robe}" stroke="${robeDark}" stroke-width="1.2"/>`;
+  if (l.inner) body += `<path d="M42 83 L50 120 L58 83 Z" fill="${l.inner}"/>`;
+  if (l.stripes) {
+    for (let x = 18; x < 86; x += 9) body += `<rect x="${x}" y="84" width="4" height="36" fill="#ffffffaa"/>`;
+  }
+  if (l.chain) body += `<path d="M34 88 Q50 108 66 88" fill="none" stroke="#e8b94a" stroke-width="3" stroke-dasharray="3 2"/><circle cx="50" cy="100" r="4" fill="#e8b94a"/>`;
+  if (l.stripe) {
+    back += `<path d="M24 118 C22 80 28 40 50 30 C72 40 78 80 76 118" fill="none" stroke="${l.stripe}" stroke-width="3"/>`;
+  }
+
+  // Head
+  const head = `<rect x="44" y="64" width="12" height="20" fill="${shade(l.skin, -15)}"/>
+    <ellipse cx="50" cy="54" rx="14" ry="17" fill="${l.skin}"/>`;
+
+  // Hair styles
+  if (l.head === "short" || l.head === "zucchetto" || l.head === "cap" || l.head === "galero") {
+    hair = `<path d="M35 56 C33 34 67 34 65 56 C63 44 56 41 50 41 C44 41 37 44 35 56 Z" fill="${l.hair}"/>`;
+  } else if (l.head === "tonsure" || l.head === "mitre") {
+    hair = `<path d="M36 56 C35 46 37 42 40 41 L40 50 Z M64 56 C65 46 63 42 60 41 L60 50 Z" fill="${l.hair}"/>
+      ${l.head === "tonsure" ? `<path d="M36 46 C40 37 60 37 64 46 C58 41 42 41 36 46 Z" fill="${l.hair}"/>` : ""}`;
+  } else if (l.head === "bald" || l.head === "hood") {
+    hair = `<path d="M36 58 C34 50 36 44 38 44 L39 56 Z M64 58 C66 50 64 44 62 44 L61 56 Z" fill="${l.hair}"/>`;
+  }
+  if (l.beard) {
+    hair += `<path d="M36 56 C37 78 46 80 50 80 C54 80 63 78 64 56 C60 66 56 67 50 67 C44 67 40 66 36 56 Z" fill="${l.hair}"/>`;
+  }
+
+  // Face
+  let face = `<circle cx="44.5" cy="53" r="1.7" fill="#2a2236"/><circle cx="55.5" cy="53" r="1.7" fill="#2a2236"/>
+    <path d="M45 ${l.beard ? 64 : 61} Q50 ${l.beard ? 67 : 64.5} 55 ${l.beard ? 64 : 61}" fill="none" stroke="#8a4b3a" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="41" cy="58" r="2.4" fill="#e88" opacity=".35"/><circle cx="59" cy="58" r="2.4" fill="#e88" opacity=".35"/>`;
+  if (l.glasses) {
+    face += `<circle cx="44.5" cy="53" r="4" fill="none" stroke="#333" stroke-width="1.2"/><circle cx="55.5" cy="53" r="4" fill="none" stroke="#333" stroke-width="1.2"/><path d="M48.5 53 H51.5" stroke="#333" stroke-width="1.2"/>`;
+  }
+
+  // Headwear in front
+  switch (l.head) {
+    case "veil":
+      front = `<path d="M35 52 C35 38 42 34 50 34 C58 34 65 38 65 52 L65 44 C62 40 56 38 50 38 C44 38 38 40 35 44 Z" fill="#ffffff"/>
+        <path d="M33 54 C33 34 67 34 67 54 L64 54 C64 42 58 38 50 38 C42 38 36 42 36 54 Z" fill="${l.veil}"/>`;
+      if (l.stripe) front += `<path d="M36 50 C36 40 64 40 64 50" fill="none" stroke="${l.stripe}" stroke-width="2"/>`;
+      break;
+    case "mantle":
+      front = `<path d="M33 60 C31 34 69 34 67 60 L64 58 C64 44 58 39 50 39 C42 39 36 44 36 58 Z" fill="${l.veil}"/>
+        <path d="M36 50 C36 42 42 39 50 39 C58 39 64 42 64 50" fill="none" stroke="#e8b94a" stroke-width="1.2"/>`;
+      break;
+    case "mitre":
+      front = `<path d="M37 42 L37 26 L50 12 L63 26 L63 42 Q50 38 37 42 Z" fill="#ffffff" stroke="#e8b94a" stroke-width="2"/>
+        <path d="M50 13 V40 M37 34 Q50 30 63 34" stroke="#e8b94a" stroke-width="2.5" fill="none"/>`;
+      break;
+    case "zucchetto":
+      front = `<path d="M40 41 C42 34 58 34 60 41 Q50 38 40 41 Z" fill="${l.cap}" stroke="${shade(l.cap, -30)}" stroke-width=".8"/>`;
+      break;
+    case "galero":
+      front = `<ellipse cx="50" cy="40" rx="30" ry="6" fill="#b01c1c"/><path d="M36 40 C36 26 64 26 64 40 Z" fill="#c62828"/>
+        <path d="M24 42 Q20 70 26 90 M76 42 Q80 70 74 90" stroke="#b01c1c" stroke-width="1.5" fill="none"/>`;
+      break;
+    case "cap":
+      front = `<path d="M34 44 C34 30 66 30 66 44 Q50 40 34 44 Z" fill="#1d1d1d"/>`;
+      break;
+    case "hood":
+      front = `<path d="M30 70 C28 46 38 34 50 34 C62 34 72 46 70 70 L66 70 C66 52 60 42 50 42 C40 42 34 52 34 70 Z" fill="${l.robe}"/>`;
+      break;
+  }
+
+  // Halo + attribute badge
+  const halo = `<circle cx="50" cy="48" r="29" fill="#f6d365" opacity=".85"/>
+    <circle cx="50" cy="48" r="29" fill="none" stroke="#e0a82e" stroke-width="2"/>`;
+  extra = `<circle cx="80" cy="102" r="13" fill="#ffffffee" stroke="#e8b94a" stroke-width="2"/>
+    <text x="80" y="107.5" font-size="15" text-anchor="middle">${l.attr}</text>`;
+
+  return `<svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="100" height="120" fill="${bg}"/>
+    ${halo}${back}${body}${head}${hair}${face}${front}${extra}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Game state
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const state = {
+  mode: null,          // "single" | "double"
+  pairs: START_PAIRS,
+  cards: [],           // { saint, kind: "pic" | "quote", el, matched }
+  open: [],            // currently face-up unmatched cards (max 2)
+  busy: false,
+  matched: 0,
+  // single
+  flipsLeft: 0,
+  // double
+  turn: 0,             // 0 or 1
+  matches: [0, 0],     // matches this round
+  points: [0, 0],      // rounds won
+  round: 1,
+};
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+}
+
+function goMenu() {
+  hideModal();
+  hideToast();
+  clearTimeout(state.flipBackTimer);
+  state.busy = false;
+  showScreen("menu");
+}
+
+function startMode(mode) {
+  state.mode = mode;
+  state.pairs = START_PAIRS;
+  state.points = [0, 0];
+  state.round = 1;
+  startRound();
+  showScreen("game");
+}
+
+function startRound() {
+  hideModal();
+  hideToast();
+  clearTimeout(state.flipBackTimer);
+  state.open = [];
+  state.busy = false;
+  state.matched = 0;
+  state.turn = (state.round - 1) % 2; // players alternate who goes first
+  state.matches = [0, 0];
+  state.flipsLeft = flipsFor(state.pairs);
+
+  const chosen = shuffle(SAINTS.map((s, i) => ({ ...s, idx: i }))).slice(0, state.pairs);
+  const deck = [];
+  chosen.forEach(s => { deck.push({ saint: s, kind: "pic" }); deck.push({ saint: s, kind: "quote" }); });
+  shuffle(deck);
+
+  const board = $("board");
+  board.innerHTML = "";
+  const n = deck.length;
+  board.style.setProperty("--card-w", n <= 8 ? "150px" : n <= 16 ? "125px" : n <= 30 ? "112px" : "100px");
+  board.classList.toggle("many", n > 8);
+  board.style.maxWidth = n <= 6 ? "520px" : n <= 8 ? "680px" : "";
+
+  deck.forEach(card => {
+    const el = document.createElement("button");
+    el.className = "card";
+    el.setAttribute("aria-label", "Face-down card");
+    let frontHTML;
+    if (card.kind === "pic") {
+      frontHTML = `<div class="face front">${portrait(card.saint.look, card.saint.idx)}<div class="name">${card.saint.name}</div></div>`;
+    } else {
+      const len = card.saint.quote.length;
+      const cls = len < 40 ? "q-s" : len < 62 ? "q-m" : "q-l";
+      frontHTML = `<div class="face front quote ${cls}"><div class="mark">“</div><p>${card.saint.quote}</p></div>`;
+    }
+    el.innerHTML = `<div class="inner"><div class="face back"><span>✝</span></div>${frontHTML}</div>`;
+    el.addEventListener("click", () => flip(card));
+    card.el = el;
+    board.appendChild(el);
+  });
+  state.cards = deck;
+  renderStatus();
+}
+
+function renderStatus() {
+  const st = $("status");
+  const banner = $("turn-banner");
+  if (state.mode === "single") {
+    const low = state.flipsLeft <= 4;
+    st.innerHTML = `
+      <span class="pill">Pairs: <b>${state.pairs}</b></span>
+      <span class="pill">Matched: <b>${state.matched}/${state.pairs}</b></span>
+      <span class="pill ${low ? "low" : ""}">Flips left: <b>${state.flipsLeft}</b></span>`;
+    banner.textContent = "";
+  } else {
+    st.innerHTML = `
+      <span class="pill">Round ${state.round} · <b>${state.pairs}</b> pairs</span>
+      <span class="pill ${state.turn === 0 ? "turn-p1" : ""}"><span class="dot" style="background:var(--p1)"></span>P1: <b>${state.matches[0]}</b> · ⭐${state.points[0]}</span>
+      <span class="pill ${state.turn === 1 ? "turn-p2" : ""}"><span class="dot" style="background:var(--p2)"></span>P2: <b>${state.matches[1]}</b> · ⭐${state.points[1]}</span>`;
+    const color = state.turn === 0 ? "var(--p1)" : "var(--p2)";
+    banner.innerHTML = `<span style="color:${color};font-weight:bold">Player ${state.turn + 1}</span>, it's your turn`;
+  }
+}
+
+function flip(card) {
+  if (state.busy || card.matched || state.open.includes(card)) return;
+  if (state.mode === "single" && state.flipsLeft <= 0) return;
+
+  card.el.classList.add("flipped");
+  card.el.setAttribute("aria-label", card.kind === "pic" ? card.saint.name : `Quote: ${card.saint.quote}`);
+  state.open.push(card);
+  if (state.mode === "single") state.flipsLeft--;
+  renderStatus();
+
+  if (state.open.length < 2) {
+    if (state.mode === "single" && state.flipsLeft === 0) setTimeout(() => endSingle(false), 900);
+    return;
+  }
+
+  const [a, b] = state.open;
+  if (a.saint === b.saint) {
+    // Match!
+    a.matched = b.matched = true;
+    const cls = state.mode === "double" ? `by-p${state.turn + 1}` : "";
+    [a, b].forEach(c => { c.el.classList.remove("flipped"); c.el.classList.add("matched"); if (cls) c.el.classList.add(cls); });
+    state.open = [];
+    state.matched++;
+    if (state.mode === "double") state.matches[state.turn]++;
+    showToast(a.saint);
+    renderStatus();
+    if (state.matched === state.pairs) {
+      setTimeout(() => state.mode === "single" ? endSingle(true) : endDouble(), 1100);
+    } else if (state.mode === "single" && state.flipsLeft === 0) {
+      setTimeout(() => endSingle(false), 1100);
+    }
+  } else {
+    // Miss: flip them back after a moment
+    state.busy = true;
+    a.el.classList.add("wrong"); b.el.classList.add("wrong");
+    state.flipBackTimer = setTimeout(() => {
+      [a, b].forEach(c => {
+        c.el.classList.remove("flipped", "wrong");
+        c.el.setAttribute("aria-label", "Face-down card");
+      });
+      state.open = [];
+      state.busy = false;
+      if (state.mode === "double") state.turn = 1 - state.turn;
+      renderStatus();
+      if (state.mode === "single" && state.flipsLeft === 0) endSingle(false);
+    }, 1300);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// End of game
+// ---------------------------------------------------------------------------
+function endSingle(won) {
+  if (won) {
+    const next = Math.min(state.pairs + 1, MAX_PAIRS);
+    showModal(`
+      <h2>🎉 You won!</h2>
+      <p>You matched all <b>${state.pairs}</b> saints with <b>${state.flipsLeft}</b> flip${state.flipsLeft === 1 ? "" : "s"} to spare.</p>
+      <p>${next > state.pairs ? `Next game: <b>${next} pairs</b> and ${flipsFor(next)} flips.` : "You've matched every saint in the game!"}</p>`,
+      [["Next game ▶", () => { state.pairs = next; startRound(); }],
+       ["Main Menu", goMenu, true]]);
+  } else {
+    showModal(`
+      <h2>😔 Out of flips!</h2>
+      <p>You matched <b>${state.matched}</b> of <b>${state.pairs}</b> pairs before your flips ran out.</p>`,
+      [["↻ Start Over", startRound],
+       ["Main Menu", goMenu, true]]);
+  }
+}
+
+function endDouble() {
+  const [m1, m2] = state.matches;
+  let title, msg;
+  if (m1 === m2) {
+    title = "🤝 It's a tie!";
+    msg = "Nobody gets a point this round. The next round keeps the same number of pairs.";
+  } else {
+    const w = m1 > m2 ? 0 : 1;
+    state.points[w]++;
+    state.pairs = Math.min(state.pairs + 1, MAX_PAIRS);
+    title = `<span style="color:${w === 0 ? "var(--p1)" : "var(--p2)"}">Player ${w + 1} wins!</span>`;
+    msg = `Player ${w + 1} gets 1 point. Next round: <b>${state.pairs} pairs</b>.`;
+  }
+  showModal(`
+    <h2>${title}</h2>
+    <p>Matches this round: Player 1 <b>${m1}</b> · Player 2 <b>${m2}</b></p>
+    <p>${msg}</p>
+    <div class="scores">
+      <div class="score-box" style="background:var(--p1)">Player 1<br><b style="font-size:1.6rem">⭐ ${state.points[0]}</b></div>
+      <div class="score-box" style="background:var(--p2)">Player 2<br><b style="font-size:1.6rem">⭐ ${state.points[1]}</b></div>
+    </div>`,
+    [["Play another round ▶", () => { state.round++; startRound(); }],
+     ["Main Menu", goMenu, true]]);
+}
+
+// ---------------------------------------------------------------------------
+// Toast & modal helpers
+// ---------------------------------------------------------------------------
+let toastTimer;
+function showToast(saint) {
+  const t = $("toast");
+  t.innerHTML = `<b>✓ ${saint.name}</b><i>“${saint.quote}”</i>`;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 2600);
+}
+function hideToast() { $("toast").classList.remove("show"); }
+
+function showModal(html, actions) {
+  const m = $("modal");
+  m.innerHTML = html + `<div class="actions"></div>`;
+  const box = m.querySelector(".actions");
+  actions.forEach(([label, fn, secondary]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    if (secondary) b.className = "secondary";
+    b.addEventListener("click", fn);
+    box.appendChild(b);
+  });
+  $("overlay").classList.add("show");
+  box.querySelector("button").focus();
+}
+function hideModal() { $("overlay").classList.remove("show"); }
+
+$("btn-single").addEventListener("click", () => startMode("single"));
+$("btn-double").addEventListener("click", () => startMode("double"));
+$("btn-menu").addEventListener("click", goMenu);
+</script>
+</body>
+</html>
