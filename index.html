@@ -351,7 +351,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 17;
+const BUILD = 18;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4576,9 +4576,22 @@ function showTitle() {
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
   $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => {
     audioInit();
-    if (+b.dataset.l === GLORP) keepHomeSave(); // set the current game aside so the visit can't overwrite it
-    if (b.dataset.trial) store.set('mmb-glorp-trial', true); // the free visit is used up as soon as it starts
-    startLevel(+b.dataset.l);
+    const li = +b.dataset.l, go = () => {
+      if (li === GLORP) keepHomeSave();
+      if (b.dataset.trial) store.set('mmb-glorp-trial', true); // the free visit is used up as soon as it starts
+      startLevel(li);
+    };
+    // starting a level replaces the autosave, so check first (Glorp keeps the home game aside instead)
+    if (cont && li !== GLORP && !cont.S.won) {
+      const C = LEVELS[cont.S.level];
+      openModal(`<span class="eyebrow">Start a new level?</span><h2>Replace your saved game?</h2>
+        <p>Your saved game on <b>${C.bonus ? 'Bonus' : 'Level ' + (cont.S.level + 1)}: ${C.name}</b> will be replaced by a fresh start on <b>Level ${li + 1}: ${LEVELS[li].name}</b>.</p>
+        <div class="row"><button class="btn" id="ok-new">Start Level ${li + 1}</button><button class="btn alt" id="no-new">Go back</button></div>`);
+      $('#ok-new').addEventListener('click', go);
+      $('#no-new').addEventListener('click', showTitle);
+      return;
+    }
+    go();
   }));
   if (cont) $('#continue').addEventListener('click', () => {
     audioInit();
@@ -4617,13 +4630,15 @@ function showComplete() {
     <p class="fact">${d.fact}</p>
     ${L.offworld ? '<p class="small-note">Ready for another world? Build a <b>launch pad</b> and a <b>fuel plant</b>, then click the pad to open the star map.</p>' : ''}
     <div class="row">
-      ${next ? `<button class="btn" id="next">Level ${S.level + 2}: ${LEVELS[S.level + 1].name}</button>` : '<button class="btn" id="again">Play again</button>'}
-      <button class="btn alt" id="stay">Keep playing</button>
+      ${next ? `<button class="btn" id="next">Level ${S.level + 2}: ${LEVELS[S.level + 1].name}</button>`
+        : L.offworld ? `<button class="btn" id="fly">${S.tiles.some(t => t.b === 'pad') ? 'Open the star map' : 'Keep playing and build a launch pad'}</button>`
+        : '<button class="btn" id="stay2">Keep playing</button>'}
+      ${next ? '<button class="btn alt" id="stay">Keep playing</button>' : ''}
       <button class="btn alt" id="menu">Level select</button>
     </div>`);
-  if (next) $('#next').addEventListener('click', () => startLevel(S.level + 1));
-  else $('#again').addEventListener('click', () => startLevel(0));
-  $('#stay').addEventListener('click', closeModal);
+  if (next) { $('#next').addEventListener('click', () => startLevel(S.level + 1)); $('#stay').addEventListener('click', closeModal); }
+  else if (L.offworld) $('#fly').addEventListener('click', () => { if (S.tiles.some(t => t.b === 'pad')) showRocket(); else closeModal(); });
+  else $('#stay2').addEventListener('click', closeModal);
   $('#menu').addEventListener('click', showTitle);
 }
 
