@@ -93,4 +93,5 @@ instead of with a copy of the same picture. It starts with 3 pairs, and every wi
   out to win; run out first and you lose and can **Start Over** (same number of pairs) or go to the main menu.
 - **Two players**: take turns. A match earns another go. The player with the most matches wins the round and
   gets one point. Play as many rounds as you like.
-- The **Main Menu** button is always in the top corner during a game.
+- The **Main Menu** button is always in the top corner during a game, next to the music and sound buttons.
+- Music and sound effects are synthesised in the browser (no audio files) and start after the first tap.

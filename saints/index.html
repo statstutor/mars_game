@@ -149,7 +149,77 @@
   .card.matched .front { border-color: var(--good); box-shadow: 0 0 0 3px var(--good), 0 4px 10px #0006; }
   .card.matched.by-p1 .front { border-color: var(--p1); box-shadow: 0 0 0 3px var(--p1), 0 4px 10px #0006; }
   .card.matched.by-p2 .front { border-color: var(--p2); box-shadow: 0 0 0 3px var(--p2), 0 4px 10px #0006; }
-  .card.wrong .front { animation: shake .4s; border-color: var(--bad); }
+  .card.wrong .front {
+    animation: shake .45s; border-color: var(--bad);
+    box-shadow: 0 0 0 4px var(--bad), 0 0 22px var(--bad);
+  }
+  .card.wrong .front::before {
+    content: ""; position: absolute; inset: 0; background: #d9534f40; pointer-events: none;
+  }
+  /* Corner badge: green tick on matched cards, red cross on a miss */
+  .card.matched .front::after, .card.wrong .front::after {
+    position: absolute; top: 4cqw; right: 4cqw;
+    width: 22cqw; height: 22cqw; border-radius: 50%;
+    display: grid; place-items: center;
+    font: bold 15cqw/1 system-ui, sans-serif; color: #fff;
+    box-shadow: 0 2px 6px #0007;
+  }
+  .card.matched .front::after { content: "✓"; background: var(--good); }
+  .card.matched.by-p1 .front::after { background: var(--p1); }
+  .card.matched.by-p2 .front::after { background: var(--p2); }
+  .card.wrong .front::after { content: "✗"; background: var(--bad); }
+  .card.just-matched .inner { animation: pop .6s ease-out; }
+  @keyframes pop {
+    0% { scale: 1; } 40% { scale: 1.12; } 100% { scale: 1; }
+  }
+
+  /* Big "Match!" / "Not a match" stamp in the middle of the screen */
+  .verdict {
+    position: fixed; left: 50%; top: 45%; z-index: 8; pointer-events: none;
+    transform: translate(-50%, -50%) scale(.4); opacity: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .verdict .ring {
+    width: 130px; height: 130px; border-radius: 50%;
+    display: grid; place-items: center;
+    font: bold 84px/1 system-ui, sans-serif; color: #fff;
+    border: 6px solid #fff; box-shadow: 0 10px 40px #000a;
+  }
+  .verdict .word {
+    font-size: 2rem; font-weight: bold; color: #fff;
+    padding: 4px 18px; border-radius: 999px; box-shadow: 0 6px 20px #0008;
+  }
+  .verdict.good .ring, .verdict.good .word { background: var(--good); }
+  .verdict.bad .ring, .verdict.bad .word { background: var(--bad); }
+  .verdict.show { animation: stamp 1.3s ease-out forwards; }
+  @keyframes stamp {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    25% { transform: translate(-50%, -50%) scale(1); }
+    75% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(.9); }
+  }
+  /* Coloured glow around the screen edge */
+  .flash { position: fixed; inset: 0; pointer-events: none; z-index: 7; opacity: 0; }
+  .flash.good { box-shadow: inset 0 0 90px 20px var(--good); }
+  .flash.bad { box-shadow: inset 0 0 90px 20px var(--bad); }
+  .flash.show { animation: flash .9s ease-out; }
+  @keyframes flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .card .inner { transition: none; }
+    .card.wrong .front, .card.just-matched .inner { animation: none; }
+  }
+
+  /* Sound buttons */
+  .sound-btns { display: flex; gap: 6px; }
+  .sound-btn {
+    width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--gold);
+    background: transparent; color: var(--gold); font-size: 1.15rem; line-height: 1;
+  }
+  .sound-btn.off { opacity: .45; text-decoration: line-through; }
+  .sound-btn:hover { background: #ffffff14; }
+  .topbar .left { display: flex; gap: 8px; align-items: center; }
+  #menu .sound-btns { justify-content: center; margin: 22px 0 0; }
   @keyframes shake {
     0%, 100% { transform: rotateY(180deg) translateX(0); }
     25% { transform: rotateY(180deg) translateX(-5px); }
@@ -206,12 +276,17 @@
     <button class="big-btn" id="btn-single">🙋 Single Player<small>Match every saint before your flips run out</small></button>
     <button class="big-btn" id="btn-double">👥 Two Players<small>Take turns, most matches wins the round</small></button>
   </div>
+  <div class="sound-btns">
+    <button class="sound-btn music-toggle" aria-label="Music on or off" title="Music">🎵</button>
+    <button class="sound-btn sfx-toggle" aria-label="Sound effects on or off" title="Sound effects">🔊</button>
+  </div>
   <div class="how">
     <h2>How to play</h2>
     <ul>
       <li>Flip two cards at a time. A <b>saint's picture</b> matches the card with <b>their quote</b>.</li>
       <li>The game starts with 3 pairs. Each time someone wins, the next game gets one more pair.</li>
       <li><b>Single player:</b> every card you flip uses one flip. Match them all before the flips run out.</li>
+      <li>A green <b>✓</b> means you found a match. A red <b>✗</b> means the cards don't match; they stay face-up until you tap again.</li>
       <li><b>Two players:</b> make a match and you go again; miss and it's the other player's turn.
         Whoever has the most matches wins the round and gets 1 point. Play as many rounds as you like.</li>
     </ul>
@@ -221,7 +296,13 @@
 <!-- ============ GAME ============ -->
 <section id="game" class="screen">
   <div class="topbar">
-    <button class="menu-btn" id="btn-menu">← Main Menu</button>
+    <div class="left">
+      <button class="menu-btn" id="btn-menu">← Main Menu</button>
+      <div class="sound-btns">
+        <button class="sound-btn music-toggle" aria-label="Music on or off" title="Music">🎵</button>
+        <button class="sound-btn sfx-toggle" aria-label="Sound effects on or off" title="Sound effects">🔊</button>
+      </div>
+    </div>
     <div class="status" id="status"></div>
   </div>
   <div class="turn-banner" id="turn-banner"></div>
@@ -229,6 +310,8 @@
 </section>
 
 <div class="toast" id="toast"></div>
+<div class="flash" id="flash"></div>
+<div class="verdict" id="verdict"><div class="ring"></div><div class="word"></div></div>
 
 <div class="overlay" id="overlay">
   <div class="modal" id="modal"></div>
@@ -243,15 +326,15 @@
 const SAINTS = [
   { name: "St. Augustine", quote: "Our heart is restless until it rests in you.",
     look: { skin: "#d9a77c", robe: "#7b2d8b", hair: "#9a9a9a", beard: true, head: "mitre", attr: "📖" } },
-  { name: "St. Francis of Assisi", quote: "Praised be you, my Lord, through Brother Sun.",
+  { name: "St. Francis of Assisi", quote: "Praised be you, my Lord, with all your creatures, especially Sir Brother Sun.",
     look: { skin: "#e8bf98", robe: "#7a5230", hair: "#4a3020", beard: true, head: "tonsure", attr: "🐦" } },
-  { name: "St. Teresa of Calcutta", quote: "Not all of us can do great things, but we can do small things with great love.",
+  { name: "St. Teresa of Calcutta", quote: "We can do no great things, only small things with great love.",
     look: { skin: "#c99572", robe: "#ffffff", veil: "#ffffff", stripe: "#2a5db0", head: "veil", attr: "🤲" } },
   { name: "St. Thérèse of Lisieux", quote: "My vocation is love!",
     look: { skin: "#f0cfae", robe: "#6b4a2e", veil: "#1d1d1d", head: "veil", attr: "🌹" } },
-  { name: "St. Catherine of Siena", quote: "Be who God meant you to be and you will set the world on fire.",
+  { name: "St. Catherine of Siena", quote: "If you are what you should be, you will set the whole world on fire.",
     look: { skin: "#ecc6a2", robe: "#f4f4f4", veil: "#1d1d1d", head: "veil", attr: "🌸" } },
-  { name: "St. Ignatius of Loyola", quote: "Teach us to give and not to count the cost.",
+  { name: "St. Ignatius of Loyola", quote: "Take, Lord, and receive all my liberty, my memory, my understanding.",
     look: { skin: "#d9a77c", robe: "#222222", hair: "#3a2a1a", beard: true, head: "bald", attr: "📜" } },
   { name: "St. Peter", quote: "You are the Christ, the Son of the living God.",
     look: { skin: "#d39c72", robe: "#2b6cb0", hair: "#e6e6e6", beard: true, head: "bald", attr: "🗝️" } },
@@ -261,25 +344,25 @@ const SAINTS = [
     look: { skin: "#e8bf98", robe: "#1d1d1d", inner: "#ffffff", hair: "#3a2a1a", head: "tonsure", attr: "☀️" } },
   { name: "St. John Paul II", quote: "Do not be afraid! Open wide the doors for Christ!",
     look: { skin: "#f0cfae", robe: "#ffffff", hair: "#d0d0d0", head: "zucchetto", cap: "#ffffff", attr: "✝️" } },
-  { name: "St. Joan of Arc", quote: "I am not afraid. I was born to do this.",
+  { name: "St. Joan of Arc", quote: "If I am not in God's grace, may God put me there; if I am, may God keep me there.",
     look: { skin: "#f0cfae", robe: "#9aa4ad", hair: "#6b3e1e", head: "short", attr: "⚜️" } },
-  { name: "St. Patrick", quote: "Christ with me, Christ before me, Christ behind me.",
+  { name: "St. Patrick", quote: "I was like a stone lying in the deep mire, and he that is mighty came and lifted me up.",
     look: { skin: "#f3d3b5", robe: "#2f8f46", hair: "#f2f2f2", beard: true, head: "mitre", attr: "☘️" } },
   { name: "St. Jerome", quote: "Ignorance of Scripture is ignorance of Christ.",
     look: { skin: "#d9a77c", robe: "#b22222", hair: "#f2f2f2", beard: true, head: "galero", attr: "🦁" } },
   { name: "St. Padre Pio", quote: "Pray, hope, and don't worry.",
     look: { skin: "#e3b48c", robe: "#6b4a2e", hair: "#a8a8a8", beard: true, head: "hood", attr: "🙏" } },
-  { name: "St. Francis de Sales", quote: "Be who you are and be that well.",
+  { name: "St. Francis de Sales", quote: "Let us be what we are, and be it well.",
     look: { skin: "#ecc6a2", robe: "#1d1d1d", hair: "#3a2a1a", beard: true, head: "zucchetto", cap: "#7b2d8b", attr: "✒️" } },
   { name: "St. Teresa of Ávila", quote: "Let nothing disturb you. All things pass; God never changes.",
     look: { skin: "#ecc6a2", robe: "#6b4a2e", veil: "#1d1d1d", head: "veil", attr: "🪶" } },
-  { name: "Mary, Mother of God", quote: "Let it be done to me according to your word.",
+  { name: "Mary, Mother of God", quote: "Behold, the handmaid of the Lord; be it done to me according to your word.",
     look: { skin: "#d9a77c", robe: "#c0392b", veil: "#2a5db0", head: "mantle", attr: "⭐" } },
-  { name: "St. Benedict", quote: "Listen with the ear of your heart.",
+  { name: "St. Benedict", quote: "Listen, my son, and incline the ear of your heart.",
     look: { skin: "#e8bf98", robe: "#1d1d1d", hair: "#b0b0b0", beard: true, head: "hood", attr: "🍞" } },
   { name: "St. Thomas More", quote: "I die the King's good servant, but God's first.",
     look: { skin: "#ecc6a2", robe: "#1d1d1d", chain: true, hair: "#5a4030", head: "cap", attr: "⚖️" } },
-  { name: "St. Clare of Assisi", quote: "Love God, serve God; everything is in that.",
+  { name: "St. Clare of Assisi", quote: "Place your mind before the mirror of eternity!",
     look: { skin: "#f0cfae", robe: "#7a5230", veil: "#1d1d1d", head: "veil", attr: "🕯️" } },
   { name: "St. Maximilian Kolbe", quote: "Hatred is not a creative force. Only love is creative.",
     look: { skin: "#f0cfae", robe: "#3b5b8c", stripes: true, hair: "#3a2a1a", glasses: true, head: "short", attr: "👑" } },
@@ -287,7 +370,7 @@ const SAINTS = [
     look: { skin: "#f3d3b5", robe: "#1d1d1d", veil: "#1d1d1d", head: "veil", attr: "💗" } },
   { name: "St. Thomas the Apostle", quote: "My Lord and my God!",
     look: { skin: "#c98f63", robe: "#c27c0e", hair: "#3a2a1a", beard: true, head: "short", attr: "📐" } },
-  { name: "St. Irenaeus", quote: "The glory of God is a human being fully alive.",
+  { name: "St. Irenaeus", quote: "The glory of God is a living man; and the life of man is the vision of God.",
     look: { skin: "#d39c72", robe: "#1f6f8b", hair: "#8a8a8a", beard: true, head: "mitre", attr: "🛡️" } },
 ];
 
@@ -396,6 +479,185 @@ function portrait(l, i) {
     <rect width="100" height="120" fill="${bg}"/>
     ${halo}${back}${body}${head}${hair}${face}${front}${extra}
   </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Sound: everything is synthesised with the Web Audio API, so there are no
+// audio files to load. Browsers only allow sound after the first tap.
+// ---------------------------------------------------------------------------
+const Sound = {
+  ctx: null, sfx: null, music: null,
+  sfxOn: true, musicOn: true,
+  timer: null, nextTime: 0, step: 0,
+};
+try {
+  Sound.sfxOn = localStorage.getItem("saints-sfx") !== "off";
+  Sound.musicOn = localStorage.getItem("saints-music") !== "off";
+} catch (e) {}
+
+function audioInit() {
+  if (!Sound.ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    Sound.ctx = new AC();
+    const master = Sound.ctx.createGain();
+    master.gain.value = 0.8;
+    master.connect(Sound.ctx.destination);
+    Sound.sfx = Sound.ctx.createGain();
+    Sound.sfx.connect(master);
+    Sound.music = Sound.ctx.createGain();
+    Sound.music.gain.value = 0;
+    Sound.music.connect(master);
+  }
+  if (Sound.ctx.state === "suspended") Sound.ctx.resume();
+  return true;
+}
+
+const midi = n => 440 * Math.pow(2, (n - 69) / 12);
+
+// One note: oscillator + gain envelope, optionally with a second partial for a bell/organ colour.
+function note(freq, start, dur, { type = "sine", vol = 0.2, attack = 0.01, release = null, dest, partial = 0, glide = 0 } = {}) {
+  const ctx = Sound.ctx;
+  const g = ctx.createGain();
+  g.connect(dest || Sound.sfx);
+  const end = start + dur;
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.linearRampToValueAtTime(vol, start + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, release ? end + release : end);
+  const oscs = [[freq, 1]];
+  if (partial) oscs.push([freq * partial, 0.35]);
+  oscs.forEach(([f, level]) => {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, start);
+    if (glide) o.frequency.exponentialRampToValueAtTime(f * glide, end);
+    let out = o;
+    if (level !== 1) { const pg = ctx.createGain(); pg.gain.value = level; o.connect(pg); out = pg; }
+    out.connect(g);
+    o.start(start);
+    o.stop((release ? end + release : end) + 0.05);
+  });
+}
+
+const SFX = {
+  flip() {
+    const t = Sound.ctx.currentTime;
+    note(700, t, 0.07, { type: "triangle", vol: 0.12, glide: 1.6 });
+  },
+  match() {
+    // Bright rising bell arpeggio
+    const t = Sound.ctx.currentTime;
+    [72, 76, 79, 84].forEach((n, i) => note(midi(n), t + i * 0.09, 0.5, { vol: 0.22, partial: 2.76, release: 0.3 }));
+    note(midi(96), t + 0.36, 0.6, { vol: 0.08, release: 0.4 });
+  },
+  miss() {
+    // Low two-note "uh-oh" buzz
+    const t = Sound.ctx.currentTime;
+    note(midi(52), t, 0.22, { type: "sawtooth", vol: 0.1, glide: 0.97 });
+    note(midi(47), t + 0.24, 0.4, { type: "sawtooth", vol: 0.1, glide: 0.94 });
+    note(midi(40), t, 0.65, { type: "square", vol: 0.05 });
+  },
+  win() {
+    const t = Sound.ctx.currentTime;
+    [[60, 0], [64, .14], [67, .28], [72, .42]].forEach(([n, d]) => note(midi(n), t + d, 0.25, { type: "triangle", vol: 0.2, partial: 2 }));
+    [60, 64, 67, 72, 76].forEach(n => note(midi(n), t + 0.62, 1.2, { type: "triangle", vol: 0.12, partial: 2, release: 0.6 }));
+  },
+  lose() {
+    const t = Sound.ctx.currentTime;
+    [67, 65, 63, 62].forEach((n, i) => note(midi(n), t + i * 0.32, 0.4, { type: "triangle", vol: 0.16, partial: 2, release: 0.2 }));
+  },
+};
+
+function playSfx(name) {
+  if (!Sound.sfxOn || !audioInit()) return;
+  SFX[name]();
+}
+
+// Background music: a slow, gentle modal hymn — organ pad chords with a harp arpeggio.
+const CHORDS = [
+  [50, 57, 62, 65], [48, 55, 60, 64], [53, 57, 60, 65], [48, 55, 60, 64],
+  [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64], [50, 57, 62, 69],
+];
+const ARP = [0, 1, 2, 3, 2, 1, 2, 3];
+const EIGHTH = 60 / 66 / 2; // 66 beats per minute
+
+function musicTick() {
+  const ctx = Sound.ctx;
+  while (Sound.nextTime < ctx.currentTime + 0.4) {
+    const t = Sound.nextTime;
+    const bar = Math.floor(Sound.step / 8) % CHORDS.length;
+    const chord = CHORDS[bar];
+    const pos = Sound.step % 8;
+    if (pos === 0) {
+      chord.forEach(n => note(midi(n), t, EIGHTH * 8, { type: "sine", vol: 0.05, attack: 0.6, partial: 2, release: 0.8, dest: Sound.music }));
+      note(midi(chord[0] - 12), t, EIGHTH * 8, { type: "sine", vol: 0.07, attack: 0.4, release: 0.6, dest: Sound.music });
+    }
+    note(midi(chord[ARP[pos]] + 12), t, EIGHTH * 1.6, { type: "triangle", vol: 0.06, attack: 0.005, release: 0.5, dest: Sound.music });
+    Sound.nextTime += EIGHTH;
+    Sound.step++;
+  }
+}
+
+function updateMusic() {
+  if (!Sound.ctx) return;
+  const now = Sound.ctx.currentTime;
+  if (Sound.musicOn) {
+    if (!Sound.timer) {
+      Sound.nextTime = now + 0.1;
+      Sound.timer = setInterval(musicTick, 100);
+      musicTick();
+    }
+    Sound.music.gain.cancelScheduledValues(now);
+    Sound.music.gain.setTargetAtTime(1, now, 0.5);
+  } else if (Sound.timer) {
+    Sound.music.gain.cancelScheduledValues(now);
+    Sound.music.gain.setTargetAtTime(0, now, 0.15);
+    clearInterval(Sound.timer);
+    Sound.timer = null;
+  }
+}
+
+function syncSoundButtons() {
+  document.querySelectorAll(".music-toggle").forEach(b => { b.classList.toggle("off", !Sound.musicOn); b.setAttribute("aria-pressed", Sound.musicOn); });
+  document.querySelectorAll(".sfx-toggle").forEach(b => { b.classList.toggle("off", !Sound.sfxOn); b.setAttribute("aria-pressed", Sound.sfxOn); });
+}
+
+function saveSoundPrefs() {
+  try {
+    localStorage.setItem("saints-sfx", Sound.sfxOn ? "on" : "off");
+    localStorage.setItem("saints-music", Sound.musicOn ? "on" : "off");
+  } catch (e) {}
+}
+
+document.querySelectorAll(".music-toggle").forEach(b => b.addEventListener("click", e => {
+  e.stopPropagation();
+  Sound.musicOn = !Sound.musicOn;
+  audioInit(); updateMusic(); syncSoundButtons(); saveSoundPrefs();
+}));
+document.querySelectorAll(".sfx-toggle").forEach(b => b.addEventListener("click", e => {
+  e.stopPropagation();
+  Sound.sfxOn = !Sound.sfxOn;
+  syncSoundButtons(); saveSoundPrefs();
+  playSfx("flip");
+}));
+// Start the music on the first tap anywhere (browsers block sound before that).
+["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => {
+  if (audioInit()) updateMusic();
+}, { once: true }));
+syncSoundButtons();
+
+// ---------------------------------------------------------------------------
+// Right / wrong feedback
+// ---------------------------------------------------------------------------
+function verdict(good) {
+  const v = $("verdict"), f = $("flash");
+  v.className = "verdict " + (good ? "good" : "bad");
+  v.querySelector(".ring").textContent = good ? "✓" : "✗";
+  v.querySelector(".word").textContent = good ? "Match!" : "Not a match";
+  f.className = "flash " + (good ? "good" : "bad");
+  void v.offsetWidth; // restart the animations
+  v.classList.add("show");
+  f.classList.add("show");
 }
 
 // ---------------------------------------------------------------------------
@@ -541,6 +803,7 @@ function flip(card) {
   if (state.mode === "single" && state.flipsLeft <= 0) return;
 
   card.el.classList.add("flipped");
+  playSfx("flip");
   card.el.setAttribute("aria-label", card.kind === "pic" ? card.saint.name : `Quote: ${card.saint.quote}`);
   state.open.push(card);
   if (state.mode === "single") state.flipsLeft--;
@@ -556,7 +819,14 @@ function flip(card) {
     // Match!
     a.matched = b.matched = true;
     const cls = state.mode === "double" ? `by-p${state.turn + 1}` : "";
-    [a, b].forEach(c => { c.el.classList.remove("flipped"); c.el.classList.add("matched"); if (cls) c.el.classList.add(cls); });
+    [a, b].forEach(c => {
+      c.el.classList.remove("flipped");
+      c.el.classList.add("matched", "just-matched");
+      if (cls) c.el.classList.add(cls);
+      setTimeout(() => c.el.classList.remove("just-matched"), 700);
+    });
+    verdict(true);
+    setTimeout(() => playSfx("match"), 250);
     state.open = [];
     state.matched++;
     if (state.mode === "double") state.matches[state.turn]++;
@@ -570,7 +840,13 @@ function flip(card) {
   } else {
     // Miss: leave both cards showing until the player taps again
     state.missed = true;
-    a.el.classList.add("wrong"); b.el.classList.add("wrong");
+    // Wait for the flip to finish so the player sees the second card first
+    setTimeout(() => {
+      if (!state.missed || !state.open.includes(a)) return;
+      a.el.classList.add("wrong"); b.el.classList.add("wrong");
+      verdict(false);
+      playSfx("miss");
+    }, 350);
     renderStatus();
     if (state.mode === "single" && state.flipsLeft === 0) setTimeout(() => endSingle(false), 1500);
   }
@@ -580,6 +856,7 @@ function flip(card) {
 // End of game
 // ---------------------------------------------------------------------------
 function endSingle(won) {
+  playSfx(won ? "win" : "lose");
   if (won) {
     const next = Math.min(state.pairs + 1, MAX_PAIRS);
     showModal(`
@@ -598,6 +875,7 @@ function endSingle(won) {
 }
 
 function endDouble() {
+  playSfx("win");
   const [m1, m2] = state.matches;
   let title, msg;
   if (m1 === m2) {
