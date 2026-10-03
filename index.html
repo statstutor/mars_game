@@ -38,6 +38,12 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 #goals { width: 290px; max-width: 100%; padding: 12px 14px; }
 #goals summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
 #goals summary::-webkit-details-marker { display: none; }
+#goals h2::after { content: ' ▾'; font-size: 13px; color: var(--muted); }
+#goals:not([open]) h2::after { content: ' ▸'; }
+#goal-next { display: none; font-size: 13px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+#goals:not([open]) #goal-next { display: block; }
+#goal-next .pv { color: var(--muted); font-size: 12px; margin-left: 6px; }
+body.cramped #tip.idle { display: none; }
 .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mars); }
 #goals h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 21px; text-wrap: balance; }
 #goal-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
@@ -217,7 +223,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .how div { background: rgba(255, 255, 255, 0.05); border-radius: 14px; padding: 10px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
 .how b { display: block; color: var(--ink); font: 600 14px var(--display); }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-width: 1100px) and (orientation: portrait) {
   #goals { width: 100%; padding: 10px 12px; }
   #goals h2 { font-size: 18px; }
   .stats { justify-content: flex-start; max-width: 100%; }
@@ -254,6 +260,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
       <summary>
         <span class="eyebrow" id="lvl-eyebrow">Level 1 · Sol 1</span>
         <h2 id="lvl-name">Touchdown</h2>
+        <span id="goal-next"></span>
       </summary>
       <ul id="goal-list"></ul>
       <p id="saved">Progress saves automatically</p>
@@ -353,7 +360,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 20;
+const BUILD = 21;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3387,13 +3394,25 @@ function layout(force = false) {
   const W = innerWidth, H = innerHeight;
   const resized = cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr);
   if (resized) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  // small or tall screens: fold the goals card down to its title and next goal, and hide the idle hint
+  const cramped = H < 820 || (W < 1100 && H > W);
+  document.body.classList.toggle('cramped', cramped);
+  if (cramped !== layout.cramped) { layout.cramped = cramped; $('#goals').open = !cramped; }
+  const gr = $('#goals').getBoundingClientRect(), st = $('.stats').getBoundingClientRect();
   const top = $('.top').getBoundingClientRect().bottom + 8;
   const barTop = $('.bottom').getBoundingClientRect().top;
-  const tipRoom = W < 720 ? 6 : 64;
-  const availH = Math.max(160, barTop - tipRoom - top), availW = W - 16;
+  const tipRoom = W < 720 || cramped ? 6 : 64;
   const bw = N * 64, bh = N * 32 + BASE + 3 * HZ + 50;
-  const s = Math.min(availW / bw, availH / bh, 1.6);
-  const next = { W, H, dpr, s, x: W / 2, y: top + (availH - bh * s) / 2 + (3 * HZ + 50) * s };
+  // option A: the full width below the whole HUD. Option B: right of the goals card, below the chips.
+  const opts = [{ l: 8, r: W - 8, t: top }];
+  if (gr.right < W * 0.5 && gr.width) opts.push({ l: gr.right + 8, r: W - 8, t: (st.left > gr.right ? st.bottom : top) + 8 });
+  let best = null;
+  for (const o of opts) {
+    const aH = Math.max(160, barTop - tipRoom - o.t), aW = o.r - o.l, sc = Math.min(aW / bw, aH / bh, 1.6);
+    if (!best || sc > best.s) best = { s: sc, x: (o.l + o.r) / 2, y: o.t + (aH - bh * sc) / 2 + (3 * HZ + 50) * sc };
+  }
+  const s = best.s;
+  const next = { W, H, dpr, s, x: best.x, y: best.y };
   $('#toasts').style.top = top + 'px';
   $('#talk').style.bottom = (H - barTop + tipRoom + 4) + 'px';
   if (!force && !resized && view.W === W && view.H === H && Math.abs(next.s - view.s) / view.s < 0.06 && Math.abs(next.y - view.y) < 24) return;
@@ -4836,6 +4855,8 @@ function updateUI() {
   if (L.dayNight) { const ph = S.clock % (DAY + NIGHT); when = S.night ? ` · Night (${Math.ceil(DAY + NIGHT - ph)}s)` : ` · Day (${Math.ceil(DAY - ph)}s)`; }
   if (S.storm > 0) when += ' · Dust storm';
   $('#lvl-eyebrow').textContent = `${L.bonus ? 'Bonus level' : 'Level ' + (S.level + 1)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
+  { const j = L.goals.findIndex((_, k) => !S.goalsDone[k]), g = L.goals[j];
+    $('#goal-next').innerHTML = g ? `Next: ${g.text}<span class="pv">${$('#goal-' + j + ' .pv') ? $('#goal-' + j + ' .pv').textContent : ''}</span>` : 'All goals done!'; }
   $('#v-energy').textContent = `${Math.floor(S.energy)} / ${ECAP}`;
   const re = $('#r-energy'); re.textContent = rateTxt(S.rates.energy); re.className = S.rates.energy < 0 ? 'neg' : 'pos';
   $('#chip-energy').classList.toggle('warn', S.eff < 1);
