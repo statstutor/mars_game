@@ -351,7 +351,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 18;
+const BUILD = 19;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4620,7 +4620,8 @@ function showComplete() {
   if (LEVELS[S.level].bonus) return showGlorpDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
-  const nx = LEVELS[S.level + 1], next = !!nx && !nx.bonus && !nx.offworld;
+  // Europa part 1 leads straight on to part 2: same moon, no rocket needed
+  const nx = LEVELS[S.level + 1], next = !!nx && !nx.bonus && (!nx.offworld || LEVEL_WORLD[S.level] === 'europa');
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
@@ -4628,7 +4629,7 @@ function showComplete() {
     <h2>${d.title}</h2>
     <p>${d.body}</p>
     <p class="fact">${d.fact}</p>
-    ${L.offworld ? '<p class="small-note">Ready for another world? Build a <b>launch pad</b> and a <b>fuel plant</b>, then click the pad to open the star map.</p>' : ''}
+    ${L.offworld ? `<p class="small-note">${next ? 'Or fly somewhere else instead:' : 'Ready for another world?'} Build a <b>launch pad</b> and a <b>fuel plant</b>, then click the pad to open the star map.</p>` : ''}
     <div class="row">
       ${next ? `<button class="btn" id="next">Level ${S.level + 2}: ${LEVELS[S.level + 1].name}</button>`
         : L.offworld ? `<button class="btn" id="fly">${S.tiles.some(t => t.b === 'pad') ? 'Open the star map' : 'Keep playing and build a launch pad'}</button>`
