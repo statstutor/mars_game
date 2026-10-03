@@ -433,7 +433,6 @@ function showScreen(id) {
 function goMenu() {
   hideModal();
   hideToast();
-  clearTimeout(state.flipBackTimer);
   state.busy = false;
   showScreen("menu");
 }
@@ -450,9 +449,9 @@ function startMode(mode) {
 function startRound() {
   hideModal();
   hideToast();
-  clearTimeout(state.flipBackTimer);
   state.open = [];
   state.busy = false;
+  state.missed = false;
   state.matched = 0;
   state.turn = (state.round - 1) % 2; // players alternate who goes first
   state.matches = [0, 0];
@@ -509,10 +508,36 @@ function renderStatus() {
     const color = state.turn === 0 ? "var(--p1)" : "var(--p2)";
     banner.innerHTML = `<span style="color:${color};font-weight:bold">Player ${state.turn + 1}</span>, it's your turn`;
   }
+  if (state.missed && !(state.mode === "single" && state.flipsLeft === 0)) {
+    banner.innerHTML = state.mode === "double"
+      ? `Not a match. <span style="color:${state.turn === 0 ? "var(--p2)" : "var(--p1)"};font-weight:bold">Player ${2 - state.turn}</span>, tap to continue`
+      : "Not a match. Tap to flip them back";
+  }
+}
+
+// After a miss the two cards stay face-up until the next tap.
+function resolveMiss() {
+  if (!state.missed) return;
+  state.open.forEach(c => {
+    c.el.classList.remove("flipped", "wrong");
+    c.el.setAttribute("aria-label", "Face-down card");
+  });
+  state.open = [];
+  state.missed = false;
+  if (state.mode === "double") state.turn = 1 - state.turn;
+  renderStatus();
 }
 
 function flip(card) {
-  if (state.busy || card.matched || state.open.includes(card)) return;
+  if (state.busy) return;
+  if (state.missed) {
+    // A tap on one of the two missed cards just flips them back;
+    // a tap on any other card flips them back and turns that card over.
+    const wasOpen = state.open.includes(card);
+    resolveMiss();
+    if (wasOpen) return;
+  }
+  if (card.matched || state.open.includes(card)) return;
   if (state.mode === "single" && state.flipsLeft <= 0) return;
 
   card.el.classList.add("flipped");
@@ -543,20 +568,11 @@ function flip(card) {
       setTimeout(() => endSingle(false), 1100);
     }
   } else {
-    // Miss: flip them back after a moment
-    state.busy = true;
+    // Miss: leave both cards showing until the player taps again
+    state.missed = true;
     a.el.classList.add("wrong"); b.el.classList.add("wrong");
-    state.flipBackTimer = setTimeout(() => {
-      [a, b].forEach(c => {
-        c.el.classList.remove("flipped", "wrong");
-        c.el.setAttribute("aria-label", "Face-down card");
-      });
-      state.open = [];
-      state.busy = false;
-      if (state.mode === "double") state.turn = 1 - state.turn;
-      renderStatus();
-      if (state.mode === "single" && state.flipsLeft === 0) endSingle(false);
-    }, 1300);
+    renderStatus();
+    if (state.mode === "single" && state.flipsLeft === 0) setTimeout(() => endSingle(false), 1500);
   }
 }
 
@@ -638,6 +654,11 @@ function hideModal() { $("overlay").classList.remove("show"); }
 $("btn-single").addEventListener("click", () => startMode("single"));
 $("btn-double").addEventListener("click", () => startMode("double"));
 $("btn-menu").addEventListener("click", goMenu);
+// Tapping anywhere else on the game screen also flips missed cards back.
+document.addEventListener("click", e => {
+  if (!$("game").classList.contains("active") || $("overlay").classList.contains("show")) return;
+  if (!e.target.closest(".card") && !e.target.closest("#btn-menu")) resolveMiss();
+});
 </script>
 </body>
 </html>
