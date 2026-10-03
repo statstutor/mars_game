@@ -88,13 +88,22 @@
   .pill.turn-p2 { border-color: var(--p2); background: #e5484d33; }
   .pill.low { border-color: var(--bad); background: #d9534f44; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  /* When the cards are small, the last flipped card's text is repeated here */
+  .peek {
+    display: none; text-align: center; font-style: italic; color: #fff8e6;
+    height: 2.6em; line-height: 1.3em; overflow: hidden; margin: -6px auto 8px; max-width: 640px;
+    font-size: .95rem;
+  }
+  .peek.on { display: block; }
+  .peek b { font-style: normal; color: var(--gold); }
   .turn-banner { text-align: center; font-size: 1.15rem; margin: -4px 0 12px; min-height: 1.5em; }
 
   /* ---------- Board ---------- */
+  /* Column count and card size are set by fitBoard() so every card fits on screen */
   .board {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--card-w, 130px), 1fr));
     gap: 10px;
+    justify-content: center;
     margin: 0 auto;
   }
   .card {
@@ -260,8 +269,6 @@
   }
   .modal .actions button.secondary { background: transparent; }
   @media (max-width: 480px) {
-    .board { gap: 7px; }
-    .board.many { --card-w: 100px !important; }
     .pill { padding: 5px 10px; font-size: .85rem; }
   }
 </style>
@@ -306,6 +313,7 @@
     <div class="status" id="status"></div>
   </div>
   <div class="turn-banner" id="turn-banner"></div>
+  <div class="peek" id="peek"></div>
   <div class="board" id="board"></div>
 </section>
 
@@ -507,7 +515,15 @@ function audioInit() {
     Sound.sfx.connect(master);
     Sound.music = Sound.ctx.createGain();
     Sound.music.gain.value = 0;
-    Sound.music.connect(master);
+    // Music goes through a long church-like reverb as well as straight out.
+    const dry = Sound.ctx.createGain();
+    dry.gain.value = 0.55;
+    const verb = Sound.ctx.createConvolver();
+    verb.buffer = makeImpulse(Sound.ctx, 4.5);
+    const wet = Sound.ctx.createGain();
+    wet.gain.value = 0.75;
+    Sound.music.connect(dry).connect(master);
+    Sound.music.connect(verb).connect(wet).connect(master);
   }
   if (Sound.ctx.state === "suspended") Sound.ctx.resume();
   return true;
@@ -573,27 +589,130 @@ function playSfx(name) {
   SFX[name]();
 }
 
-// Background music: a slow, gentle modal hymn — organ pad chords with a harp arpeggio.
-const CHORDS = [
-  [50, 57, 62, 65], [48, 55, 60, 64], [53, 57, 60, 65], [48, 55, 60, 64],
-  [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64], [50, 57, 62, 69],
+// Background music: a slow hymn in the Dorian mode. A soft "choir" pad of
+// detuned, filtered voices holds the chords, a harp rolls each chord, and a
+// breathy flute sings the tune, all inside a cathedral-sized reverb.
+function makeImpulse(ctx, seconds) {
+  const len = Math.floor(ctx.sampleRate * seconds);
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  }
+  return buf;
+}
+
+const BEAT = 1.05; // seconds per beat (about 57 bpm)
+const HYMN = [
+  // [chord notes, tune as [note, beats] (null = rest)]
+  [[50, 57, 62, 65], [[62, 1], [65, 1], [64, 1], [62, 1]]],
+  [[48, 55, 60, 64], [[64, 2], [67, 1], [65, 1]]],
+  [[53, 57, 60, 65], [[65, 1], [69, 1], [67, 1], [65, 1]]],
+  [[48, 55, 60, 64], [[64, 3], [null, 1]]],
+  [[50, 57, 62, 65], [[69, 1], [67, 1], [65, 1], [64, 1]]],
+  [[46, 53, 58, 62], [[65, 2], [62, 1], [64, 1]]],
+  [[48, 55, 60, 64], [[64, 1], [60, 1], [62, 1], [64, 1]]],
+  [[50, 57, 62, 69], [[62, 3], [null, 1]]],
 ];
-const ARP = [0, 1, 2, 3, 2, 1, 2, 3];
-const EIGHTH = 60 / 66 / 2; // 66 beats per minute
+
+function choir(freq, start, dur) {
+  const ctx = Sound.ctx;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 850;
+  filter.Q.value = 0.4;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.linearRampToValueAtTime(0.022, start + 1.4);
+  g.gain.setValueAtTime(0.022, start + dur - 0.3);
+  g.gain.linearRampToValueAtTime(0.0001, start + dur + 1.6);
+  filter.connect(g).connect(Sound.music);
+  [-7, 0, 7].forEach(cents => {
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    o.connect(filter);
+    o.start(start);
+    o.stop(start + dur + 1.7);
+  });
+}
+
+function harp(freq, start) {
+  const ctx = Sound.ctx;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.linearRampToValueAtTime(0.05, start + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + 2.2);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(2600, start);
+  filter.frequency.exponentialRampToValueAtTime(500, start + 1.5);
+  filter.connect(g).connect(Sound.music);
+  [[1, 1], [2, 0.3], [3, 0.12]].forEach(([mult, level]) => {
+    const o = ctx.createOscillator();
+    const pg = ctx.createGain();
+    pg.gain.value = level;
+    o.frequency.value = freq * mult;
+    o.connect(pg).connect(filter);
+    o.start(start);
+    o.stop(start + 2.3);
+  });
+}
+
+function flute(freq, start, dur) {
+  const ctx = Sound.ctx;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.linearRampToValueAtTime(0.045, start + 0.12);
+  g.gain.setValueAtTime(0.045, start + dur * 0.8);
+  g.gain.linearRampToValueAtTime(0.0001, start + dur + 0.25);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1800;
+  filter.connect(g).connect(Sound.music);
+  const o = ctx.createOscillator();
+  o.frequency.value = freq;
+  // Gentle vibrato that fades in, like a player's breath
+  const lfo = ctx.createOscillator();
+  const depth = ctx.createGain();
+  lfo.frequency.value = 5;
+  depth.gain.setValueAtTime(0, start);
+  depth.gain.linearRampToValueAtTime(freq * 0.006, start + 0.5);
+  lfo.connect(depth).connect(o.frequency);
+  o.connect(filter);
+  // A little breath noise at the start of each note
+  const noise = ctx.createBufferSource();
+  const nb = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.15), ctx.sampleRate);
+  const nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nd.length);
+  noise.buffer = nb;
+  const ng = ctx.createGain();
+  ng.gain.value = 0.15;
+  noise.connect(ng).connect(filter);
+  [o, lfo].forEach(x => { x.start(start); x.stop(start + dur + 0.3); });
+  noise.start(start);
+}
 
 function musicTick() {
   const ctx = Sound.ctx;
-  while (Sound.nextTime < ctx.currentTime + 0.4) {
+  while (Sound.nextTime < ctx.currentTime + 1) {
     const t = Sound.nextTime;
-    const bar = Math.floor(Sound.step / 8) % CHORDS.length;
-    const chord = CHORDS[bar];
-    const pos = Sound.step % 8;
-    if (pos === 0) {
-      chord.forEach(n => note(midi(n), t, EIGHTH * 8, { type: "sine", vol: 0.05, attack: 0.6, partial: 2, release: 0.8, dest: Sound.music }));
-      note(midi(chord[0] - 12), t, EIGHTH * 8, { type: "sine", vol: 0.07, attack: 0.4, release: 0.6, dest: Sound.music });
+    const [chord, tune] = HYMN[Sound.step % HYMN.length];
+    const barLen = BEAT * 4;
+    chord.forEach(n => choir(midi(n), t, barLen));
+    chord.forEach((n, i) => harp(midi(n + 12), t + i * 0.09));
+    // The tune rests every other time round, leaving just choir and harp
+    if (Math.floor(Sound.step / HYMN.length) % 2 === 0) {
+      let beat = 0;
+      tune.forEach(([n, len]) => {
+        if (n) flute(midi(n + 12), t + beat * BEAT, len * BEAT * 0.95);
+        beat += len;
+      });
+    } else {
+      harp(midi(chord[3] + 24), t + BEAT * 2);
     }
-    note(midi(chord[ARP[pos]] + 12), t, EIGHTH * 1.6, { type: "triangle", vol: 0.06, attack: 0.005, release: 0.5, dest: Sound.music });
-    Sound.nextTime += EIGHTH;
+    Sound.nextTime += barLen;
     Sound.step++;
   }
 }
@@ -604,7 +723,7 @@ function updateMusic() {
   if (Sound.musicOn) {
     if (!Sound.timer) {
       Sound.nextTime = now + 0.1;
-      Sound.timer = setInterval(musicTick, 100);
+      Sound.timer = setInterval(musicTick, 250);
       musicTick();
     }
     Sound.music.gain.cancelScheduledValues(now);
@@ -704,8 +823,8 @@ function startMode(mode) {
   state.pairs = START_PAIRS;
   state.points = [0, 0];
   state.round = 1;
-  startRound();
   showScreen("game");
+  startRound();
 }
 
 function startRound() {
@@ -727,9 +846,6 @@ function startRound() {
   const board = $("board");
   board.innerHTML = "";
   const n = deck.length;
-  board.style.setProperty("--card-w", n <= 8 ? "150px" : n <= 16 ? "125px" : n <= 30 ? "112px" : "100px");
-  board.classList.toggle("many", n > 8);
-  board.style.maxWidth = n <= 6 ? "520px" : n <= 8 ? "680px" : "";
 
   deck.forEach(card => {
     const el = document.createElement("button");
@@ -749,8 +865,45 @@ function startRound() {
     board.appendChild(el);
   });
   state.cards = deck;
+  $("peek").textContent = "";
   renderStatus();
+  fitBoard();
 }
+
+// Pick the column count that gives the biggest cards while fitting the
+// whole board in the space left below the header, with no scrolling.
+function fitBoard() {
+  const peek = $("peek");
+  if (!$("game").classList.contains("active") || !state.cards.length) return;
+  // Try without the text line first; if the cards come out small, add it and fit again.
+  peek.classList.remove("on");
+  if (layoutBoard() < 110) {
+    peek.classList.add("on");
+    layoutBoard();
+  }
+}
+
+function layoutBoard() {
+  const board = $("board");
+  const n = state.cards.length;
+  const screen = $("game");
+  const pad = parseFloat(getComputedStyle(screen).paddingLeft) || 0;
+  const availW = screen.clientWidth - pad * 2;
+  const availH = window.innerHeight - board.getBoundingClientRect().top - 16;
+  const gap = Math.min(availW, availH) < 520 ? 6 : 10;
+  const ratio = 3 / 4; // card width : height
+  let best = 0, bestCols = 1;
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const w = Math.min((availW - gap * (cols - 1)) / cols, ((availH - gap * (rows - 1)) / rows) * ratio);
+    if (w > best) { best = w; bestCols = cols; }
+  }
+  const w = Math.max(40, Math.min(170, Math.floor(best)));
+  board.style.gap = gap + "px";
+  board.style.gridTemplateColumns = `repeat(${bestCols}, ${w}px)`;
+  return w;
+}
+window.addEventListener("resize", fitBoard);
 
 function renderStatus() {
   const st = $("status");
@@ -804,6 +957,7 @@ function flip(card) {
 
   card.el.classList.add("flipped");
   playSfx("flip");
+  $("peek").innerHTML = card.kind === "pic" ? `<b>${card.saint.name}</b>` : `“${card.saint.quote}”`;
   card.el.setAttribute("aria-label", card.kind === "pic" ? card.saint.name : `Quote: ${card.saint.quote}`);
   state.open.push(card);
   if (state.mode === "single") state.flipsLeft--;
