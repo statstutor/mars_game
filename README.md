@@ -64,6 +64,23 @@ and fly on to any other world. The Shell King (Level 10) opens once Europa is do
     lemonade stands. Tap his glowing head to knock it off; if nobody hits him for a while, a
     head grows back.
 
+**The mission to free Earth.** Level 13 opens with a cutscene: Earth has been invaded and
+occupied by an alien fleet. You can't stop them alone, so the game's long story begins:
+gather **allies** and **power cores** from all over the solar system (tracked on the title
+screen, saved on the device), and one day come home to free Earth.
+
+13. **Venus: The Invasion** (on the star map after the Five-Head Chief). The scorching surface:
+    weak sun, lava vents for geothermal power. **Lizard people** take six hits; on the ground
+    zaps bounce off them (knights work), and every few seconds they fly for two seconds (then
+    zappers work and knights can't). A **church** doubles all your damage. Dig up the first
+    power core.
+14. **Venus: Lava Fields**: build a **crafter** to melt golden crystals into 150 metal each
+    (lizards drop them sometimes). Second power core.
+15. **Venus: Lizard Caves**: three castles, nine knights, the third power core.
+16. **Venus: The Lizard King**: taps always hurt him, knights fight him on the ground, zappers
+    only when he flies. Beat him for the fourth power core and your first allies, the lizard
+    people of Venus.
+
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
 worth 3 hearts as a gift. At 10 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
