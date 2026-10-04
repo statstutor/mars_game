@@ -362,7 +362,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 22;
+const BUILD = 23;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -496,6 +496,8 @@ const B = {
              desc: 'Little lemon trees under a glass dome. +0.3 food/s, and every lemonade stand within 2 tiles gets fresh lemons.' },
   lemonade: { name: 'Lemonade Stand', cost: { metal: 25 }, on: ['plain', 'ore'], onText: 'Lemonade stands need flat ground.', energy: -1,
              desc: 'Squeezes lemons into water and lemonade. Near a water tower AND a lemon grove: +4 water/s, more than any ice drill. With only one of them: about +1. With neither: a trickle.' },
+  condenser: { name: 'Water Condenser', cost: { metal: 35 }, on: ['plain', 'ore'], onText: 'Condensers need flat ground.', energy: -2, out: { water: 2 },
+             desc: 'Pulls water out of Venus’s thick air: the clouds are full of acid, and splitting it makes water. +2 water/s. Uses 2 energy/s.' },
   church:  { name: 'Church', cost: { metal: 80 }, on: ['plain', 'ore'], onText: 'Churches need flat ground.', unique: true,
              desc: 'A stone church with a tall bell tower. While it stands, every zap, tap, drone and knight does DOUBLE damage.' },
   crafter: { name: 'Crafter', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Crafters need flat ground.', energy: -1,
@@ -1241,8 +1243,8 @@ LEVELS.push({
   map: { ice: 0, mountains: [[9, 1, 1.2], [1, 9, 0.9]], craters: [[3, 4], [7, 7], [8, 3]], ore: [[5, 2, 1.2], [2, 6, 1.1]], vents: [[5, 6], [6, 9], [3, 8]], ruins: [[9, 6]] },
   start: { metal: 140, energy: 50, water: 40, food: 60 },
   planet: { temp: 465, press: 9200, o2: 0 },
-  tools: ['solar', 'geo', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
-  prebuilt: [['habitat', 5, 8], ['solar', 6, 8], ['tower', 4, 7], ['lemonade', 4, 6], ['lemon', 3, 7]],
+  tools: ['solar', 'geo', 'condenser', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['condenser', 3, 9], ['geo', 5, 6], ['habitat', 5, 8], ['solar', 6, 8], ['tower', 4, 7], ['lemonade', 4, 6], ['lemon', 3, 7]],
   critters: { every: [15, 21], max: 6, speed: 0.8, after: () => S.time > 30, mix: { lizard: 3, basic: 1 } },
   traders: true, traderFirst: 60,
   pal: {
@@ -1274,7 +1276,8 @@ LEVELS.push({
       who: 'eng', hint: 'Each lizard takes six hits. Taps always work. Knights get them on the ground, zappers get them in the air.' },
   ],
   intro: [['cmd', 'Venus. The hottest planet in the solar system. We are here because of what happened to Earth.'],
-          ['kip', 'Our suits say it is four hundred and sixty five degrees outside. My circuits say please do not go outside.']],
+          ['kip', 'Our suits say it is four hundred and sixty five degrees outside. My circuits say please do not go outside.'],
+          ['bot', 'There is no ice on Venus, so water condensers will pull water out of the air for us. Build more if we get thirsty.']],
   outro: [['cmd', 'Our first power core for the mission. Many more to go. Let us push deeper into Venus.']],
   brief: {
     eyebrow: 'Level 13 · The mission begins',
@@ -1297,8 +1300,8 @@ LEVELS.push({
   map: { ice: 0, mountains: [[2, 2, 1.0], [9, 9, 1.0]], craters: [[6, 3], [3, 7], [8, 6]], ore: [[7, 1, 1.1], [1, 5, 1.2]], vents: [[5, 5], [4, 9], [9, 3], [6, 8]], ruins: [[2, 9]] },
   start: { metal: 150, energy: 50, water: 40, food: 70 },
   planet: { temp: 465, press: 9200, o2: 0 },
-  tools: ['solar', 'geo', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
-  prebuilt: [['habitat', 5, 10], ['habitat', 6, 10], ['geo', 4, 9], ['castle', 7, 9]],
+  tools: ['solar', 'geo', 'condenser', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['condenser', 3, 9], ['habitat', 5, 10], ['habitat', 6, 10], ['geo', 4, 9], ['castle', 7, 9]],
   critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 25, mix: { lizard: 4, zippy: 1 } },
   traders: true, traderFirst: 50,
   pal: {
@@ -1353,8 +1356,8 @@ LEVELS.push({
   map: { ice: 0, mountains: [[10, 1, 1.1], [1, 1, 0.9], [6, 6, 0.8]], craters: [[3, 4], [9, 5], [4, 10], [8, 9]], ore: [[2, 7, 1.2], [9, 2, 1.0]], vents: [[5, 3], [7, 8], [3, 8], [10, 8]], ruins: [[6, 1]] },
   start: { metal: 160, energy: 60, water: 50, food: 80 },
   planet: { temp: 465, press: 9200, o2: 0 },
-  tools: ['solar', 'geo', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
-  prebuilt: [['habitat', 5, 11], ['habitat', 6, 11], ['geo', 7, 8], ['castle', 4, 9], ['church', 6, 9]],
+  tools: ['solar', 'geo', 'condenser', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['condenser', 3, 9], ['habitat', 5, 11], ['habitat', 6, 11], ['geo', 7, 8], ['castle', 4, 9], ['church', 6, 9]],
   critters: { every: [10, 14], max: 8, speed: 0.9, after: () => S.time > 20, mix: { lizard: 5, zippy: 1, armor: 1 } },
   traders: true, traderFirst: 50,
   pal: {
@@ -1409,8 +1412,8 @@ LEVELS.push({
   map: { ice: 0, mountains: [[10, 10, 1.0], [1, 1, 1.0]], craters: [[6, 5], [3, 9], [9, 3], [8, 9]], ore: [[2, 5, 1.2], [9, 6, 1.1]], vents: [[5, 9], [7, 2], [3, 3], [10, 7]], ruins: [] },
   start: { metal: 200, energy: 60, water: 60, food: 100 },
   planet: { temp: 465, press: 9200, o2: 0 },
-  tools: ['solar', 'geo', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
-  prebuilt: [['habitat', 5, 11], ['habitat', 6, 11], ['habitat', 7, 11], ['geo', 5, 9], ['castle', 7, 8], ['castle', 4, 7], ['church', 6, 9]],
+  tools: ['solar', 'geo', 'condenser', 'mine', 'greenhouse', 'habitat', 'restaurant', 'tower', 'lemon', 'lemonade', 'zapper', 'castle', 'church', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['condenser', 3, 9], ['habitat', 5, 11], ['habitat', 6, 11], ['habitat', 7, 11], ['geo', 5, 9], ['castle', 7, 8], ['castle', 4, 7], ['church', 6, 9]],
   critters: { every: [10, 14], max: 8, speed: 0.95, after: () => S.time > 20, mix: { lizard: 5, zippy: 1, brute: 1 } },
   traders: true, traderFirst: 50,
   pal: {
@@ -1667,7 +1670,10 @@ function tick(dt) {
   S.fed = clamp(S.fed + (fedRatio > 0.999 ? 4 : -2.5 * (1 - fedRatio)) * dt, 0, 100);
   S.hyd = clamp(S.hyd + (hydRatio > 0.999 ? 4 : -2.5 * (1 - hydRatio)) * dt, 0, 100);
   if (S.fed < 50) say('bot', 'Our colonists are getting hungry. We need more food, so build another greenhouse.', 'hungry' + S.level);
-  if (S.hyd < 50) say('bot', 'We’re running low on water, and people are getting thirsty. Build another ice drill.', 'thirsty' + S.level);
+  if (S.hyd < 50) {
+    if (L.tools.includes('condenser')) say('bot', 'We’re running low on water, and people are getting thirsty. There is no ice on Venus, so build water condensers.', 'thirsty' + S.level);
+    else say('bot', 'We’re running low on water, and people are getting thirsty. Build another ice drill.', 'thirsty' + S.level);
+  }
 
   // happiness: food and water, services, relic boosts, minus critters chewing on things
   let fun = 0;
@@ -4228,6 +4234,17 @@ const DRAW = {
       ell(g, x, y - 10, r, r, '#3fae6b'); ell(g, x - 2, y - 12, r * 0.55, r * 0.5, '#7ddc9f');
     }
   },
+  condenser(g, T, v) {
+    shadow(g, 16, 7);
+    isoBox(g, 0, 4, 13, 6.5, 6, '#9aa0c4', '#757aa0', '#5d6186');
+    g.fillStyle = '#d5def5'; g.fillRect(-7, -30, 14, 28); g.fillStyle = '#b9c6e6'; g.fillRect(0, -30, 7, 28);
+    ell(g, 0, -30, 7, 3.5, '#eef3ff');
+    g.strokeStyle = '#8a92b8'; g.lineWidth = 1.2;
+    for (const y of [-24, -18, -12]) { g.beginPath(); g.moveTo(-10, y); g.lineTo(10, y); g.stroke(); }
+    g.fillStyle = '#4fb3ff'; g.fillRect(-7, -9, 14, 5);
+    const d = (T * 1.5 + v) % 1;
+    g.fillStyle = `rgba(92,200,255,${1 - d})`; g.beginPath(); g.moveTo(12, -14 + d * 14); g.quadraticCurveTo(15, -10 + d * 14, 12, -8 + d * 14); g.quadraticCurveTo(9, -10 + d * 14, 12, -14 + d * 14); g.fill();
+  },
   church(g, T, v) {
     shadow(g, 24, 11);
     isoBox(g, -2, 6, 17, 8.5, 18, '#efe6d8', '#cfc2ad', '#b3a58e');
@@ -4608,7 +4625,7 @@ const LIGHTS = {
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
   zapper: [[0, -37, 16, '#9be3ff']],
-  church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
+  condenser: [[0, -9, 10, '#5cc8ff']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
   lemonade: [[0, -26, 10, '#ffe066']], lemon: [[0, -14, 12, '#fff3a0']],
   castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
   solar: [], mine: [[0, -30, 6, '#ffe08a']],
@@ -5612,7 +5629,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 01b054cc 02610b12 030a7f96 04274c70 043eaa72 052e0102 06075329 064185af 06e150f9 06e3e69e 0732c7bd 07e9d382 085b1570 09033633 095e8697 0a01a313 0a3e2be9 0a92380d 0a938044 0bcda11f 0c594a15 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 108c93be 1097c905 11f40e2c 12eb0373 1331cada 13713eb9 13adf42b 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 15d616f2 160d88cc 16aed961 17c35d32 18465b88 18d94617 190f8874 199300de 19bcfabb 19d57ccf 19f04f62 1a73deff 1bd330d0 1d2363f8 1e261bbc 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2078c341 212448d4 22c96318 243b00c3 262c9f53 2631b903 2638cdf0 2750a067 278c00d9 293c4750 2b732c7f 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 30cb6362 317b5667 31c4bef1 3212792b 325c2975 34975786 34b3668a 351fbd71 353c8fab 3626bfee 3654501f 365f8af1 36f30872 36f7cfab 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39ac3311 3a049a30 3a2a3dd2 3ac5b40e 3b49c630 3ca2a321 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 44b9eb2a 4534d2ed 4615137e 46168059 463d12bf 465ae406 468c1dc2 488637dd 491b0201 4a98f022 4b62a538 4b983c1d 4bbf5662 4d378904 4daf56e3 4ecb63fb 5033e388 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 528abda2 531550fe 53481673 53789086 550bd446 55a248b0 56eebfbb 57156cc3 581a7c01 58c19200 58fc90dd 59461109 59d6a190 5a0049d9 5a7be0e7 5b605ff5 5b8d10cb 5bf08dd4 5c95cb91 5d255f48 5d4b89eb 5d5c0d57 5e7aea23 5faf64ee 5fcb5567 5fec72b2 60144cc1 602279ef 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 63407f03 63b15a97 63bed161 63c78b92 644f3086 64cb995b 64ec0701 6527de87 65698d37 657cd9d8 65876fef 65b781d1 666fe626 66c95ee9 66df857e 671f5d5f 67d90521 68ecfd5d 692ba820 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d4a394e 6d793f09 6d8933a2 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 7301527c 73a92909 73ed37e3 742b0766 74470192 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 7636773e 7664ba28 767ef75c 77454f28 776c07c6 7794c923 77a911a5 79ad7ccc 79fe0b9e 7a3e6261 7b4aa8fa 7ba49dc9 7cc4e0a9 7cc90c76 7f3e0f47 7f899244 806aa390 8094c667 819d4d95 819d9083 82c27015 833fe2a5 838f0024 83ff31b7 8407c711 84f4760a 8517b105 8588aa9e 859101f7 85c90490 8638490b 86587ccf 8796f0db 88755faf 89433fbb 8a286a1d 8a787fd6 8a9c604c 8b05cc8e 8b8bdc7a 8b94a7fe 8ca1d89d 8d2c2a3e 8d92f6c0 8e2fcde9 8e708bce 9005a0e9 9007db86 911a18a9 916e3e57 92562698 9344e33e 9439fdfb 943c33d7 9469484c 9530f060 9599dd43 966dd059 967a76e4 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 99187467 998ca151 9a0a3779 9a211927 9a22a375 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9bad23e5 9cb181d2 9cdc007a 9d22f9c4 9d262032 9d6ce3f9 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 a07e771b a1737ded a2413960 a260a4f5 a3308c35 a42066c4 a5acc6dc a6777e8e a698e1a4 a6b9d9dd a7c3604f a7e99e36 a8e7a2ee aa916e99 ab13bb98 ac519962 ac5e0d8b acfa49dc ad47eb64 ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b8a67fac b8f1f2bb b956ba1f b9da402b b9fc496b ba79acbf bb208cad bbaad895 bbcd0695 bc664788 bcb9b065 bd99fe14 bf202cf8 bfcf3810 c007124e c23bfc92 c2546201 c293bbd8 c34f5141 c46528db c4677edd c47abf72 c587d92c c5eaa696 c7310a3a c8af3800 c8d8e3d9 c904af31 c9c4682a c9cd4dbb ca099504 cb28cba4 cbd82633 cbde5b59 cc8e851e cd703a97 cebb6a16 cedb1184 d00d15a9 d0d50703 d1a244a4 d1f74b36 d28d8cbe d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6fa4a0c d717036b d805324d d8352bff d8551ff8 d87b48be d956d672 d983031a d9e72f66 da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc6c9907 dca4534b dd7ea9a4 dd94a8f2 dedf727c df4f235d df8f98d7 dfbe7e1b dfee1638 e08912be e1201462 e233cd11 e3526ffc e39fd024 e4acaf8a e4fb12b8 e5392f66 e6389f23 e6a7a5c5 e7264fe6 e77d6a46 e8dc2b4c e9d2abdc ea28b442 ea492de8 eb1ad02d eb2b4d17 eb2f7a4c eb979778 ecc40113 ed5539be ed771340 edaf3095 ee3ccb67 ee7e156f eebfba27 ef1f18a3 ef43016a efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f2187c55 f29daee7 f310b43c f3236dcb f42b055d f450f0b6 f46ef84f f5b21430 f6a7efeb f6b9aead f6cb9570 f7dceee0 f8521c9a f85b5644 f8ff61da f9295486 f9e98a6a fa93cb7d fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00f174a9 01b054cc 02610b12 030a7f96 04274c70 043eaa72 052e0102 06075329 064185af 06e150f9 06e3e69e 0732c7bd 07e9d382 085b1570 09033633 095e8697 0a01a313 0a3e2be9 0a92380d 0a938044 0bcda11f 0c594a15 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 108c93be 1097c905 11f40e2c 12eb0373 1331cada 13713eb9 13adf42b 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 15d616f2 160d88cc 16aed961 17b76b15 17c35d32 18465b88 18d94617 190f8874 199300de 19bcfabb 19d57ccf 19f04f62 1a73deff 1aebaf1f 1bd330d0 1d2363f8 1e261bbc 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2078c341 212448d4 22c96318 243b00c3 262c9f53 2631b903 2638cdf0 2750a067 278c00d9 293c4750 2b732c7f 2c8f8b73 2cd98069 2d4236e0 2e30c278 2f8a9231 30cb6362 317b5667 31c4bef1 3212792b 325c2975 34975786 34b3668a 351fbd71 353c8fab 3626bfee 3654501f 365f8af1 36f30872 36f7cfab 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39ac3311 3a049a30 3a2a3dd2 3ac5b40e 3b49c630 3ca2a321 3d029e83 3d9f7dba 3dcd9e8c 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 44b9eb2a 4534d2ed 4615137e 46168059 463d12bf 465ae406 468c1dc2 488637dd 491b0201 4a98f022 4b62a538 4b983c1d 4bbf5662 4d378904 4daf56e3 4ecb63fb 5033e388 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 528abda2 531550fe 53481673 53789086 550bd446 55a248b0 56eebfbb 57156cc3 581a7c01 58c19200 58fc90dd 59461109 59d6a190 5a0049d9 5a7be0e7 5b605ff5 5b8d10cb 5bf08dd4 5c95cb91 5d255f48 5d4b89eb 5d5c0d57 5e7aea23 5faf64ee 5fcb5567 5fec72b2 60144cc1 602279ef 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 63407f03 63b15a97 63bed161 63c78b92 644f3086 64cb995b 64ec0701 6527de87 65698d37 657cd9d8 65876fef 65b781d1 666fe626 66c95ee9 66df857e 671f5d5f 67d90521 68ecfd5d 692ba820 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d4a394e 6d793f09 6d8933a2 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 7301527c 73a92909 73ed37e3 742b0766 74470192 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 7636773e 7664ba28 767ef75c 77454f28 776c07c6 7794c923 77a911a5 79ad7ccc 79fe0b9e 7a3e6261 7b4aa8fa 7ba49dc9 7cc4e0a9 7cc90c76 7f3e0f47 7f899244 806aa390 8094c667 819d4d95 819d9083 82c27015 833fe2a5 838f0024 83ff31b7 8407c711 84f4760a 8517b105 8588aa9e 859101f7 85c90490 8638490b 86587ccf 8796f0db 88755faf 89433fbb 8a286a1d 8a787fd6 8a9c604c 8b05cc8e 8b8bdc7a 8b94a7fe 8ca1d89d 8d2c2a3e 8d92f6c0 8e2fcde9 8e708bce 9005a0e9 9007db86 911a18a9 916e3e57 92562698 9344e33e 9439fdfb 943c33d7 9469484c 9530f060 9599dd43 966dd059 967a76e4 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 99187467 998ca151 9a0a3779 9a211927 9a22a375 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9bad23e5 9cb181d2 9cdc007a 9d22f9c4 9d262032 9d6ce3f9 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 a07e771b a1737ded a2413960 a260a4f5 a3308c35 a42066c4 a5acc6dc a6777e8e a698e1a4 a6b9d9dd a7c3604f a7e99e36 a8e7a2ee aa916e99 ab13bb98 ac519962 ac5e0d8b acfa49dc ad47eb64 ad70ea5b ae847e6a aef7f263 af308bdb afbd76a6 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b8a67fac b8f1f2bb b956ba1f b9da402b b9fc496b ba79acbf bb208cad bbaad895 bbcd0695 bc664788 bcb9b065 bd99fe14 bf202cf8 bfcf3810 c007124e c23bfc92 c2546201 c293bbd8 c34f5141 c46528db c4677edd c47abf72 c587d92c c5eaa696 c7310a3a c8af3800 c8d8e3d9 c904af31 c9c4682a c9cd4dbb ca099504 cb28cba4 cbd82633 cbde5b59 cc8e851e cd703a97 cebb6a16 cedb1184 d00d15a9 d0d50703 d1a244a4 d1f74b36 d28d8cbe d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6fa4a0c d717036b d805324d d8352bff d8551ff8 d87b48be d956d672 d983031a d9e72f66 da05665d da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc6c9907 dca4534b dd7ea9a4 dd94a8f2 dedf727c df4f235d df8f98d7 dfbe7e1b dfee1638 e08912be e1201462 e233cd11 e3526ffc e39fd024 e4acaf8a e4fb12b8 e5392f66 e6389f23 e6a7a5c5 e7264fe6 e77d6a46 e8dc2b4c e9d2abdc ea28b442 ea492de8 eb1ad02d eb2b4d17 eb2f7a4c eb979778 ecc40113 ed5539be ed771340 edaf3095 ee3ccb67 ee7e156f eebfba27 ef1f18a3 ef43016a efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f2187c55 f29daee7 f310b43c f3236dcb f42b055d f450f0b6 f46ef84f f5b21430 f6a7efeb f6b9aead f6cb9570 f7dceee0 f8521c9a f85b5644 f8ff61da f9295486 f9e98a6a fa93cb7d fae6a266 fc5227f2 fce6a935 fcfbf226 fd117f3c fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
