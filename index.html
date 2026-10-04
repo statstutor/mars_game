@@ -362,7 +362,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 24;
+const BUILD = 25;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2362,22 +2362,26 @@ function showStarMap() {
   // one card per world: a world with several levels (Europa, the Moon, Venus) shows only its next level
   const groups = new Map();
   for (const [k, w] of Object.entries(WORLDS)) { const g = w.body || k; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k); }
+  // every world always gets a card; one that isn't unlocked yet says what to finish first
   const picks = [];
   for (const [g, keys] of groups) {
-    const open = keys.filter(k => !WORLDS[k].after || WORLDS_DONE[WORLDS[k].after]);
+    const anyDone = keys.some(k => WORLDS_DONE[k]);
+    const open = keys.filter(k => !WORLDS[k].after || WORLDS_DONE[WORLDS[k].after] || WORLDS_DONE[k] || anyDone);
     const opts = open.filter(k => k !== here);
-    if (!opts.length) continue;
-    const k = opts.find(k => !WORLDS_DONE[k]) || (keys.includes(here) ? null : opts[0]);
-    if (k) picks.push([k, WORLDS[k], keys.length > 1 ? g : null]);
+    if (keys.includes(here) && !opts.length) continue; // you are already here, and there is nowhere else on this world
+    if (!opts.length) { picks.push([keys[0], WORLDS[keys[0]], keys.length > 1 ? g : null, true]); continue; }
+    const k = opts.find(k => !WORLDS_DONE[k]) || opts[0];
+    picks.push([k, WORLDS[k], keys.length > 1 ? g : null, false]);
   }
-  const cards = picks.map(([k, w, grp]) => {
-    const stay = sameMoon(k), fuel = tripFuel(k), needs = tripNeeds(k), missing = needs.filter(u => !RKT[u]);
+  const cards = picks.map(([k, w, grp, locked]) => {
+    const stay = !locked && sameMoon(k), fuel = tripFuel(k), needs = tripNeeds(k), missing = needs.filter(u => !RKT[u]);
     const chosen = R_.dest === k;
     const req = stay ? 'Same moon: no flight needed' : `${fuel} fuel` + (needs.length ? ' · needs ' + needs.map(u => (RKT[u] ? '✔ ' : '✗ ') + UPGRADES[u].name).join(', ') : '');
-    const action = stay ? `<button class="btn" data-go="${k}">Stay on ${BODY_NAME[w.body]}</button>`
+    const action = locked ? `<span class="tag">Unlocks after ${WORLDS[w.after].name}</span>`
+      : stay ? `<button class="btn" data-go="${k}">Stay on ${BODY_NAME[w.body]}</button>`
       : chosen ? `<span class="tag">Course set · ${Math.floor(R_.fuel)} / ${fuel} fuel</span>`
       : `<button class="btn" data-dest="${k}" ${missing.length ? 'disabled' : ''}>${missing.length ? 'Needs upgrades' : 'Set course'}</button>`;
-    return `<div class="world${chosen ? ' chosen' : ''}${missing.length && !stay ? ' soon' : ''}"><canvas width="144" height="144" data-p="${w.icon}"></canvas>
+    return `<div class="world${chosen ? ' chosen' : ''}${(missing.length && !stay) || locked ? ' soon' : ''}"><canvas width="144" height="144" data-p="${w.icon}"></canvas>
       <b>${grp ? BODY_NAME[grp].replace(/^the /, 'The ') : w.name}</b>${WORLDS_DONE[k] ? '<span class="stars">✔ Visited</span>' : ''}${grp ? `<small class="req">Next: ${LEVELS[w.level].name}</small>` : ''}<small>${w.blurb}</small><small class="req">${req}</small>${action}</div>`;
   }).join('');
   const ups = Object.entries(UPGRADES).map(([k, u]) => RKT[k]
