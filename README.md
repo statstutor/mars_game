@@ -80,6 +80,14 @@ screen, saved on the device), and one day come home to free Earth.
 16. **Venus: The Lizard King**: taps always hurt him, knights fight him on the ground, zappers
     only when he flies. Beat him for the fourth power core and your first allies, the lizard
     people of Venus.
+17. **Mercury: Sunside** (on the star map after the Lizard King). A huge Sun: solar arrays make
+    double power. **Green blobs** take ten hits, often come out in pairs, and knights can't hurt
+    them. A **force field** over a crater traps anything that climbs out until it breaks the dome.
+    A **wizard hut** trains up to 3 wizards, and each wizard zaps two aliens at once.
+18. **Mercury: Crater Maze**: blobs in every crater; the sixth power core.
+19. **Mercury: The Blob Maker**: a surprise boss (the Mega-Blobber 3000, a robot that brews the
+    blobs). Knock off its four armour plates, then hit its core. Beating it wins a power core and
+    the blobs of Mercury as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
