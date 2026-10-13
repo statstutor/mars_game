@@ -115,3 +115,10 @@ Research from Levels 4 and 5 carries into the next level when you finish them.
 Everything runs on solar power. If you use more energy than you make, every building slows down.
 
 Progress autosaves in your browser every few seconds and whenever you build. Reopen the page and press **Continue** on the title screen to pick up where you left off. Starting a level from the title screen replaces the save.
+
+## Publishing
+
+The artifact host limits how many files one page can carry, so the published copy bundles
+the voice clips into a few packs: `python tools/pack_voices.py --out <dir>` writes the page
+and `audio/voice-pack-N.mp3` files. The repo itself keeps one file per clip, which the game
+loads directly when it is served from this folder.

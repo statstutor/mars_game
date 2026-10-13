@@ -6133,9 +6133,24 @@ function clipKey(who, text) {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 const clipCache = new Map();
+// The published game bundles the clips into a few voice packs (tools/pack_voices.py fills this in
+// with key -> [pack, offset, length]); the repo copy loads one file per clip instead.
+const VOICE_PACK = /*VOICE_PACK*/null/*END*/;
+const packCache = new Map();
+function loadPack(i) {
+  if (!packCache.has(i)) {
+    const pr = fetch(`audio/voice-pack-${i}.mp3`).then(r => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); });
+    pr.catch(() => {});
+    packCache.set(i, pr);
+  }
+  return packCache.get(i);
+}
 function loadClip(key) {
   if (!clipCache.has(key)) {
-    const pr = fetch(`audio/voice/${key}.mp3`).then(r => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); }).then(b => AC.decodeAudioData(b));
+    const e = VOICE_PACK && VOICE_PACK[key];
+    const raw = e ? loadPack(e[0]).then(buf => buf.slice(e[1], e[1] + e[2]))
+      : fetch(`audio/voice/${key}.mp3`).then(r => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); });
+    const pr = raw.then(b => AC.decodeAudioData(b));
     pr.catch(() => {});
     clipCache.set(key, pr);
   }
@@ -6194,6 +6209,7 @@ function nextLine() {
     const fallback = () => { if (gen === talkGen && talking === line) { line.clip = false; speakTTS(line, c, done); } };
     // the file:// fallback: a plain audio element also works when fetch is blocked
     const viaElement = () => {
+      if (VOICE_PACK) return fallback(); // packed clips have no file of their own
       const a = new Audio(`audio/voice/${key}.mp3`);
       line.el = a; a.onended = done; a.onerror = fallback;
       a.play().then(() => { line.safety = Infinity; }).catch(fallback);
