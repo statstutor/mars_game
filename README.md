@@ -91,7 +91,7 @@ screen, saved on the device), and one day come home to free Earth.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
-worth 3 hearts as a gift. At 10 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
+worth 3 hearts as a gift. At 20 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
 and Zab, and Baby Zuzu. Build super-powered Zorp-tech for the Glorp Festival, survive the
 meteor storms and chase off a random party crasher (the Grumble Worm, Blorg the rival trader
 or Queen Skyla). Finishing it lets you keep one Zorp-tech upgrade in every level, then fly
