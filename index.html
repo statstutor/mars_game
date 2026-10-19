@@ -364,7 +364,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 26;
+const BUILD = 27;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2476,6 +2476,8 @@ const ROCKET_COST = { metal: 220, crystals: 10 };
 // and how tough the space battle on the way is. Upgrades (Big Engines, Radiation Shield) are bought
 // once and stay on the rocket for every later trip.
 const WORLDS = {
+  // home: lands on the furthest Mars level you have reached (Exodus once you have finished it)
+  mars:   { get level() { return clamp(+store.get('mmb-best', 0) || 0, 0, 5); }, name: 'Mars', icon: 'mars', sys: 'mars', fuel: 120, needs: [], blurb: 'Home: the planet you turned blue. Fly back and keep building.' },
   phobos: { level: 6, name: 'Phobos', icon: 'phobos', sys: 'mars', fuel: 120, needs: [], blurb: 'A tiny lumpy moon just above Mars. No air and lots of meteors.' },
   deimos: { level: 7, name: 'Deimos', icon: 'deimos', sys: 'mars', fuel: 160, needs: ['engines'], blurb: 'Mars’s smaller, farther moon. Shell-beasts live there: bring castles.' },
   europa: { level: 8, name: 'Europa', icon: 'europa', sys: 'jupiter', body: 'europa', fuel: 300, needs: ['engines', 'shield'], blurb: 'Jupiter’s ice moon, through the deadly radiation belts.' },
@@ -2564,7 +2566,7 @@ function showStarMap() {
       : chosen ? `<span class="tag">Course set · ${Math.floor(R_.fuel)} / ${fuel} fuel</span>`
       : `<button class="btn" data-dest="${k}" ${missing.length ? 'disabled' : ''}>${missing.length ? 'Needs upgrades' : 'Set course'}</button>`;
     return `<div class="world${chosen ? ' chosen' : ''}${(missing.length && !stay) || locked ? ' soon' : ''}"><canvas width="144" height="144" data-p="${w.icon}"></canvas>
-      <b>${grp ? BODY_NAME[grp].replace(/^the /, 'The ') : w.name}</b>${WORLDS_DONE[k] ? '<span class="stars">✔ Visited</span>' : ''}${grp ? `<small class="req">Next: ${LEVELS[w.level].name}</small>` : ''}<small>${w.blurb}</small><small class="req">${req}</small>${action}</div>`;
+      <b>${grp ? BODY_NAME[grp].replace(/^the /, 'The ') : w.name}</b>${WORLDS_DONE[k] ? '<span class="stars">✔ Visited</span>' : ''}${grp ? `<small class="req">Next: ${LEVELS[w.level].name}</small>` : k === 'mars' ? `<small class="req">Lands on Level ${w.level + 1}: ${LEVELS[w.level].name}</small>` : ''}<small>${w.blurb}</small><small class="req">${req}</small>${action}</div>`;
   }).join('');
   const ups = Object.entries(UPGRADES).map(([k, u]) => RKT[k]
     ? `<div class="upg owned"><b>${u.name}</b><small>${u.desc}</small><span class="tag">Fitted ✔</span></div>`
@@ -3582,7 +3584,9 @@ addEventListener('keyup', e => { if (A) A.keys[e.key] = false; });
 function planetIcon(cnv, kind) {
   const g = cnv.getContext('2d'); g.scale(2, 2);
   const x = 36, y = 36, r = 26;
-  if (kind === 'phobos') {
+  if (kind === 'mars') {
+    drawBigMars(g, x, y, r);
+  } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
   } else if (kind === 'mercury') {
