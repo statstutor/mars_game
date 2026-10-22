@@ -134,6 +134,8 @@ body.cramped #tip.idle { display: none; }
 .lvl.sixteen .n { background: #7cc15a; } .lvl.sixteen .go { color: #9bd77c; }
 .lvl.merc .n { background: #b3a69d; } .lvl.merc .go { color: #d0c4bb; }
 .lvl.merc2 .n { background: #7be06a; } .lvl.merc2 .go { color: #a6e85a; }
+.lvl.jup .n { background: #e8c99a; } .lvl.jup .go { color: #f0dcc0; }
+.lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .levels { max-height: 46vh; overflow-y: auto; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
@@ -364,7 +366,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 28;
+const BUILD = 29;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -498,6 +500,14 @@ const B = {
              desc: 'Little lemon trees under a glass dome. +0.3 food/s, and every lemonade stand within 2 tiles gets fresh lemons.' },
   lemonade: { name: 'Lemonade Stand', cost: { metal: 25 }, on: ['plain', 'ore'], onText: 'Lemonade stands need flat ground.', energy: -1,
              desc: 'Squeezes lemons into water and lemonade. Near a water tower AND a lemon grove: +4 water/s, more than any ice drill. With only one of them: about +1. With neither: a trickle.' },
+  oredrill: { name: 'Ore Drill', cost: { metal: 45 }, on: ['ore'], onText: 'Ore drills go on purple ore.', energy: -3, out: { metal: 5 },
+             desc: 'A giant drill that bores deep into purple ore. +5 metal/s, more than twice a mine. Uses 3 energy/s.' },
+  turbine: { name: 'Storm Turbine', cost: { metal: 30 }, on: ['plain', 'ore'], onText: 'Turbines need flat ground.', energy: 6,
+             desc: 'Jupiter’s winds blow faster than 600 km/h. This turbine turns them into +6 energy/s.' },
+  police:  { name: 'Police Station', cost: { metal: 55 }, on: ['plain', 'ore'], onText: 'Police stations need flat ground.',
+             desc: 'Trains up to 3 police officers, one every 12 seconds (5 food each). Officers chase aliens near the station, and they can stop alien rhinos.' },
+  graveyard: { name: 'Graveyard', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Graveyards need flat ground.', unique: true,
+             desc: 'Spooky! While it stands, every new alien arrives with one less health (except ones that only have one), and bosses are 10% easier to beat.' },
   field:   { name: 'Force Field', cost: { metal: 45 }, on: ['crater'], onText: 'Force fields go over craters.', energy: -1,
              desc: 'A glowing dome over a crater. Anything that climbs out is trapped inside, bashing the dome, until it breaks through. Trapped aliens are easy to hit!' },
   wizhut:  { name: 'Wizard Hut', cost: { metal: 50 }, on: ['plain', 'ore'], onText: 'Wizard huts need flat ground.',
@@ -531,7 +541,7 @@ const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 const WHERE = {
   solar: ['surface', 'sky'], mine: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
-  cmine: ['under'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
+  cmine: ['under'], oredrill: ['surface'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
 
@@ -1639,6 +1649,264 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'Jupiter: Cloud Platforms',
+  seed: 163, n: 11, offworld: true, floating: true, sky: 'jupiterclouds', sun: 0.4, knights: true, wizards: true, tornado: [60, 85], core: ['jupiter1', 'the Cloud Core'],
+  map: { ice: 0, mountains: [[1, 1, 0.6]], craters: [[3, 6], [8, 3], [7, 8]], ore: [[5, 3, 1.3], [2, 8, 1.0]], ruins: [[9, 6]], voids: [[0, 10, 1.2], [10, 0, 1.2]] },
+  start: { metal: 160, energy: 60, water: 50, food: 80 },
+  planet: { temp: -110, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 5, 8], ['turbine', 6, 8], ['condenser', 4, 8], ['castle', 6, 6]],
+  critters: { every: [15, 21], max: 6, speed: 0.8, after: () => S.time > 30, mix: { rhino: 3, basic: 2, zippy: 1 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#d9dde8', '#aab2c8', '#8890a8'], ore: ['#c9c2e0', '#9f97bf', '#7f789f'], crater: ['#b8a888', '#9a8a6a', '#7d6e52'],
+    rock: ['#e8ecf4', '#c4cad8', '#a0a8bc'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#9aa0c4', '#757aa0', '#5d6186', '#4a4e70'],
+  },
+  deco: { pebble: '#f0e0c0', rim: '#e0d0b0', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#c4cad8', '#e8ecf4'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A huge platform held up by balloons and fans, drifting through Jupiter’s clouds. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Storm hole', 'A hole in the platform where the storm winds blow up. Alien rhinos clamber out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, blown up from deep inside Jupiter. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 3 storm turbines', get: () => count('turbine'), target: 3,
+      who: 'eng', hint: 'The sun is weak out here, but the wind never stops. Storm turbines make lots of power. Build three.' },
+    { text: 'Build an ore drill', get: () => count('oredrill'), target: 1,
+      who: 'eng', hint: 'See the purple ore? An ore drill digs out more than twice as much metal as a mine. It needs plenty of power.' },
+    { text: 'Build a police station', get: () => count('police'), target: 1,
+      who: 'cmd', hint: 'Alien rhinos! Zaps bounce off their hide. Only knights and police can stop them. Build a police station.' },
+    { text: 'Train 3 police officers', get: () => copCount(), target: 3,
+      who: 'kip', hint: 'Three police officers, please. Each one eats five food before they go on patrol.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'There is a humming stone on the platform. Build a dig site on it. Another power core, I bet!' },
+    { text: 'Defeat 6 alien rhinos', get: () => S.rhinosBeaten || 0, target: 6,
+      who: 'eng', hint: 'Each rhino takes thirteen hits. Keep the knights and police close to the buildings.' },
+  ],
+  intro: [['cmd', 'Jupiter, the biggest planet of all. There is no ground here, so we live on floating platforms in the clouds.'], ['kip', 'If you drop something, it falls for about a week. Please hold on to things.']],
+  outro: [['cmd', 'Another power core, straight out of the clouds. Watch the sky, team. The storms here are only getting started.']],
+  brief: {
+    eyebrow: 'Level 20',
+    title: 'Jupiter: Cloud Platforms',
+    body: ['Jupiter has no ground at all, so the colony lives on <b>floating platforms</b> in its clouds. The sun is weak: build <b>storm turbines</b> for power and <b>water condensers</b> for water. An <b>ore drill</b> on purple ore makes more than twice the metal of a mine.', '<b>Alien rhinos</b> take 13 hits, and only <b>knights</b> and <b>police</b> can hurt them. Watch for <b>tornadoes</b>: a red line shows their path. A <b>graveyard</b> gives every new alien one less health.'],
+    fact: '<b>Giant planet:</b> more than 1,300 Earths could fit inside Jupiter.',
+  },
+  done: {
+    title: 'Life in the clouds',
+    body: 'Turbines spinning, police on patrol and another power core for the mission.',
+    fact: '<b>Super storms:</b> winds on Jupiter blow at over 600 kilometres per hour, faster than any hurricane on Earth.',
+  },
+});
+LEVELS.push({
+  name: 'Jupiter: Storm Belt',
+  seed: 167, n: 12, offworld: true, floating: true, sky: 'jupiterclouds', sun: 0.4, knights: true, wizards: true, tornado: [40, 60], core: ['jupiter2', 'the Wind Core'],
+  map: { ice: 0, mountains: [[10, 10, 0.6]], craters: [[3, 3], [9, 3], [3, 9], [8, 8]], ore: [[6, 2, 1.2], [1, 6, 1.1]], ruins: [[10, 6]], voids: [[0, 0, 1.4], [11, 11, 1.2], [0, 11, 1.0]] },
+  start: { metal: 170, energy: 60, water: 50, food: 90 },
+  planet: { temp: -110, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 9], ['habitat', 7, 9], ['turbine', 5, 9], ['condenser', 8, 9], ['police', 6, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 25, mix: { rhino: 4, basic: 1, zippy: 1 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#d9dde8', '#aab2c8', '#8890a8'], ore: ['#c9c2e0', '#9f97bf', '#7f789f'], crater: ['#b8a888', '#9a8a6a', '#7d6e52'],
+    rock: ['#e8ecf4', '#c4cad8', '#a0a8bc'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#9aa0c4', '#757aa0', '#5d6186', '#4a4e70'],
+  },
+  deco: { pebble: '#f0e0c0', rim: '#e0d0b0', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#c4cad8', '#e8ecf4'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A huge platform held up by balloons and fans, drifting through Jupiter’s clouds. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Storm hole', 'A hole in the platform where the storm winds blow up. Alien rhinos clamber out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, blown up from deep inside Jupiter. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 2 police stations', get: () => count('police'), target: 2,
+      who: 'cmd', hint: 'The rhinos come from every side. Build a second police station.' },
+    { text: 'Train 6 police officers', get: () => copCount(), target: 6,
+      who: 'kip', hint: 'Six officers on patrol. That is a lot of food, so keep the greenhouses busy.' },
+    { text: 'Build a graveyard', get: () => count('graveyard'), target: 1,
+      who: 'bot', hint: 'A graveyard is spooky, but it works: every new alien arrives with one less health.' },
+    { text: 'Build 2 ore drills', get: () => count('oredrill'), target: 2,
+      who: 'eng', hint: 'Two ore drills for lots of metal. Rebuild anything the tornadoes blow away.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'Another humming stone, out on the edge of the platform.' },
+    { text: 'Defeat 12 alien rhinos', get: () => S.rhinosBeaten || 0, target: 12,
+      who: 'eng', hint: 'Twelve rhinos. Knights and police work best together.' },
+  ],
+  intro: [['eng', 'We are in the storm belt now. More wind for the turbines, and more tornadoes.'], ['kip', 'I have tied myself to the platform with three ropes. Four would be better.']],
+  outro: [['cmd', 'Two Jupiter power cores. The rhinos keep running in from the same direction, toward the Great Red Spot.']],
+  brief: {
+    eyebrow: 'Level 21',
+    title: 'Jupiter: Storm Belt',
+    body: ['Tornadoes come much more often in the storm belt. Watch the red lines and rebuild what blows away.', 'Build a <b>graveyard</b> so every new rhino has one less health, and train a police force.'],
+    fact: '<b>Stripes:</b> Jupiter’s stripes are belts and zones of clouds moving in opposite directions, at different speeds.',
+  },
+  done: {
+    title: 'Through the storm belt',
+    body: 'Police on every platform, and a second power core from the clouds.',
+    fact: '<b>Short days:</b> Jupiter spins faster than any other planet. A day there lasts less than 10 hours.',
+  },
+});
+LEVELS.push({
+  name: 'Jupiter: Ammonia Snow',
+  seed: 173, n: 12, offworld: true, floating: true, sky: 'jupiterclouds', sun: 0.4, knights: true, wizards: true, tornado: [45, 65], core: ['jupiter3', 'the Snow Core'],
+  map: { ice: 0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[4, 3], [8, 4], [3, 8], [9, 9]], ore: [[6, 6, 1.2], [10, 2, 1.0]], ruins: [[2, 5]], voids: [[11, 0, 1.4], [0, 11, 1.4]] },
+  start: { metal: 180, energy: 70, water: 60, food: 100 },
+  planet: { temp: -110, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['turbine', 5, 10], ['condenser', 8, 10], ['police', 6, 8], ['castle', 4, 7]],
+  critters: { every: [10, 14], max: 8, speed: 0.9, after: () => S.time > 20, mix: { rhino: 5, zippy: 1, armor: 1 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#d9dde8', '#aab2c8', '#8890a8'], ore: ['#c9c2e0', '#9f97bf', '#7f789f'], crater: ['#b8a888', '#9a8a6a', '#7d6e52'],
+    rock: ['#e8ecf4', '#c4cad8', '#a0a8bc'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#9aa0c4', '#757aa0', '#5d6186', '#4a4e70'],
+  },
+  deco: { pebble: '#f0e0c0', rim: '#e0d0b0', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#c4cad8', '#e8ecf4'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A huge platform held up by balloons and fans, drifting through Jupiter’s clouds. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Storm hole', 'A hole in the platform where the storm winds blow up. Alien rhinos clamber out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, blown up from deep inside Jupiter. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Train 6 knights and police', get: () => knightCount() + copCount(), target: 6,
+      who: 'cmd', hint: 'A rhino stampede is coming. Six knights and police officers between them.' },
+    { text: 'Build a church', get: () => count('church'), target: 1,
+      who: 'bot', hint: 'A church doubles all our damage. Rhinos have thirteen hits, so we need it.' },
+    { text: 'House 20 colonists', get: () => S.pop, target: 20,
+      who: 'bot', hint: 'Room for twenty colonists. Condensers will keep everyone watered.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'The next power core is buried in the snow drifts.' },
+    { text: 'Defeat 18 alien rhinos', get: () => S.rhinosBeaten || 0, target: 18,
+      who: 'eng', hint: 'Eighteen rhinos. Keep the graveyard and church standing.' },
+  ],
+  intro: [['bot', 'It is snowing! But it is not water snow. Up here, the snowflakes are made of frozen ammonia.'], ['kip', 'Please do not eat the snow. I am saying this mostly to myself.']],
+  outro: [['cmd', 'Three Jupiter power cores. The Great Red Spot is close now. You can hear it roaring.']],
+  brief: {
+    eyebrow: 'Level 22',
+    title: 'Jupiter: Ammonia Snow',
+    body: ['High in Jupiter’s clouds it snows <b>ammonia</b>. The rhinos are stampeding in bigger herds than ever.', 'Mix knights and police, keep a church for double damage, and find the third Jupiter power core.'],
+    fact: '<b>Ammonia clouds:</b> Jupiter’s top clouds are white ammonia ice. Deeper down are clouds of other chemicals, and maybe water.',
+  },
+  done: {
+    title: 'Snow on Jupiter',
+    body: 'Ammonia snow, a rhino stampede and a third Jupiter power core.',
+    fact: '<b>Juno:</b> NASA’s Juno spacecraft has been orbiting Jupiter since 2016, flying low over its clouds and poles.',
+  },
+});
+LEVELS.push({
+  name: 'Jupiter: Lightning Fields',
+  seed: 179, n: 12, offworld: true, floating: true, sky: 'jupiterclouds', sun: 0.4, knights: true, wizards: true, tornado: [35, 50], core: ['jupiter4', 'the Lightning Core'],
+  map: { ice: 0, mountains: [[10, 1, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8], [6, 6]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [[6, 1]], voids: [[0, 0, 1.4], [11, 11, 1.4], [0, 11, 1.0]] },
+  start: { metal: 190, energy: 70, water: 60, food: 110 },
+  planet: { temp: -110, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['turbine', 4, 10], ['condenser', 8, 10], ['police', 6, 8], ['castle', 4, 7], ['graveyard', 8, 7]],
+  critters: { every: [10, 13], max: 8, speed: 0.95, after: () => S.time > 20, mix: { rhino: 5, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#d9dde8', '#aab2c8', '#8890a8'], ore: ['#c9c2e0', '#9f97bf', '#7f789f'], crater: ['#b8a888', '#9a8a6a', '#7d6e52'],
+    rock: ['#e8ecf4', '#c4cad8', '#a0a8bc'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#9aa0c4', '#757aa0', '#5d6186', '#4a4e70'],
+  },
+  deco: { pebble: '#f0e0c0', rim: '#e0d0b0', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#c4cad8', '#e8ecf4'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A huge platform held up by balloons and fans, drifting through Jupiter’s clouds. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Storm hole', 'A hole in the platform where the storm winds blow up. Alien rhinos clamber out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, blown up from deep inside Jupiter. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 3 police stations', get: () => count('police'), target: 3,
+      who: 'cmd', hint: 'Three police stations, spread across the platforms.' },
+    { text: 'Train 9 police officers', get: () => copCount(), target: 9,
+      who: 'kip', hint: 'Nine officers. The biggest police force in the solar system!' },
+    { text: 'Build 3 ore drills', get: () => count('oredrill'), target: 3,
+      who: 'eng', hint: 'Three ore drills. We will need lots of metal to rebuild after the tornadoes.' },
+    { text: 'House 24 colonists', get: () => S.pop, target: 24,
+      who: 'bot', hint: 'Twenty four colonists, and keep them happy through the storms.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'The fourth Jupiter core is somewhere out here, between the lightning bolts.' },
+    { text: 'Defeat 20 alien rhinos', get: () => S.rhinosBeaten || 0, target: 20,
+      who: 'eng', hint: 'Twenty more rhinos. They are all running away from something.' },
+  ],
+  intro: [['eng', 'Look at that lightning. Each bolt is brighter than anything on Earth.'], ['kip', 'The rhinos keep running past us, away from the big red storm. I think they are scared.']],
+  outro: [['cmd', 'Four Jupiter power cores. Next stop: the Great Red Spot itself.']],
+  brief: {
+    eyebrow: 'Level 23',
+    title: 'Jupiter: Lightning Fields',
+    body: ['Close to the Great Red Spot, tornadoes come every half a minute and lightning flashes all around.', 'Build three police stations, a big police force and three ore drills to keep up with the damage.'],
+    fact: '<b>Super lightning:</b> lightning on Jupiter can be up to three times stronger than the biggest bolts on Earth.',
+  },
+  done: {
+    title: 'Through the lightning',
+    body: 'Four power cores from Jupiter. The rhinos were not attacking. They were running from the storm.',
+    fact: '<b>Stormy planet:</b> Jupiter has more lightning flashes in its clouds than astronomers can count.',
+  },
+});
+LEVELS.push({
+  name: 'Jupiter: The Great Red Spot',
+  seed: 181, n: 12, offworld: true, floating: true, sky: 'jupiterclouds', sun: 0.4, knights: true, wizards: true, tornado: [45, 65], storm: true,
+  map: { ice: 0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [], voids: [[11, 0, 1.4], [0, 11, 1.4]] },
+  start: { metal: 230, energy: 80, water: 70, food: 120 },
+  planet: { temp: -110, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['turbine', 4, 10], ['turbine', 8, 10], ['condenser', 9, 9], ['police', 6, 8], ['castle', 4, 7], ['wizhut', 8, 7], ['church', 6, 6]],
+  critters: { every: [11, 15], max: 8, speed: 0.95, after: () => S.time > 20, mix: { rhino: 4, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 50,
+  pal: {
+    plain: ['#d9dde8', '#aab2c8', '#8890a8'], ore: ['#c9c2e0', '#9f97bf', '#7f789f'], crater: ['#b8a888', '#9a8a6a', '#7d6e52'],
+    rock: ['#e8ecf4', '#c4cad8', '#a0a8bc'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#9aa0c4', '#757aa0', '#5d6186', '#4a4e70'],
+  },
+  deco: { pebble: '#f0e0c0', rim: '#e0d0b0', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#c4cad8', '#e8ecf4'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A huge platform held up by balloons and fans, drifting through Jupiter’s clouds. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Storm hole', 'A hole in the platform where the storm winds blow up. Alien rhinos clamber out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, blown up from deep inside Jupiter. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Train 6 knights and police', get: () => knightCount() + copCount(), target: 6,
+      who: 'cmd', hint: 'Knights and police for the rhinos. Six of them.' },
+    { text: 'Train 3 wizards', get: () => wizardCount(), target: 3,
+      who: 'kip', hint: 'Wizards can reach things that float. Three of them, please.' },
+    { text: 'Build 4 zappers', get: () => count('zapper'), target: 4,
+      who: 'eng', hint: 'Zappers cannot hurt rhinos, but they can hurt storms. Four of them.' },
+    { text: 'Build a graveyard', get: () => count('graveyard'), target: 1,
+      who: 'bot', hint: 'A graveyard makes every alien weaker, and even the biggest storm a little easier.' },
+    { text: 'Defeat 15 alien rhinos', get: () => S.rhinosBeaten || 0, target: 15,
+      who: 'eng', hint: 'Fifteen rhinos. Then we face the storm.' },
+    { text: 'Calm the Great Red Spot', get: () => S.stormDefeated ? 1 : 0, target: 1, flag: true, storm: true,
+      who: 'kip', hint: 'The Great Red Spot! Tap it, zap it, send drones and wizards. Knights cannot reach it. Watch for its tornadoes!' },
+  ],
+  intro: [['cmd', 'The Great Red Spot. A storm bigger than the whole Earth, and it has been raging for hundreds of years.'], ['bot', 'And it is waking up. I can feel the platform shaking.']],
+  outro: [['cmd', 'Five power cores from Jupiter, and the rhinos have joined the mission to free Earth. What a team we are becoming.'], ['kip', 'A rhino has decided to sit on me. I think it means we are friends.']],
+  brief: {
+    eyebrow: 'Level 24',
+    title: 'Jupiter: The Great Red Spot',
+    body: ['The <b>Great Red Spot</b> is waking up. When you are ready, the storm comes alive: it floats over the platforms, throws tornadoes at your buildings and blows in more rhinos.', '<b>Taps, zappers, drones and wizards</b> hurt it. Knights and police can’t reach it. A graveyard makes it 10% easier.'],
+    fact: '<b>Ancient storm:</b> the Great Red Spot has been spinning for at least 190 years. It is wider than the whole Earth, but it has been slowly shrinking.',
+  },
+  done: {
+    title: 'The storm is calm',
+    body: 'The Great Red Spot has calmed, and the rhinos of Jupiter have joined the mission to free Earth.',
+    fact: '<b>Still a mystery:</b> nobody knows exactly why the Great Red Spot is red. Sunlight cooking chemicals at the top of the storm is one idea.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -1729,6 +1997,7 @@ function newState(li) {
   for (const [cx, cy] of m.craters) { const t = T(cx, cy); t.type = m.wet ? 'lake' : 'crater'; t.h = 0; t.basin = true; }
   for (const [fx_, fy] of m.frost || []) { const t = T(fx_, fy); t.type = 'ice'; t.h = 1; }
   for (const [rx, ry] of m.ruins) { const t = T(rx, ry); t.type = 'ruin'; t.h = Math.max(1, Math.min(t.h, 2)); }
+  for (const [qx, qy, qr] of m.voids || []) for (const t of tiles) if (Math.hypot(t.gx - qx, t.gy - qy) <= qr) { t.type = 'void'; t.h = 1; }
   for (const [vx, vy] of m.vents || []) { const t = T(vx, vy); t.type = 'vent'; t.h = 1; }
   for (const [nx, ny] of m.nests || []) { const t = T(nx, ny); t.type = 'nest'; t.h = 1; t.nhp = 12; }
   if (m.wet) for (const t of tiles) if (t.type === 'ice') t.type = 'lake';
@@ -1744,7 +2013,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -1889,6 +2158,8 @@ function tick(dt) {
   if (L.lizardKing) maybeLizardKing(L);
   if (L.wizards) updateWizards(dt);
   if (L.robot) maybeRobot(L);
+  if (L.tornado || tornados.length) updateTornados(dt, L);
+  if (L.storm) maybeStorm(L);
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
@@ -2491,14 +2762,19 @@ const WORLDS = {
   mercury:  { level: 16, name: 'Mercury', icon: 'mercury', sys: 'mercury', body: 'mercury', fuel: 300, needs: ['engines', 'shield'], after: 'venus4', blurb: 'The planet closest to the Sun. Green blobs ooze out of its craters.' },
   mercury2: { level: 17, name: 'Mercury: Crater Maze', icon: 'mercury', sys: 'mercury', body: 'mercury', fuel: 300, needs: ['engines', 'shield'], after: 'mercury', blurb: 'Craters everywhere, and blobs in every one.' },
   mercury3: { level: 18, name: 'Mercury: The Blob Maker', icon: 'mercury', sys: 'mercury', body: 'mercury', fuel: 300, needs: ['engines', 'shield'], after: 'mercury2', blurb: 'Someone is making the blobs. Find out who.' },
+  jupiter:  { level: 19, name: 'Jupiter', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'mercury3', blurb: 'Floating platforms in the clouds of the biggest planet. Alien rhinos and tornadoes.' },
+  jupiter2: { level: 20, name: 'Jupiter: Storm Belt', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter', blurb: 'Stronger winds and more tornadoes.' },
+  jupiter3: { level: 21, name: 'Jupiter: Ammonia Snow', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter2', blurb: 'Cold, high clouds and a rhino stampede.' },
+  jupiter4: { level: 22, name: 'Jupiter: Lightning Fields', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter3', blurb: 'Huge lightning storms, close to the Great Red Spot.' },
+  jupiter5: { level: 23, name: 'Jupiter: The Great Red Spot', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter4', blurb: 'The biggest storm in the solar system is waking up.' },
   chief:  { level: 11, name: 'The Five-Head Chief', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'moon', blurb: 'Back to the Moon, where the boss of the five-headed aliens is coming.' },
 };
-const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury' };
+const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter' };
 const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -2696,6 +2972,7 @@ function updateBoss(dt) {
   if (b.kind === 'chief') { chiefStep(b, dt); return; }
   if (b.kind === 'lizard') { lizardStep(b, dt); return; }
   if (b.kind === 'robot') { robotStep(b, dt); return; }
+  if (b.kind === 'storm') { stormStep(b, dt); return; }
   b.spotT -= dt; if (b.spotT <= 0) { b.spot = (b.spot + 1 + Math.floor(Math.random() * 2)) % 3; b.spotT = b.enraged ? 1.6 : 2.3; }
   if (b.state === 'emerge') { if (b.t > 2) { b.state = 'walk'; b.t = 0; } return; }
   if (b.state === 'burrow') {
@@ -2737,9 +3014,21 @@ function hurtBoss(dmg, knight = false) {
   const b = S.boss;
   if (!b || b.state === 'dead' || b.state === 'burrow' || b.state === 'emerge') return;
   dmg *= dmgMul();
+  if (S.tiles.some(t => t.b === 'graveyard')) dmg *= 1.1; // the graveyard makes bosses 10% easier
   if (b.kind === 'king' && !knight) return;
   if (b.kind === 'chief') { chiefHit(b, dmg); return; }
   if (b.kind === 'robot') { robotHit(b, dmg); return; }
+  if (b.kind === 'storm') {
+    if (knight) return;
+    b.hp -= dmg; b.hit = 0.2;
+    const w = bossWorld(); fx.push({ kind: 'text', x: w.x + (Math.random() - 0.5) * 40, y: w.y - 90, text: '-' + Math.round(dmg * 10) / 10, life: 0.8, max: 0.8, color: '#ffd0b0' });
+    if (b.hp <= 0) {
+      b.state = 'dead'; b.t = 0; shake = RM ? 0 : 18; sfx('boom'); sfx('win');
+      fx.push({ kind: 'flash', life: 0.5, max: 0.5 }); burst(w.x, w.y - 40, 70, ['#ff8a5c', '#ffd166', '#ffffff', '#f6a878'], 2.4);
+      stormDefeated(b);
+    }
+    return;
+  }
   if (b.kind === 'lizard' && b.flying && knight) return;
   b.hp -= dmg; b.hit = 0.2;
   const w = bossWorld();
@@ -2788,6 +3077,12 @@ function bossAt(mx, my) {
   const b = S.boss;
   if (!b || b.state === 'dead' || b.state === 'burrow' || (S.view && S.view !== 'surface')) return false;
   const w = bossWorld(), sc = view.s;
+  if (b.kind === 'storm') {
+    if (b.state === 'emerge') return false;
+    const bx = view.x + w.x * sc, by = view.y + (w.y - 40 * QS) * sc;
+    if (Math.hypot((mx - bx) / (70 * QS * sc), (my - by) / (40 * QS * sc)) > 1) return false;
+    hurtBoss(2); sfx('bonk'); burst(w.x, w.y - 40 * QS, 8, ['#ffd0b0', '#ffffff']); return true;
+  }
   if (b.kind === 'robot') {
     if (b.state === 'emerge') return false;
     const k = QS * 1.15, bx = view.x + w.x * sc, by = view.y + (w.y - 60 * k) * sc;
@@ -2832,6 +3127,16 @@ function drawBoss(g) {
   if (b.state === 'dead') { alpha = clamp(1 - b.t / 2, 0, 1); k = 1 + b.t * 0.2; }
   k *= QS;
   if (b.kind === 'chief') { drawChief(g, b, w, k * 1.15, alpha); return; }
+  if (b.kind === 'storm') {
+    drawStorm(g, b, w, k, alpha);
+    if (b.state !== 'dead' && b.state !== 'emerge') {
+      const top = w.y - 40 * k - 50 * k;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#ff8a5c'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE GREAT RED SPOT', w.x, top - 6);
+    }
+    return;
+  }
   if (b.kind === 'robot') {
     drawRobot(g, b, w, k * 1.15, alpha);
     if (b.state !== 'dead' && b.state !== 'emerge') {
@@ -3247,6 +3552,138 @@ function drawRobot(g, b, w, k, alpha) {
   g.restore();
 }
 
+// ---------------------------------------------------------------- tornadoes (Jupiter)
+// Every so often a tornado sweeps across the platforms. A red dashed line shows its path for a
+// few seconds first; anything it passes over may be blown away.
+let tornados = [];
+function spawnTornado(aim) {
+  const n = S.n || N;
+  let x, y, dx, dy;
+  if (aim) {
+    const a = Math.random() * Math.PI * 2; x = aim.gx + 0.5 - Math.cos(a) * n; y = aim.gy + 0.5 - Math.sin(a) * n; dx = Math.cos(a); dy = Math.sin(a);
+  } else if (Math.random() < 0.5) { x = -1; y = 1 + Math.random() * (n - 2); dx = 1; dy = (Math.random() - 0.5) * 0.6; }
+  else { x = 1 + Math.random() * (n - 2); y = -1; dx = (Math.random() - 0.5) * 0.6; dy = 1; }
+  const d = Math.hypot(dx, dy); tornados.push({ x, y, dx: dx / d, dy: dy / d, t: 0, warn: 3.5, hit: new Set(), seed: Math.random() * 10 });
+  toast('Tornado coming! Watch the red line.', 'bad');
+  say('eng', 'Tornado! It will sweep along that red line and might blow away whatever is in the way.', 'tornado1');
+}
+function updateTornados(dt, L) {
+  if (L.tornado) {
+    S.tornT = (S.tornT ?? L.tornado[0]) - dt;
+    if (S.tornT <= 0) { spawnTornado(); S.tornT = L.tornado[0] + Math.random() * (L.tornado[1] - L.tornado[0]); }
+  }
+  const n = S.n || N;
+  for (const tor of tornados) {
+    tor.t += dt;
+    if (tor.t < tor.warn) continue;
+    tor.x += tor.dx * 1.3 * dt + Math.sin(tor.t * 3 + tor.seed) * 0.01; tor.y += tor.dy * 1.3 * dt;
+    const t = tileAt(Math.floor(tor.x), Math.floor(tor.y));
+    if (t && !tor.hit.has(t)) {
+      tor.hit.add(t);
+      if (t.b && t.b !== 'zhouse' && Math.random() < 0.4) {
+        const c = center(t); burst(c.x, c.y - 14, 18, ['#e8e0d0', '#c9b896', '#ffffff'], 1.4); sfx('whoosh');
+        toast(`A tornado blew away the ${B[t.b].name.toLowerCase()}!`, 'bad'); t.b = null; dirty = true;
+      }
+    }
+    if (tor.x < -2 || tor.y < -2 || tor.x > n + 2 || tor.y > n + 2) tor.done = true;
+  }
+  tornados = tornados.filter(t => !t.done);
+}
+function drawTornados(g) {
+  for (const tor of tornados) {
+    const wx = x => (x[0] - x[1]) * 32, wy = x => (x[0] + x[1]) * 16 - 16;
+    if (tor.t < tor.warn) { // its path, flashing
+      const a = [tor.x, tor.y], b = [tor.x + tor.dx * (S.n + 4), tor.y + tor.dy * (S.n + 4)];
+      g.save(); g.setLineDash([10, 8]); g.lineDashOffset = -RT * 40; g.strokeStyle = `rgba(255,107,129,${0.5 + 0.4 * Math.sin(RT * 10)})`; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(wx(a), wy(a)); g.lineTo(wx(b), wy(b)); g.stroke(); g.restore();
+      continue;
+    }
+    const x = wx([tor.x, tor.y]), y = wy([tor.x, tor.y]);
+    g.save(); g.translate(x, y);
+    for (let i = 0; i < 14; i++) {
+      const f = i / 13, r = 6 + f * 26, sway = Math.sin(RT * 4 + f * 4 + tor.seed) * 8 * f;
+      g.globalAlpha = 0.18 + 0.05 * (1 - f);
+      ell(g, sway, -f * 120, r, r * 0.35, i % 2 ? '#e8e0d0' : '#b8a888');
+    }
+    g.globalAlpha = 0.9;
+    for (let i = 0; i < 6; i++) { const a = RT * 6 + i, h = (i * 19 + RT * 60) % 110; ell(g, Math.cos(a) * (8 + h * 0.2), -h, 1.8, 1.8, '#8a7a5a'); }
+    g.restore();
+  }
+}
+
+// ---------------------------------------------------------------- the Great Red Spot (Jupiter)
+// Jupiter's giant storm wakes up. It floats over the platforms, throws tornadoes at buildings
+// and blows in alien rhinos. Taps, zappers, drones and wizards hurt it; knights can't reach it.
+function maybeStorm(L) {
+  if (!L.storm || S.boss || S.stormDefeated) return;
+  const ci = L.goals.findIndex(g => g.storm);
+  if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnStorm();
+}
+function spawnStorm() {
+  const n = S.n || N;
+  S.boss = { kind: 'storm', x: n / 2, y: n / 2, hp: 320, maxhp: 320, state: 'emerge', t: 0, spot: 0, spotT: 0, throwT: 7, spawnT: 10, burrowed: true, hs: 1 };
+  shake = RM ? 0 : 14; sfx('roar'); sfx('whoosh');
+  toast('THE GREAT RED SPOT has woken up!', 'bad');
+  say('kip', 'The Great Red Spot is alive! It is a storm bigger than the whole Earth, and it is angry!', 'storm1');
+  say('eng', 'Tap it, zap it, send the drones and wizards. Knights cannot reach it up there. And watch out for its tornadoes!', 'storm2');
+}
+function stormStep(b, dt) {
+  if (b.state === 'emerge') { if (b.t > 2.5) { b.state = 'walk'; b.t = 0; } return; }
+  if (!b.enraged && b.hp <= b.maxhp / 2) { b.enraged = true; toast('The Great Red Spot is spinning faster!', 'bad'); say('kip', 'It is spinning faster! More tornadoes are coming!', 'storm-rage'); }
+  b.throwT -= dt;
+  if (b.throwT <= 0) {
+    const opts = S.tiles.filter(t => t.b && t.b !== 'zhouse');
+    if (opts.length) spawnTornado(opts[Math.floor(Math.random() * opts.length)]);
+    b.throwT = b.enraged ? 9 : 14;
+  }
+  b.spawnT -= dt;
+  if (b.spawnT <= 0) { if (crits.filter(c => c.state !== 'bonked').length < 9) { spawnCritter('rhino'); spawnCritter('rhino'); } b.spawnT = 16; }
+  let tgt = S.tiles[b.ti];
+  if (!tgt || !tgt.b) {
+    const opts = S.tiles.filter(t => t.b);
+    tgt = opts.sort((p, q) => Math.hypot(p.gx + 0.5 - b.x, p.gy + 0.5 - b.y) - Math.hypot(q.gx + 0.5 - b.x, q.gy + 0.5 - b.y))[0];
+    b.ti = S.tiles.indexOf(tgt); b.chew = 0;
+  }
+  if (!tgt) return;
+  const tx = tgt.gx + 0.5, ty = tgt.gy + 0.5, d = Math.hypot(tx - b.x, ty - b.y);
+  if (d > 0.8) { const sp = 0.16 * dt; b.x += (tx - b.x) / d * sp; b.y += (ty - b.y) / d * sp; b.state = 'walk'; }
+  else {
+    b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4); b.chew = (b.chew || 0) + dt;
+    if (b.chew > 14) {
+      toast(`The Great Red Spot blew away the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      const w = center(tgt); burst(w.x, w.y - 10, 22, ['#ff8a5c', '#ffd166', '#ffffff'], 1.3);
+      tgt.b = null; b.chew = 0; sfx('whoosh');
+    }
+  }
+}
+function stormDefeated(b) {
+  S.stormDefeated = true; S.crystals += 25; S.bonks += 10; dirty = true; foundGold();
+  for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
+  tornados = [];
+  toast('The Great Red Spot has calmed down! +25 crystals', 'good');
+  say('kip', 'The storm is calm! And the rhinos have stopped stampeding. They were running from the storm all along.', 'stormdown');
+  say('cmd', 'The rhinos want to come with us. The mission to free Earth just got a lot heavier.', 'stormally');
+  gainCore('jupiter5', 'the Storm Heart Core'); gainAlly('rhinos', 'the Rhinos of Jupiter');
+}
+function drawStorm(g, b, w, k, alpha) {
+  g.save(); g.translate(w.x, w.y - 40 * k); g.globalAlpha = alpha;
+  const spin = RT * (b.enraged ? 3 : 1.8), hit = b.hit > 0;
+  for (let i = 0; i < 7; i++) {
+    const f = 1 - i / 7;
+    g.save(); g.rotate(spin * (0.5 + i * 0.15)); g.scale(1, 0.55);
+    g.globalAlpha = alpha * (0.35 + 0.08 * i);
+    ell(g, 0, 0, 70 * k * f, 70 * k * f, hit ? '#ffffff' : ['#a83a2a', '#c4552d', '#d9663a', '#e5733f', '#f08a5c', '#f6a878', '#ffd0b0'][i]);
+    g.restore();
+  }
+  g.globalAlpha = alpha;
+  for (let i = 0; i < 4; i++) { const a = spin * 1.3 + i * 1.57; g.strokeStyle = 'rgba(255,240,220,0.6)'; g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, 50 * k, 26 * k, 0, a, a + 1.2); g.stroke(); }
+  for (const ex of [-14, 14]) { ell(g, ex * k, -6 * k, 7 * k, 5 * k, '#fff3d6'); ell(g, ex * k + 1.5 * k, -5 * k, 3 * k, 3 * k, b.enraged ? '#ff2a4a' : '#1a1238'); }
+  g.strokeStyle = '#5a1a12'; g.lineWidth = 3; g.beginPath(); g.moveTo(-18 * k, -14 * k); g.lineTo(-7 * k, -10 * k); g.moveTo(18 * k, -14 * k); g.lineTo(7 * k, -10 * k); g.stroke();
+  ell(g, 0, 10 * k, 12 * k, (b.state === 'stomp' ? 6 : 3.5) * k, '#5a1a12');
+  if (Math.sin(RT * 7) > 0.85) { g.strokeStyle = '#fff6a0'; g.lineWidth = 2; g.beginPath(); g.moveTo(40 * k, -10 * k); g.lineTo(48 * k, 6 * k); g.lineTo(42 * k, 6 * k); g.lineTo(52 * k, 24 * k); g.stroke(); }
+  g.restore();
+}
+
 // ---------------------------------------------------------------- the mission to free Earth
 // Earth has been invaded. Power cores and allies, gathered from all over the solar system,
 // are saved across every game on this device.
@@ -3590,6 +4027,8 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'jupiter') {
+    drawJupiter(g, x, y, r);
   } else if (kind === 'mercury') {
     drawMercury(g, x, y, r);
   } else if (kind === 'venus') {
@@ -3645,6 +4084,8 @@ const KINDS = {
   lizard:   { hp: 6, spd: 0.85, size: 1.6, steal: 1.3, lizard: true },
   // Mercury's green blobs: ten hits, knights' swords just sink into the goo, and they often come in pairs
   blob:     { hp: 10, spd: 0.65, size: 1.5, steal: 1.2, blob: true, noKnight: true },
+  // Jupiter's alien rhinos: hide so thick that only knights and police can hurt them
+  rhino:    { hp: 13, spd: 0.8, size: 1.8, steal: 1.6, immune: true, rhino: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -3652,6 +4093,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  rhino: ['eng', 'Alien rhinos! Their hide is so thick that zaps and taps bounce right off. Only knights and police officers can stop them.'],
   blob: ['kip', 'A green blob! It takes ten hits, and knights cannot hurt it: their swords just sink into the goo. Zappers, taps and wizards work.'],
   lizard: ['eng', 'Lizard people! Zaps bounce off their scales on the ground, but when they fly up, the zappers can hit them. Knights can only fight them on the ground.'],
   fivehead: ['kip', 'That alien has five heads! Every hit knocks one off, but leave it alone and a head grows back. Five quick hits!'],
@@ -3663,10 +4105,11 @@ function pickKind() {
   for (const [k, w] of Object.entries(mix)) {
     r -= w;
     // shell-beasts hold off until you have a castle, or until you have had plenty of time to build one
-    if (r <= 0) return KINDS[k].immune && !count('castle') && S.time < 180 ? 'basic' : k;
+    if (r <= 0) return KINDS[k].immune && !count('castle') && !count('police') && S.time < 180 ? 'basic' : k;
   }
   return 'basic';
 }
+const graveHp = hp => hp > 1 && S.tiles.some(t => t.b === 'graveyard') ? hp - 1 : hp;
 function spawnCritter(kind = pickKind(), from = null) {
   const targets = S.tiles.filter(t => t.b && t.b !== 'zapper' && t.b !== 'field');
   if (!targets.length) return false;
@@ -3677,9 +4120,9 @@ function spawnCritter(kind = pickKind(), from = null) {
   else { const e = Math.random() * N; [hx, hy] = Math.random() < 0.5 ? [e, N - 0.3] : [N - 0.3, e]; }
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
-  const col = kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
-               kind, hp: K.hp, maxhp: K.hp, hit: 0, col, seed: Math.random() * 10 });
+               kind, hp: graveHp(K.hp), maxhp: graveHp(K.hp), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
   if (K.blob && Math.random() < 0.35) { // blobs often come out in pairs
     made.push({ ...made[0], x: hx + 0.25, y: hy + 0.2, loot: {}, seed: Math.random() * 10 });
@@ -3861,7 +4304,8 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     burst(p.x, p.y - 14, 6, ['#ffffff', '#9be3ff']);
     fx.push({ kind: 'text', x: p.x, y: p.y - 30, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
     sfx('clang');
-    if (count('castle')) say('kip', 'Tink! Lasers and bonks bounce right off. Leave the shell-beasts to the knights.', 'shell-tink2');
+    if (KINDS[c.kind].rhino) say('eng', 'Rhino hide is too tough for zaps and taps! Only knights and police officers can stop them.', 'rhino-tink');
+    else if (count('castle')) say('kip', 'Tink! Lasers and bonks bounce right off. Leave the shell-beasts to the knights.', 'shell-tink2');
     else say('eng', 'Our zaps just bounce off that shell! Build a castle. Its knights are the only thing that can beat a shell-beast.', 'shell-tink');
     return;
   }
@@ -3885,7 +4329,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].immune) {
+  if (KINDS[c.kind || 'basic'].rhino) {
+    S.rhinosBeaten = (S.rhinosBeaten || 0) + 1;
+    say('kip', 'A rhino is down! It went to sleep with a very big snore.', 'rhino-down');
+    S.crystals += 2;
+  } else if (KINDS[c.kind || 'basic'].immune) {
     S.shellBeaten = (S.shellBeaten || 0) + 1;
     say('kip', 'The knights beat a shell-beast! It dropped a whole handful of crystals.', 'shell-down');
     S.crystals += 2;
@@ -4242,7 +4690,7 @@ function terra() {
 
 function drawTile(g, t) {
   if (t.type === 'void') return;
-  const sky = t.layer === 'sky';
+  const sky = t.layer === 'sky' || !!LEVELS[S.level].floating;
   const c = center(t), d = sky ? t.h * HZ + 14 : t.h * HZ + BASE;
   const LP = LEVELS[S.level].pal || {};
   const pal = LP[t.type] || PAL[t.type];
@@ -4593,6 +5041,46 @@ const DRAW = {
       g.fillStyle = '#8a5a3c'; g.fillRect(x - 1, y - 6, 2, 7);
       ell(g, x, y - 10, r, r, '#3fae6b'); ell(g, x - 2, y - 12, r * 0.55, r * 0.5, '#7ddc9f');
     }
+  },
+  oredrill(g, T, v) {
+    shadow(g, 18, 8);
+    isoBox(g, 0, 4, 14, 7, 8, '#9aa0c4', '#757aa0', '#5d6186');
+    g.strokeStyle = '#f6c453'; g.lineWidth = 2.6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-10, -2); g.lineTo(0, -40); g.lineTo(10, -2); g.moveTo(-7, -14); g.lineTo(7, -14); g.moveTo(-4, -27); g.lineTo(4, -27); g.stroke();
+    const sp = T * 9 * (S ? S.eff : 1);
+    g.fillStyle = '#c9cee8'; g.fillRect(-2.5, -36, 5, 30);
+    for (let i = 0; i < 4; i++) { const y = -32 + ((i * 7 + sp * 3) % 26); g.fillStyle = '#7d849e'; poly(g, [[-3, y], [3, y + 2], [3, y + 4], [-3, y + 2]]); }
+    g.fillStyle = '#a68cff'; poly(g, [[-4, -6], [4, -6], [0, 2]]);
+    ell(g, 0, -40, 2.4, 2.4, '#c9a7ff');
+    ell(g, 13, 5, 6.5, 3, '#7a5fd0'); ell(g, 12, 3.4, 4.2, 2.4, '#a68cff');
+  },
+  turbine(g, T, v) {
+    shadow(g, 10, 5);
+    g.fillStyle = '#e8eef8'; poly(g, [[-2.5, 0], [2.5, 0], [1.4, -44], [-1.4, -44]]);
+    g.save(); g.translate(0, -44); g.rotate(T * 4 + v * 6);
+    g.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) { g.rotate(Math.PI * 2 / 3); poly(g, [[-1.5, 0], [1.5, 0], [1, -22], [-1, -22]]); }
+    g.restore(); ell(g, 0, -44, 3, 3, '#c9cee8');
+  },
+  police(g, T, v) {
+    shadow(g, 22, 10);
+    isoBox(g, 0, 4, 19, 9.5, 20, '#d5def5', '#4a64c9', '#3a50a8');
+    g.fillStyle = '#ffffff'; g.fillRect(-14, -12, 12, 4); g.fillStyle = '#1a1238'; g.font = '700 4px sans-serif'; g.fillText('POLICE', -13.5, -9);
+    g.fillStyle = '#d5def5'; g.fillRect(4, -10, 6, 8);
+    const flash = Math.sin(T * 10 + v * 6) > 0;
+    ell(g, -5, -30, 3, 2, flash ? '#ff6b81' : '#7a2236'); ell(g, 5, -30, 3, 2, flash ? '#2a3a7a' : '#5cc8ff');
+    g.fillStyle = '#9aa0c4'; g.fillRect(-8, -29, 16, 2);
+  },
+  graveyard(g, T, v) {
+    ell(g, 0, 2, 20, 10, '#5a7a4a');
+    g.strokeStyle = '#3b3f5c'; g.lineWidth = 1.2;
+    for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(i * 5 - 10, 7 - i * 2.5 + 2); g.lineTo(i * 5 - 10, 7 - i * 2.5 - 6); g.stroke(); }
+    for (const [x, y] of [[-8, -2], [2, -5], [8, 2]]) {
+      g.fillStyle = '#9aa0b4'; g.beginPath(); g.moveTo(x - 4, y + 2); g.lineTo(x - 4, y - 6); g.arc(x, y - 6, 4, Math.PI, 0); g.lineTo(x + 4, y + 2); g.closePath(); g.fill();
+      g.strokeStyle = '#6f7590'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x, y - 3); g.moveTo(x - 2, y - 6); g.lineTo(x + 2, y - 6); g.stroke();
+    }
+    const gy = -20 + Math.sin(T * 2 + v * 5) * 3;
+    g.fillStyle = 'rgba(230,248,255,0.85)'; g.beginPath(); g.moveTo(4, gy + 8); g.quadraticCurveTo(3, gy - 6, 9, gy - 6); g.quadraticCurveTo(15, gy - 6, 14, gy + 8); g.lineTo(12, gy + 6); g.lineTo(10, gy + 8); g.lineTo(8, gy + 6); g.lineTo(6, gy + 8); g.closePath(); g.fill();
+    ell(g, 7.5, gy - 1, 1, 1.3, '#1a1238'); ell(g, 10.5, gy - 1, 1, 1.3, '#1a1238');
   },
   field(g, T, v, t) {
     for (const [x, y] of [[-20, 0], [20, 0], [0, -10], [0, 10]]) { g.fillStyle = '#5d6186'; g.fillRect(x - 1.5, y - 8, 3, 8); ell(g, x, y - 8, 2.4, 2.4, '#7ff7ff'); }
@@ -4990,7 +5478,7 @@ function drawBuildingOn(g, t) {
     for (let i = 0; i < WIZ_PER; i++) ell(g, (i - 1) * 7, -58, 2.6, 2.6, i < (t.wz || 0) ? '#c9a7ff' : 'rgba(255,255,255,0.22)');
     if ((t.wz || 0) < WIZ_PER) { g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-14, -53, 28, 4); g.fillStyle = '#c9a7ff'; g.fillRect(-13, -52, 26 * clamp(t.wtrain || 0, 0, 1), 2); }
   }
-  if (t.b === 'castle' && t.born < RT - 0.5) {
+  if ((t.b === 'castle' || t.b === 'police') && t.born < RT - 0.5) {
     for (let i = 0; i < KNIGHTS_PER; i++) ell(g, (i - 1) * 7, -58, 2.6, 2.6, i < (t.kn || 0) ? '#ffd166' : 'rgba(255,255,255,0.22)');
     if ((t.kn || 0) < KNIGHTS_PER) { g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-14, -53, 28, 4); g.fillStyle = '#ffd166'; g.fillRect(-13, -52, 26 * clamp(t.train || 0, 0, 1), 2); }
   }
@@ -5015,7 +5503,7 @@ const LIGHTS = {
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
   zapper: [[0, -37, 16, '#9be3ff']],
-  condenser: [[0, -9, 10, '#5cc8ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
+  condenser: [[0, -9, 10, '#5cc8ff']], oredrill: [[0, -36, 8, '#c9a7ff']], police: [[-6, -30, 8, '#ff6b81'], [6, -30, 8, '#5cc8ff']], graveyard: [[8, -22, 10, '#b8f0ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
   lemonade: [[0, -26, 10, '#ffe066']], lemon: [[0, -14, 12, '#fff3a0']],
   castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
   solar: [], mine: [[0, -30, 6, '#ffe08a']],
@@ -5104,6 +5592,33 @@ function drawLizard(g, c, p, k, alpha, walking) {
   drawLizardBody(g, c.col, walking && !fly ? Math.sin(c.t * 12 + c.seed) * 4 : 0, fly, c.hit > 0, false);
   g.restore();
 }
+function drawRhino(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  ell(g, 0, 1, 10 * k, 3.6 * k, 'rgba(20,20,40,0.3)');
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -22 * k, w, 4);
+    g.fillStyle = '#ff6b81'; g.fillRect(-w / 2 + 1, -22 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  if (c.state === 'bonked') { g.translate(0, -4); g.scale(1, -0.85); }
+  const col = c.hit > 0 ? '#ffffff' : c.col, dark = shade(c.col, -0.35), light = shade(c.col, 0.3);
+  const step = walking ? Math.sin(c.t * 10 + c.seed) * 1.4 : 0;
+  g.fillStyle = dark; for (const [x, s_] of [[-6, 1], [-2.5, -1], [3, 1], [6.5, -1]]) g.fillRect(x - 1.3 + step * s_ * 0.5, -4, 2.6, 4);
+  ell(g, 0, -7, 9, 5.5, col);
+  g.fillStyle = light; g.beginPath(); g.ellipse(-1, -9, 7, 3, 0, Math.PI, 0); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 0.8; for (const x of [-4, 0, 4]) { g.beginPath(); g.moveTo(x, -12); g.lineTo(x + 1, -3); g.stroke(); }
+  ell(g, 9, -6.5, 4.5, 3.6, col);
+  g.fillStyle = '#fff3d6'; poly(g, [[11, -9], [16, -14], [13, -7.5]]); poly(g, [[9.5, -9.5], [11, -12.5], [11.5, -9]]);
+  for (const [ex, ey] of [[8, -8.5], [10, -9.5], [9, -6.8]]) {
+    if (c.state === 'bonked') { g.strokeStyle = '#1a1238'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(ex - 0.8, ey - 0.8); g.lineTo(ex + 0.8, ey + 0.8); g.stroke(); }
+    else { ell(g, ex, ey, 1, 1, '#fff3a0'); ell(g, ex + 0.3, ey, 0.45, 0.5, '#1a1238'); }
+  }
+  ell(g, -3, -14, 2, 1.4, dark); ell(g, 2, -14.5, 2, 1.4, dark);
+  if (c.state === 'bonked') for (let i = 0; i < 3; i++) { const a = c.t * 8 + i * 2.1; ell(g, Math.cos(a) * 9, -14 + Math.sin(a) * 2.5, 1.5, 1.5, '#ffd166'); }
+  g.restore();
+}
 function drawBlob(g, c, p, k, alpha, walking) {
   g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 9 * k, 3.2 * k, 'rgba(30,70,20,0.3)');
@@ -5185,12 +5700,14 @@ function drawShell(g, c, p, k, alpha, walking, bob) {
 let knights = [];
 const KNIGHTS_PER = 3, GUARD = 4.3;
 const knightCount = () => S.tiles.reduce((n, t) => n + (t.b === 'castle' ? t.kn || 0 : 0), 0);
+const copCount = () => S.tiles.reduce((n, t) => n + (t.b === 'police' ? t.kn || 0 : 0), 0);
+const isBarracks = b => b === 'castle' || b === 'police';
 function newKnight(t, i) {
-  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, hp: 4, maxhp: 4, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
+  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, cop: t.b === 'police', hp: 4, maxhp: 4, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
 }
 function updateKnights(dt) {
   for (const t of S.tiles) {
-    if (t.b !== 'castle') { if (t.kn) { t.kn = 0; t.train = 0; } continue; }
+    if (!isBarracks(t.b)) { if (t.kn) { t.kn = 0; t.train = 0; } continue; }
     t.kn = t.kn || 0;
     let have = knights.filter(k => k.home === t).length;
     while (have < t.kn) knights.push(newKnight(t, have++));
@@ -5202,12 +5719,13 @@ function updateKnights(dt) {
       knights.push(newKnight(t, have));
       const c = center(t);
       burst(c.x, c.y - 20, 12, ['#ffd166', '#ffffff', '#5c7cfa']);
-      fx.push({ kind: 'text', x: c.x, y: c.y - 46, text: 'Knight!', life: 1.2, max: 1.2, color: '#ffd166' });
+      fx.push({ kind: 'text', x: c.x, y: c.y - 46, text: t.b === 'police' ? 'Officer!' : 'Knight!', life: 1.2, max: 1.2, color: '#ffd166' });
       sfx('chime');
-      say('kip', 'A knight just marched out of the castle! They will guard everything nearby, all on their own.', 'knight1');
+      if (t.b === 'police') say('kip', 'A police officer is on patrol! Officers chase aliens near the station, and they can stop the alien rhinos.', 'cop1');
+      else say('kip', 'A knight just marched out of the castle! They will guard everything nearby, all on their own.', 'knight1');
     }
   }
-  knights = knights.filter(k => k.home.b === 'castle');
+  knights = knights.filter(k => k.home.b === (k.cop ? 'police' : 'castle'));
   const king = S.boss && (S.boss.kind === 'king' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
   for (const k of knights) {
     k.t += dt; k.cd -= dt; k.swing = Math.max(0, k.swing - dt); k.hit = Math.max(0, k.hit - dt);
@@ -5235,7 +5753,7 @@ function updateKnights(dt) {
       const reach = k.tgt === 'king' ? 1.25 : 0.35 + 0.2 * KINDS[f.kind || 'basic'].size;
       // spread out around the foe instead of stacking on one spot
       const a = k.seed + k.i * 2.1, ox = Math.cos(a) * reach * 0.8, oy = Math.sin(a) * reach * 0.8;
-      if (Math.hypot(f.x - k.x, f.y - k.y) > reach) { stepToward(k, f.x + ox, f.y + oy, 1.45 * dt); k.state = 'chase'; }
+      if (Math.hypot(f.x - k.x, f.y - k.y) > reach) { stepToward(k, f.x + ox, f.y + oy, (k.cop ? 1.75 : 1.45) * dt); k.state = 'chase'; }
       else {
         k.state = 'fight'; k.face = (f.x - k.x) - (f.y - k.y) > 0 ? 1 : -1;
         if (k.tgt !== 'king') f.fighting = 0.4;
@@ -5312,6 +5830,31 @@ function drawWizard(g, w) {
   ell(g, 5.5, by - 13, 3.6 * glow, 3.6 * glow, `rgba(201,167,255,${0.5 * glow})`); ell(g, 5.5, by - 13, 1.6, 1.6, '#f3e8ff');
   g.restore();
 }
+function drawCop(g, k) {
+  const p = critWorld(k);
+  const moving = k.state === 'chase' || k.state === 'walk' || k.state === 'hurt';
+  const bob = moving ? Math.abs(Math.sin(k.t * 12 + k.seed)) * 1.6 : 0;
+  g.save(); g.translate(p.x, p.y);
+  if (k.state === 'heal') g.globalAlpha = 0.55;
+  ell(g, 0, 1, 5.5, 2.2, 'rgba(70,16,24,0.25)');
+  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - 1.5) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
+  g.scale(1.25 * k.face, 1.25);
+  const by = -6 - bob, blue = k.hit > 0 ? '#ffffff' : k.state === 'hurt' ? '#7d849e' : '#2f4fb8';
+  const st = moving ? Math.sin(k.t * 12 + k.seed) * 1.2 : 0;
+  g.fillStyle = '#1a2a5a'; g.fillRect(-2.4 + st, by + 2.5, 1.9, 3.8 + bob); g.fillRect(0.6 - st, by + 2.5, 1.9, 3.8 + bob);
+  ell(g, 0, by, 3.8, 4.4, blue);
+  ell(g, -1.5, by - 1.5, 1, 1, '#ffd166');
+  ell(g, 0.4, by - 6, 3, 3.1, '#ffd7b8');
+  g.fillStyle = '#1a2a5a'; g.fillRect(-3.2, by - 9.5, 6.6, 2.6); g.fillRect(-1, by - 7.2, 5.2, 1);
+  ell(g, 0.2, by - 9.4, 1, 0.8, '#ffd166');
+  ell(g, 1.6, by - 6, 0.6, 0.7, '#1a1238');
+  const ang = k.swing > 0 ? -1.4 + (1 - k.swing / 0.25) * 2.4 : k.state === 'fight' ? -1.2 : -0.3;
+  g.save(); g.translate(3.4, by + 0.5); g.rotate(ang);
+  g.fillStyle = '#2a2550'; g.fillRect(-0.8, -8, 1.6, 8); g.fillRect(-0.8, -3, 3, 1.2);
+  g.restore();
+  if (k.state === 'hurt') for (let i = 0; i < 3; i++) { const a = k.t * 7 + i * 2.1; ell(g, Math.cos(a) * 5, by - 11 + Math.sin(a) * 1.6, 1.1, 1.1, '#ffd166'); }
+  g.restore();
+}
 function hurtKnight(k, dmg, from) {
   k.hp -= dmg; k.hit = 0.3;
   const dx = k.x - from.x, dy = k.y - from.y, d = Math.hypot(dx, dy) || 1;
@@ -5367,6 +5910,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.rhino) { drawRhino(g, c, p, k, alpha, walking); return; }
   if (K.immune) { drawShell(g, c, p, k, alpha, walking, bob); return; }
   if (c.kind === 'fivehead') { drawFive(g, c, p, k, alpha, walking); return; }
   if (KINDS[c.kind || 'basic'].lizard) { drawLizard(g, c, p, k, alpha, walking); return; }
@@ -5709,6 +6253,19 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'jupiterclouds') { // inside Jupiter's clouds: stripes of storm, and the Great Red Spot far away
+    const bands = ['#e8c99a', '#d9a670', '#f3e2c4', '#c98a5a', '#ead2ae', '#b8784e', '#f0dcc0'];
+    for (let i = 0; i < bands.length; i++) {
+      const y0 = (i / bands.length) * H, hgt = H / bands.length + 2;
+      g.fillStyle = bands[i]; g.beginPath(); g.moveTo(0, y0);
+      for (let x = 0; x <= W; x += 40) g.lineTo(x, y0 + Math.sin(x * 0.01 + RT * 0.15 + i) * 8);
+      g.lineTo(W, y0 + hgt); g.lineTo(0, y0 + hgt); g.fill();
+    }
+    for (let i = 0; i < 9; i++) ell(g, ((i * 173 + RT * (10 + i * 3)) % (W + 300)) - 150, (i * 97) % H, 90 + (i % 3) * 40, 14, 'rgba(255,250,240,0.35)');
+    const rx = W * 0.82, ry = H * 0.62;
+    ell(g, rx, ry, 90, 44, '#e8b090'); ell(g, rx, ry, 70, 32, '#c4552d'); ell(g, rx - 8, ry - 4, 34, 15, '#d9663a');
+    return;
+  }
   if (sk === 'mercury') { // no air, so the stars stay out, and the Sun is three times bigger than from Earth
     const sr = Math.min(W, H) * 0.13, x = W * 0.14, y = H * 0.2;
     const gl = g.createRadialGradient(x, y, sr * 0.6, x, y, sr * 2.6);
@@ -5757,9 +6314,10 @@ function render() {
   for (const t of order) {
     drawTile(ctx, t);
     if (t.b) drawBuildingOn(ctx, t);
-    const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.wiz ? drawWizard : c.home ? drawKnight : drawCritter)(ctx, c);
+    const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.wiz ? drawWizard : c.cop ? drawCop : c.home ? drawKnight : drawCritter)(ctx, c);
   }
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
+  if (surf && tornados.length) drawTornados(ctx);
   if (hover && !tool) {
     const c = center(hover);
     ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
@@ -5971,6 +6529,11 @@ function showTitle() {
       <button class="lvl merc" data-l="16"><span class="n">17</span><span><b>Mercury: Sunside</b><small>Green blobs, force fields and wizards, right next to the Sun.</small></span><span class="go">Play</span></button>
       <button class="lvl merc" data-l="17"><span class="n">18</span><span><b>Mercury: Crater Maze</b><small>Blobs in every crater. The sixth power core.</small></span><span class="go">Play</span></button>
       <button class="lvl merc2" data-l="18"><span class="n">19</span><span><b>Mercury: The Blob Maker</b><small>Who is making the blobs? Find out.</small></span><span class="go">Play</span></button>
+      <button class="lvl jup" data-l="19"><span class="n">20</span><span><b>Jupiter: Cloud Platforms</b><small>Floating platforms, alien rhinos, police and tornadoes.</small></span><span class="go">Play</span></button>
+      <button class="lvl jup" data-l="20"><span class="n">21</span><span><b>Jupiter: Storm Belt</b><small>More tornadoes, and a spooky graveyard.</small></span><span class="go">Play</span></button>
+      <button class="lvl jup" data-l="21"><span class="n">22</span><span><b>Jupiter: Ammonia Snow</b><small>Snow made of ammonia, and a rhino stampede.</small></span><span class="go">Play</span></button>
+      <button class="lvl jup" data-l="22"><span class="n">23</span><span><b>Jupiter: Lightning Fields</b><small>Lightning, tornadoes and a big police force.</small></span><span class="go">Play</span></button>
+      <button class="lvl jup2" data-l="23"><span class="n">24</span><span><b>Jupiter: The Great Red Spot</b><small>The biggest storm in the solar system wakes up.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -6074,7 +6637,7 @@ function afterLoad() {
   S.view = S.view || 'surface'; S.techs = S.techs || []; S.science = S.science || 0; S.fuel = S.fuel || 0; S.nestsSmashed = S.nestsSmashed || 0;
   S.said = S.said || {}; S.lastProgress = S.lastProgress ?? S.time; S.lastNudge = S.lastNudge ?? 0;
   buildOrder(); buildToolbar(); buildGoals();
-  tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; knights = []; wizards = []; once.clear(); shortageWarned = false;
+  tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; knights = []; wizards = []; tornados = []; once.clear(); shortageWarned = false;
   if (S.launchT) S.launchT = 0;
   if (S.rocket && S.rocket.launched && !S.escaped) {
     S.rocket.launched = false;
@@ -6409,7 +6972,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v6) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : 16)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = true; }
+    if (d && d.S && !d.S.v7) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : 19)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;

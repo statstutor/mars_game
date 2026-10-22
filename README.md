@@ -88,6 +88,17 @@ screen, saved on the device), and one day come home to free Earth.
 19. **Mercury: The Blob Maker**: a surprise boss (the Mega-Blobber 3000, a robot that brews the
     blobs). Knock off its four armour plates, then hit its core. Beating it wins a power core and
     the blobs of Mercury as allies.
+20. **Jupiter: Cloud Platforms** (on the star map after Mercury). No ground, so the colony lives on
+    floating platforms. **Storm turbines** for power, **water condensers** for water, and the **ore
+    drill** (+5 metal/s on purple ore, more than twice a mine). **Alien rhinos** take 13 hits and
+    only **knights** and **police** (from **police stations**) can hurt them. **Tornadoes** sweep
+    across along a flashing red line and may blow buildings away. A **graveyard** gives every new
+    alien one less health (bonkers stay at one) and makes bosses 10% easier.
+21. **Jupiter: Storm Belt**, 22. **Ammonia Snow**, 23. **Lightning Fields**: more rhinos, more
+    tornadoes, a power core in each.
+24. **Jupiter: The Great Red Spot**: the giant storm wakes up, floats over the platforms, throws
+    tornadoes and blows in rhinos. Taps, zappers, drones and wizards hurt it; knights can't reach
+    it. Calming it wins a power core and the rhinos as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
