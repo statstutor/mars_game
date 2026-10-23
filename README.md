@@ -3,6 +3,11 @@
 A small tile-based terraforming game in the flat, colourful style of science explainer animations.
 Turn a frozen, rusty Mars into a world with lakes, clouds and lichen, one isometric tile at a time.
 
+## Also in this repo
+
+**[Marcus & the Ending Eaters](latin/)**: a Latin endings game for young kids (-us, -um, -ō, -ī).
+See `latin/README.md`.
+
 ## Play
 
 Open `index.html` in a browser. It's a single file with no build step and no dependencies.

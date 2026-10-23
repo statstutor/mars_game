@@ -1,0 +1,135 @@
+// Word bank for "Marcus and the Ending Eaters".
+// To add a word: copy one entry, change the forms, and pick scenes the art already knows
+// (see SCENES in art.js). `stem` is the part before the ending, `say` is how the stem
+// sounds (used for the recorded voice), `object` picks the drawing.
+// Latin sentences use Marcus (the boy) so the kid keeps seeing -us on the one doing things.
+window.LATIN_WORDS = [
+  {
+    lemma: 'lupus', meaning: 'wolf', plural: 'wolves', gender: 'm', object: 'wolf', stem: 'lup', say: 'loo-p',
+    forms: { normal: 'lupus', accusative: 'lupum', ablative: 'lupō', plural: 'lupī' },
+    scenes: [
+      { form: 'normal', scene: 'act', la: 'Lupus currit.', en: 'The WOLF runs.' },
+      { form: 'normal', scene: 'alone', la: 'Lupus sedet.', en: 'The WOLF sits.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus lupum spectat.', en: 'Marcus looks at the WOLF.' },
+      { form: 'accusative', scene: 'touch', la: 'Marcus lupum tangit.', en: 'Marcus pets the WOLF.' },
+      { form: 'ablative', scene: 'with', la: 'Marcus cum lupō ambulat.', en: 'Marcus walks WITH the wolf.' },
+      { form: 'ablative', scene: 'by', la: 'Marcus ā lupō lambitur.', en: 'Marcus gets licked BY the wolf.' },
+      { form: 'plural', scene: 'many3', la: 'Lupī ululant.', en: 'The WOLVES howl.' },
+      { form: 'plural', scene: 'many2', la: 'Duo lupī sedent.', en: 'Two WOLVES sit.' },
+    ],
+  },
+  {
+    lemma: 'equus', meaning: 'horse', plural: 'horses', gender: 'm', object: 'horse', stem: 'equ', say: 'eh-kw',
+    forms: { normal: 'equus', accusative: 'equum', ablative: 'equō', plural: 'equī' },
+    scenes: [
+      { form: 'normal', scene: 'act', la: 'Equus currit.', en: 'The HORSE gallops.' },
+      { form: 'normal', scene: 'alone', la: 'Equus stat.', en: 'The HORSE stands.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus equum spectat.', en: 'Marcus looks at the HORSE.' },
+      { form: 'accusative', scene: 'toward', la: 'Marcus ad equum ambulat.', en: 'Marcus walks TO the horse.' },
+      { form: 'ablative', scene: 'ride', la: 'Marcus equō vehitur.', en: 'Marcus rides ON the horse.' },
+      { form: 'ablative', scene: 'with', la: 'Marcus cum equō ambulat.', en: 'Marcus walks WITH the horse.' },
+      { form: 'plural', scene: 'many2', la: 'Equī stant.', en: 'The HORSES stand.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs equī currunt.', en: 'Three HORSES run.' },
+    ],
+  },
+  {
+    lemma: 'ventus', meaning: 'wind', plural: 'winds', gender: 'm', object: 'wind', stem: 'vent', say: 'wen-t',
+    forms: { normal: 'ventus', accusative: 'ventum', ablative: 'ventō', plural: 'ventī' },
+    scenes: [
+      { form: 'normal', scene: 'act', la: 'Ventus flat.', en: 'The WIND blows the leaves.' },
+      { form: 'normal', scene: 'alone', la: 'Ventus flat.', en: 'The WIND blows.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus ventum spectat.', en: 'Marcus watches the WIND.' },
+      { form: 'accusative', scene: 'toward', la: 'Marcus in ventum currit.', en: 'Marcus runs INTO the wind.' },
+      { form: 'ablative', scene: 'blown', la: 'Capillus ventō movētur.', en: 'Marcus\'s hair is blown BY the wind.' },
+      { form: 'ablative', scene: 'kite', la: 'Mīluus ventō volat.', en: 'The kite flies BY the wind.' },
+      { form: 'plural', scene: 'many2', la: 'Ventī flant.', en: 'The WINDS blow.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs ventī flant.', en: 'Three WINDS blow.' },
+    ],
+  },
+  {
+    lemma: 'murus', meaning: 'wall', plural: 'walls', gender: 'm', object: 'wall', stem: 'mur', say: 'moo-r',
+    forms: { normal: 'murus', accusative: 'murum', ablative: 'murō', plural: 'murī' },
+    scenes: [
+      { form: 'normal', scene: 'alone', la: 'Murus stat.', en: 'The WALL stands.' },
+      { form: 'normal', scene: 'act', la: 'Murus altus est.', en: 'The WALL is tall.' },
+      { form: 'accusative', scene: 'toward', la: 'Marcus ad murum ambulat.', en: 'Marcus walks TO the wall.' },
+      { form: 'accusative', scene: 'climb', la: 'Marcus murum ascendit.', en: 'Marcus climbs the WALL.' },
+      { form: 'ablative', scene: 'sitOn', la: 'Marcus in murō sedet.', en: 'Marcus sits ON the wall.' },
+      { form: 'ablative', scene: 'hide', la: 'Marcus murō cēlātur.', en: 'Marcus is hidden BY the wall.' },
+      { form: 'plural', scene: 'many2', la: 'Murī stant.', en: 'The WALLS stand.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs murī stant.', en: 'Three WALLS stand.' },
+    ],
+  },
+  {
+    lemma: 'nāsus', meaning: 'nose', plural: 'noses', gender: 'm', object: 'nose', stem: 'nās', say: 'nah-s',
+    forms: { normal: 'nāsus', accusative: 'nāsum', ablative: 'nāsō', plural: 'nāsī' },
+    scenes: [
+      { form: 'normal', scene: 'alone', la: 'Nāsus magnus est.', en: 'The NOSE is big.' },
+      { form: 'normal', scene: 'act', la: 'Nāsus olfacit.', en: 'The NOSE sniffs.' },
+      { form: 'accusative', scene: 'touch', la: 'Marcus nāsum tangit.', en: 'Marcus touches the NOSE.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus nāsum spectat.', en: 'Marcus looks at the NOSE.' },
+      { form: 'ablative', scene: 'sniff', la: 'Marcus nāsō flōrem olfacit.', en: 'Marcus smells a flower WITH his nose.' },
+      { form: 'ablative', scene: 'held', la: 'Marcus nāsō tenētur.', en: 'Marcus is grabbed BY the nose.' },
+      { form: 'plural', scene: 'many2', la: 'Duo nāsī.', en: 'Two NOSES.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs nāsī.', en: 'Three NOSES.' },
+    ],
+  },
+  {
+    lemma: 'circulus', meaning: 'circle', plural: 'circles', gender: 'm', object: 'circle', stem: 'circul', say: 'keer-koo-l',
+    forms: { normal: 'circulus', accusative: 'circulum', ablative: 'circulō', plural: 'circulī' },
+    scenes: [
+      { form: 'normal', scene: 'alone', la: 'Circulus.', en: 'A CIRCLE.' },
+      { form: 'normal', scene: 'act', la: 'Circulus volvitur.', en: 'The CIRCLE rolls.' },
+      { form: 'accusative', scene: 'draw', la: 'Marcus circulum pingit.', en: 'Marcus paints a CIRCLE.' },
+      { form: 'accusative', scene: 'kick', la: 'Marcus circulum pulsat.', en: 'Marcus kicks the CIRCLE.' },
+      { form: 'ablative', scene: 'with', la: 'Marcus circulō lūdit.', en: 'Marcus plays WITH the hoop.' },
+      { form: 'ablative', scene: 'spin', la: 'Marcus circulō saltat.', en: 'Marcus dances WITH the hoop.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs circulī.', en: 'Three CIRCLES.' },
+      { form: 'plural', scene: 'many2', la: 'Duo circulī.', en: 'Two CIRCLES.' },
+    ],
+  },
+  {
+    lemma: 'capillus', meaning: 'hair', plural: 'hairs', gender: 'm', object: 'hair', stem: 'capill', say: 'kah-peel-l',
+    forms: { normal: 'capillus', accusative: 'capillum', ablative: 'capillō', plural: 'capillī' },
+    scenes: [
+      { form: 'normal', scene: 'alone', la: 'Capillus longus est.', en: 'The HAIR is long.' },
+      { form: 'normal', scene: 'act', la: 'Capillus volat.', en: 'The HAIR floats.' },
+      { form: 'accusative', scene: 'comb', la: 'Marcus capillum pectit.', en: 'Marcus combs the HAIR.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus capillum spectat.', en: 'Marcus looks at the HAIR.' },
+      { form: 'ablative', scene: 'tickle', la: 'Marcus capillō nāsum titillat.', en: 'Marcus tickles his nose WITH the hair.' },
+      { form: 'ablative', scene: 'wolfplay', la: 'Lupus capillō lūdit.', en: 'The wolf plays WITH the hair.' },
+      { form: 'plural', scene: 'many3', la: 'Capillī.', en: 'Lots of HAIRS.' },
+      { form: 'plural', scene: 'many2', la: 'Duo capillī.', en: 'Two HAIRS.' },
+    ],
+  },
+  {
+    lemma: 'fluvius', meaning: 'river', plural: 'rivers', gender: 'm', object: 'river', stem: 'fluvi', say: 'floo-wee-',
+    forms: { normal: 'fluvius', accusative: 'fluvium', ablative: 'fluviō', plural: 'fluviī' },
+    scenes: [
+      { form: 'normal', scene: 'act', la: 'Fluvius fluit.', en: 'The RIVER flows.' },
+      { form: 'normal', scene: 'alone', la: 'Fluvius lātus est.', en: 'The RIVER is wide.' },
+      { form: 'accusative', scene: 'toward', la: 'Marcus ad fluvium ambulat.', en: 'Marcus walks TO the river.' },
+      { form: 'accusative', scene: 'into', la: 'Marcus in fluvium salit.', en: 'Marcus jumps INTO the river.' },
+      { form: 'ablative', scene: 'swim', la: 'Marcus in fluviō natat.', en: 'Marcus swims IN the river.' },
+      { form: 'ablative', scene: 'boat', la: 'Marcus in fluviō nāvigat.', en: 'Marcus sails ON the river.' },
+      { form: 'plural', scene: 'many2', la: 'Duo fluviī.', en: 'Two RIVERS.' },
+      { form: 'plural', scene: 'many3', la: 'Trēs fluviī.', en: 'Three RIVERS.' },
+    ],
+  },
+  {
+    // Neuter! Its normal form already ends in -um, and its plural ends in -a.
+    lemma: 'cavum', meaning: 'hole', plural: 'holes', gender: 'n', object: 'hole', stem: 'cav', say: 'kah-w',
+    forms: { normal: 'cavum', accusative: 'cavum', ablative: 'cavō', plural: 'cava' },
+    scenes: [
+      { form: 'normal', scene: 'alone', la: 'Cavum est.', en: 'There is a HOLE.' },
+      { form: 'normal', scene: 'act', la: 'Cavum magnum est.', en: 'The HOLE is big.' },
+      { form: 'accusative', scene: 'into', la: 'Marcus in cavum salit.', en: 'Marcus jumps INTO the hole.' },
+      { form: 'accusative', scene: 'look', la: 'Marcus cavum spectat.', en: 'Marcus looks at the HOLE.' },
+      { form: 'accusative', scene: 'toward', la: 'Marcus ad cavum ambulat.', en: 'Marcus walks TO the hole.' },
+      { form: 'ablative', scene: 'inside', la: 'Marcus in cavō sedet.', en: 'Marcus sits IN the hole.' },
+      { form: 'ablative', scene: 'peek', la: 'Marcus in cavō latet.', en: 'Marcus hides IN the hole.' },
+      { form: 'plural', scene: 'many3', la: 'Multa cava sunt.', en: 'There are lots of HOLES.' },
+      { form: 'plural', scene: 'many2', la: 'Duo cava.', en: 'Two HOLES.' },
+    ],
+  },
+];
