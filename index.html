@@ -136,6 +136,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.merc2 .n { background: #7be06a; } .lvl.merc2 .go { color: #a6e85a; }
 .lvl.jup .n { background: #e8c99a; } .lvl.jup .go { color: #f0dcc0; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
+.lvl.under .n { background: #8f68aa; font-size: 16px; } .lvl.under .go { color: #b79bff; }
 .levels { max-height: 46vh; overflow-y: auto; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
@@ -366,7 +367,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 29;
+const BUILD = 30;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -566,6 +567,7 @@ const TECHS = [
   { id: 'colony', br: 'rkt', name: 'Colony Rocket', cost: 220, req: ['padtech', 'arc'], desc: 'Plans for a rocket that can carry settlers to another world.' },
 ];
 const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
+const lvlNum = i => LEVELS[i].num || i + 1;
 // buildings shown in the toolbar: the level's own list plus whatever research has unlocked
 function levelTools() {
   const L = LEVELS[S.level], tools = L.tools.filter(n => n !== 'recycle');
@@ -578,9 +580,11 @@ function learn(id) {
   if (!canResearch(t) || S.science < t.cost) return;
   S.science -= t.cost; S.techs.push(id); dirty = true; S.lastProgress = S.time;
   toast('Researched: ' + t.name, 'good'); sfx('relic');
-  if (id === 'reclaim') growMap();
-  if (id === 'tunnels') makeUnder();
-  if (id === 'sky') makeSky();
+  if (!LEVELS[S.level].under) {
+    if (id === 'reclaim') growMap();
+    if (id === 'tunnels') makeUnder();
+    if (id === 'sky') makeSky();
+  }
   buildToolbar(); updateLayerTabs();
   const line = TECH_LINES[id];
   if (line) say(line[0], line[1], 'tech-' + id);
@@ -1907,6 +1911,65 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'Under Mars',
+  num: '6½', under: true,
+  seed: 191, n: 11, research: true, sky: 'cave', sun: 0.6,
+  baseTechs: ['husbandry', 'towers', 'labs2', 'irrigation', 'arc', 'reclaim', 'rocketry', 'fish'],
+  map: { ice: 1.6, mountains: [[9, 9, 1.0], [1, 8, 0.7], [8, 1, 0.7]], craters: [[3, 4], [7, 6], [5, 9]], ore: [[6, 3, 1.4], [2, 6, 1.2]], ruins: [], vents: [[4, 7], [8, 4]], nests: [[2, 2], [9, 6]] },
+  start: { metal: 140, energy: 60, water: 50, food: 60, science: 40 },
+  planet: { temp: 18, press: 30, o2: 3 },
+  tools: ['solar', 'mine', 'drill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'clinic', 'arcade', 'park', 'zapper', 'lab', 'dig', 'recycle'],
+  prebuilt: [['habitat', 5, 7], ['habitat', 6, 8], ['solar', 4, 8], ['solar', 7, 8], ['greenhouse', 6, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.9, after: () => S.time > 20, mix: { burrower: 5, zippy: 1 } },
+  traders: false,
+  pal: {
+    plain: ['#7a5584', '#57395f', '#452c4c'], ore: ['#8f68aa', '#6c4f86', '#57395f'], ice: ['#d0e4f6', '#a2bede', '#7f9cc4'],
+    crater: ['#3e2646', '#33203a', '#271830'], rock: ['#4d3254', '#3b2541', '#2e1c33'], vent: ['#5e3a4a', '#57395f', '#452c4c'],
+    sides: ['#57395f', '#452c4c', '#33203a', '#271830'],
+  },
+  deco: { pebble: '#9a7aa8', rim: '#8a6a98', pit: '#2a1830', pit2: '#33203a', cone: ['#5e4266', '#3b2541', '#4d3254'] },
+  tileInfo: {
+    plain: ['Cave floor', 'The floor of a giant lava tube deep under Mars. Light shafts bring a little sunlight down. Flat and buildable.'],
+    ore: ['Crystal ore', 'Glowing purple ore in the cave walls. Mines go here.'],
+    ice: ['Ice pocket', 'Old ice, frozen deep underground for millions of years. Ice drills go here.'],
+    crater: ['Burrow', 'A tunnel mouth. Tunnel critters crawl out of these.'],
+    rock: ['Cave rock', 'Solid rock holding up the roof. Nothing can be built here.'],
+    vent: ['Magma pool', 'Molten rock, bubbling far below the surface. With Geothermal Power researched, a plant here makes lots of power.'],
+    nest: ['Critter nest', 'A burrow full of tunnel critters. Tap it again and again to smash it.'],
+  },
+  goals: [
+    { text: 'Build 4 mines', get: () => count('mine'), target: 4,
+      who: 'eng', hint: 'The cave walls are full of crystal ore. Four mines, please. Sunlight is weak down here, so we will need extra solar arrays or geothermal power.' },
+    { text: 'Build 2 zappers', get: () => count('zapper'), target: 2,
+      who: 'eng', hint: 'Tunnel critters take two to five bonks each. Two zappers will help a lot.' },
+    { text: 'Smash 2 critter nests', get: () => S.nestsSmashed || 0, target: 2,
+      who: 'kip', hint: 'There are critter nests in the corners of the cave. Tap them again and again to smash them.' },
+    { text: 'House 24 colonists', get: () => S.pop, target: 24,
+      who: 'cmd', hint: 'Let us build a real city down here. Room for twenty four colonists.' },
+    { text: 'Reach 70% happiness', get: () => S.mood, target: 70, unit: '%', dec: 0,
+      who: 'bot', hint: 'Living underground can feel gloomy. Restaurants, cafés and parks will cheer everyone up.' },
+    { text: 'Defeat 20 tunnel critters', get: () => S.burrowBeaten || 0, target: 20,
+      who: 'kip', hint: 'Twenty tunnel critters. The ones with five red dots take the longest.' },
+  ],
+  intro: [['cmd', 'We are going down, team. Under Mars there are lava tubes big enough to hold a whole city.'],
+          ['kip', 'Zorp’s saucer is far too big to fit down here, so no trading this time. Also, it is very dark. Also, something just squeaked.']],
+  outro: [['cmd', 'A city under Mars, safe from every dust storm. Now let us head back up to Exodus.']],
+  brief: {
+    eyebrow: 'Level 6½ · A side trip from Exodus',
+    title: 'Under Mars',
+    body: [
+      'Deep under the surface, giant lava tubes make caves big enough for a city. You have the same buildings and research as in Level 6, but light is dim, so solar arrays make less power.',
+      '<b>Tunnel critters</b> take 2 to 5 hits each. <b>Zorp can’t get underground</b>, so there is no trading. Win, and you go back up to your Level 6 game with 300 metal, 20 crystals and a power core.',
+    ],
+    fact: '<b>Real lava tubes:</b> spacecraft have photographed holes on Mars that drop into huge underground lava tubes. They could shelter future explorers from radiation and dust storms.',
+  },
+  done: {
+    title: 'A city under Mars',
+    body: 'Mines in the crystal walls, nests smashed and a happy city deep under the ground. The surface is waiting for you.',
+    fact: '<b>Steady temperature:</b> deep underground, the temperature stays almost the same all year, while the surface of Mars swings by 100 °C between day and night.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2013,7 +2076,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -2894,9 +2957,10 @@ function showArrival(k) {
     <h2>Arriving at ${w.name}</h2>
     <div class="dest"><div class="world"><canvas width="144" height="144" data-p="${w.icon}"></canvas><b>${w.name}</b><small>${w.blurb}</small>
       <button class="btn" id="land">Land on ${w.name}</button></div></div>
-    <div class="row"><button class="btn alt" id="dest-menu">Level select</button></div>`, true);
+    <div class="row">${S.level === 5 ? '<button class="btn alt" id="under">Or go underground: Level 6½</button>' : ''}<button class="btn alt" id="dest-menu">Level select</button></div>`, true);
   $('#modal').querySelectorAll('canvas[data-p]').forEach(c => planetIcon(c, c.dataset.p));
   $('#land').addEventListener('click', () => startLevel(w.level));
+  if (S.level === 5) $('#under').addEventListener('click', goUnder);
   $('#dest-menu').addEventListener('click', showTitle);
 }
 function updateRocket(dt) {
@@ -4086,6 +4150,8 @@ const KINDS = {
   blob:     { hp: 10, spd: 0.65, size: 1.5, steal: 1.2, blob: true, noKnight: true },
   // Jupiter's alien rhinos: hide so thick that only knights and police can hurt them
   rhino:    { hp: 13, spd: 0.8, size: 1.8, steal: 1.6, immune: true, rhino: true },
+  // tunnel critters under Mars: each one is born with 2 to 5 health
+  burrower: { hp: 3, hpRange: [2, 5], spd: 0.9, size: 1.15, steal: 1.1 },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -4093,6 +4159,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  burrower: ['kip', 'Tunnel critters! They are tougher down here. Some take two bonks, some take five. Count the little red dots over their heads.'],
   rhino: ['eng', 'Alien rhinos! Their hide is so thick that zaps and taps bounce right off. Only knights and police officers can stop them.'],
   blob: ['kip', 'A green blob! It takes ten hits, and knights cannot hurt it: their swords just sink into the goo. Zappers, taps and wizards work.'],
   lizard: ['eng', 'Lizard people! Zaps bounce off their scales on the ground, but when they fly up, the zappers can hit them. Knights can only fight them on the ground.'],
@@ -4120,9 +4187,10 @@ function spawnCritter(kind = pickKind(), from = null) {
   else { const e = Math.random() * N; [hx, hy] = Math.random() < 0.5 ? [e, N - 0.3] : [N - 0.3, e]; }
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
-  const col = kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
+  const col = kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
-               kind, hp: graveHp(K.hp), maxhp: graveHp(K.hp), hit: 0, col, seed: Math.random() * 10 });
+               kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
   if (K.blob && Math.random() < 0.35) { // blobs often come out in pairs
     made.push({ ...made[0], x: hx + 0.25, y: hy + 0.2, loot: {}, seed: Math.random() * 10 });
@@ -4343,6 +4411,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
   S.crystals += 1; S.bonks += 1; dirty = true;
   if (KINDS[c.kind || 'basic'].lizard) S.lizardsBeaten = (S.lizardsBeaten || 0) + 1;
   if (KINDS[c.kind || 'basic'].blob) S.blobsBeaten = (S.blobsBeaten || 0) + 1;
+  if (c.kind === 'burrower') S.burrowBeaten = (S.burrowBeaten || 0) + 1;
   if (Math.random() < (KINDS[c.kind || 'basic'].lizard ? 0.12 : 0.03)) foundGold();
   const p = critWorld(c);
   burst(p.x, p.y - 8, 10, ['#ffd166', '#ffffff', c.col]);
@@ -5933,6 +6002,11 @@ function drawCritter(g, c) {
     g.fillStyle = '#9aa0c4'; g.beginPath(); g.ellipse(-1, by - 3, 8.2, 5.5, 0, Math.PI, 0); g.fill();
     g.strokeStyle = '#757aa0'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(-5, by - 3); g.lineTo(-4, by - 7.5); g.moveTo(1, by - 3); g.lineTo(1, by - 8.5); g.stroke();
   }
+  if (c.kind === 'burrower') {
+    g.fillStyle = '#fff1c2'; for (const s_ of [-1, 1]) for (let i = 0; i < 3; i++) poly(g, [[s_ * 7 + i * s_ * 1.4, by + 3], [s_ * 9.5 + i * s_ * 1.4, by + 6.5], [s_ * 7.6 + i * s_ * 1.4, by + 4.4]]);
+    g.fillStyle = '#ffd166'; g.beginPath(); g.ellipse(0, by - 5, 6, 3.2, 0, Math.PI, 0); g.fill();
+    ell(g, 1.5, by - 7, 1.6, 1.6, '#fff8d0'); lights.push([p.x + 1.5 * c.face, p.y + by - 7, 7, '#fff3a0']);
+  }
   if (c.kind === 'zippy') { g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-11, by - 2); g.lineTo(-16, by - 2); g.moveTo(-11, by + 2); g.lineTo(-15, by + 2); g.stroke(); }
   if (c.kind === 'brute') {
     g.fillStyle = '#fff1c2'; poly(g, [[-5, by - 5], [-8, by - 11], [-3, by - 6]]); poly(g, [[3, by - 6], [7, by - 12], [6, by - 5]]);
@@ -6110,6 +6184,7 @@ function cloudShape(g, x, y, s, col) {
   ell(g, x + 24 * s, y - 4 * s, 14 * s, 10 * s, col);
 }
 function drawClouds(g) {
+  if (LEVELS[S.level].sky === 'cave') return; // no clouds underground
   const a = clamp((S.planet.press - 3) / 9, 0, 1) * 0.85;
   if (a <= 0.01) return;
   for (const c of clouds) {
@@ -6253,6 +6328,18 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'cave') { // a vast lava-tube cavern: dark rock above, stalactites and glowing crystals
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#120a18'); gr.addColorStop(0.6, '#24142c'); gr.addColorStop(1, '#3a2240');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#0a0610';
+    g.beginPath(); g.moveTo(0, 0);
+    for (let x = 0; x <= W; x += 30) g.lineTo(x, 30 + ((x * 37) % 70) + (x % 90 === 0 ? 50 : 0));
+    g.lineTo(W, 0); g.closePath(); g.fill();
+    for (let i = 0; i < 26; i++) { const x = (i * 131) % W, y = 60 + (i * 89) % (H * 0.5), a = 0.4 + 0.3 * Math.sin(RT * 1.5 + i); ell(g, x, y, 2.5, 2.5, `rgba(127,247,255,${a})`); }
+    for (let i = 0; i < 6; i++) { const x = (i * 211 + 80) % W; const lg = g.createLinearGradient(x, 0, x, H * 0.6); lg.addColorStop(0, 'rgba(255,230,170,0.16)'); lg.addColorStop(1, 'rgba(255,230,170,0)'); g.fillStyle = lg; g.fillRect(x - 14, 0, 28, H * 0.6); }
+    return;
+  }
   if (sk === 'jupiterclouds') { // inside Jupiter's clouds: stripes of storm, and the Great Red Spot far away
     const bands = ['#e8c99a', '#d9a670', '#f3e2c4', '#c98a5a', '#ead2ae', '#b8784e', '#f0dcc0'];
     for (let i = 0; i < bands.length; i++) {
@@ -6438,7 +6525,7 @@ function updateUI() {
   let when = '';
   if (L.dayNight) { const ph = S.clock % (DAY + NIGHT); when = S.night ? ` · Night (${Math.ceil(DAY + NIGHT - ph)}s)` : ` · Day (${Math.ceil(DAY - ph)}s)`; }
   if (S.storm > 0) when += ' · Dust storm';
-  $('#lvl-eyebrow').textContent = `${L.bonus ? 'Bonus level' : 'Level ' + (S.level + 1)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
+  $('#lvl-eyebrow').textContent = `${L.bonus ? 'Bonus level' : 'Level ' + lvlNum(S.level)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
   { const j = L.goals.findIndex((_, k) => !S.goalsDone[k]), g = L.goals[j];
     $('#goal-next').innerHTML = g ? `Next: ${g.text}<span class="pv">${$('#goal-' + j + ' .pv') ? $('#goal-' + j + ' .pv').textContent : ''}</span>` : 'All goals done!'; }
   $('#v-energy').textContent = `${Math.floor(S.energy)} / ${ECAP}`;
@@ -6509,13 +6596,14 @@ function showTitle() {
       <div><b>Defend</b>Tap critters, feed your colonists.</div>
     </div>
     <div class="levels">
-      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${LEVELS[cont.S.level].bonus ? 'Bonus' : 'Level ' + (cont.S.level + 1)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
+      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${LEVELS[cont.S.level].bonus ? 'Bonus' : 'Level ' + lvlNum(cont.S.level)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
       <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
       <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes, lichen and strange ruins.</small></span><span class="go">Play</span></button>
       <button class="lvl three" data-l="2"><span class="n">3</span><span><b>Boomtown</b><small>Settlers, restaurants, night raids and alien visitors.</small></span><span class="go">Play</span></button>
       <button class="lvl four" data-l="3"><span class="n">4</span><span><b>Green Frontier</b><small>The tech tree opens: farms, animals and water towers.</small></span><span class="go">Play</span></button>
       <button class="lvl five" data-l="4"><span class="n">5</span><span><b>Deep Roots</b><small>Critter nests, new land, caves and sky islands.</small></span><span class="go">Play</span></button>
       <button class="lvl six" data-l="5"><span class="n">6</span><span><b>Exodus</b><small>Build a Greater Mars, or face the Critter Queen and leave.</small></span><span class="go">Play</span></button>
+      <button class="lvl under" data-l="${UNDER()}"><span class="n">6½</span><span><b>Under Mars</b><small>Side trip: a city in the lava tubes, tunnel critters, no Zorp.</small></span><span class="go">Play</span></button>
       <button class="lvl seven" data-l="6"><span class="n">7</span><span><b>Phobos Outpost</b><small>Beyond Mars: a tiny moon, low gravity, falling meteors.</small></span><span class="go">Play</span></button>
       <button class="lvl eight" data-l="7"><span class="n">8</span><span><b>Deimos Watch</b><small>Shell-beasts that lasers can’t hurt. Build castles, train knights.</small></span><span class="go">Play</span></button>
       <button class="lvl nine" data-l="8"><span class="n">9</span><span><b>Europa: The Ice Shell</b><small>Jupiter’s ice moon: weak sun, warm cracks, giant shell-beasts.</small></span><span class="go">Play</span></button>
@@ -6558,8 +6646,8 @@ function showTitle() {
     if (cont && li !== GLORP && !cont.S.won) {
       const C = LEVELS[cont.S.level];
       openModal(`<span class="eyebrow">Start a new level?</span><h2>Replace your saved game?</h2>
-        <p>Your saved game on <b>${C.bonus ? 'Bonus' : 'Level ' + (cont.S.level + 1)}: ${C.name}</b> will be replaced by a fresh start on <b>Level ${li + 1}: ${LEVELS[li].name}</b>.</p>
-        <div class="row"><button class="btn" id="ok-new">Start Level ${li + 1}</button><button class="btn alt" id="no-new">Go back</button></div>`);
+        <p>Your saved game on <b>${C.bonus ? 'Bonus' : 'Level ' + lvlNum(cont.S.level)}: ${C.name}</b> will be replaced by a fresh start on <b>Level ${lvlNum(li)}: ${LEVELS[li].name}</b>.</p>
+        <div class="row"><button class="btn" id="ok-new">Start Level ${lvlNum(li)}</button><button class="btn alt" id="no-new">Go back</button></div>`);
       $('#ok-new').addEventListener('click', go);
       $('#no-new').addEventListener('click', showTitle);
       return;
@@ -6589,8 +6677,44 @@ function showBrief() {
   $('#menu').addEventListener('click', showTitle);
 }
 
+// Level 6 can dip into the underground level and come back. The Level 6 game is set aside
+// (with its research) while you are down there, and put back when you win, with a reward.
+const UNDER = () => LEVELS.findIndex(L => L.under);
+function goUnder() {
+  saveGame();
+  try {
+    if (S.level === 5) { localStorage.setItem('mmb-under-return', localStorage.getItem(SAVE_KEY)); store.set('mmb-techs-' + UNDER(), S.techs); }
+  } catch (e) {}
+  startLevel(UNDER());
+}
+function backFromUnder() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('mmb-under-return')); localStorage.removeItem('mmb-under-return'); } catch (e) {}
+  if (d && d.S && d.S.level === 5) { loadSave(d); closeModal(); }
+  else startLevel(5, false);
+  // what the underground city sends up
+  S.metal += 300; S.crystals += 20; dirty = true; saveGame();
+  toast('The underground city sent up 300 metal and 20 crystals!', 'good');
+  gainCore('marsunder', 'the Deep Core');
+  say('cmd', 'Welcome back up, team. The tunnel city sent us supplies, and a power core from deep under Mars.', 'under-back');
+}
+function showUnderDone() {
+  const L = LEVELS[S.level], d = L.done;
+  sfx('win');
+  for (const [w, txt] of L.outro) say(w, txt, null, true);
+  openModal(`
+    <span class="eyebrow" style="color:var(--leaf)">Level ${lvlNum(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <h2>${d.title}</h2>
+    <p>${d.body}</p>
+    <p class="fact">${d.fact}</p>
+    <p class="small-note">Going back up brings <b>300 metal</b>, <b>20 crystals</b> and a <b>power core</b> with you.</p>
+    <div class="row"><button class="btn" id="up">Back to Level 6: Exodus</button><button class="btn alt" id="stay">Keep playing down here</button></div>`);
+  $('#up').addEventListener('click', backFromUnder);
+  $('#stay').addEventListener('click', closeModal);
+}
 function showComplete() {
   if (LEVELS[S.level].bonus) return showGlorpDone();
+  if (LEVELS[S.level].under) return showUnderDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
   // Europa part 1 leads straight on to part 2: same moon, no rocket needed
@@ -6598,7 +6722,7 @@ function showComplete() {
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
-    <span class="eyebrow" style="color:var(--leaf)">Level ${S.level + 1} complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <span class="eyebrow" style="color:var(--leaf)">Level ${lvlNum(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
     <h2>${d.title}</h2>
     <p>${d.body}</p>
     <p class="fact">${d.fact}</p>
@@ -6608,8 +6732,10 @@ function showComplete() {
         : L.offworld ? `<button class="btn" id="fly">${S.tiles.some(t => t.b === 'pad') ? 'Open the star map' : 'Keep playing and build a launch pad'}</button>`
         : '<button class="btn" id="stay2">Keep playing</button>'}
       ${next ? '<button class="btn alt" id="stay">Keep playing</button>' : ''}
+      ${S.level === 5 ? '<button class="btn alt" id="under">Go underground: Level 6½</button>' : ''}
       <button class="btn alt" id="menu">Level select</button>
     </div>`);
+  if (S.level === 5) $('#under').addEventListener('click', goUnder);
   if (next) { $('#next').addEventListener('click', () => startLevel(S.level + 1)); $('#stay').addEventListener('click', closeModal); }
   else if (L.offworld) $('#fly').addEventListener('click', () => { if (S.tiles.some(t => t.b === 'pad')) showRocket(); else closeModal(); });
   else $('#stay2').addEventListener('click', closeModal);
@@ -6619,9 +6745,11 @@ function showComplete() {
 function startLevel(li, brief = true) {
   S = newState(li);
   // carried research reshapes the world straight away
-  if (hasTech('reclaim')) growMap();
-  if (hasTech('tunnels')) makeUnder();
-  if (hasTech('sky')) makeSky();
+  if (!LEVELS[li].under) {
+    if (hasTech('reclaim')) growMap();
+    if (hasTech('tunnels')) makeUnder();
+    if (hasTech('sky')) makeSky();
+  }
   afterLoad();
   playing = true; saveGame();
   const L = LEVELS[li];
@@ -6693,7 +6821,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00bb6209 00d17e67 00f174a9 01b054cc 021a7c1b 02610b12 02a1c81f 02a8f282 030a7f96 03ca4b72 04274c70 043eaa72 052e0102 05eb28cb 06075329 064185af 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 081fadbc 085b1570 08645ff8 09033633 095e8697 0a01a313 0a3e2be9 0a92380d 0a938044 0b1c87ac 0bb14d14 0bcda11f 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 108c93be 1097c905 11400aaa 11f40e2c 12eb0373 1331cada 13713eb9 13adf42b 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 15d616f2 160d88cc 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 1a73deff 1aebaf1f 1bc946da 1bd330d0 1d2363f8 1e261bbc 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2078c341 212448d4 22586686 22c96318 231440de 2341f3c5 243b00c3 24514fab 258c0b73 25cd6623 262c9f53 2631b903 2638cdf0 269d6a0a 2750a067 278c00d9 291999c7 293c4750 29cba8da 2b732c7f 2c8f8b73 2cd98069 2d4236e0 2e30c278 2e5c16db 2f8a9231 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 3212792b 325707a5 325c2975 32e68b8d 3337bc9a 334358e9 34975786 34b3668a 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36f30872 36f7cfab 3729f259 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 3a049a30 3a1b1737 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3ca2a321 3cb15341 3cee32ac 3d029e83 3d097221 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 40239366 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 488637dd 48b2ba7a 491b0201 4a98f022 4b62a538 4b983c1d 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 5033e388 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 54738ed0 550bd446 55a248b0 563fc364 56932f6a 56eebfbb 57156cc3 57822802 581a7c01 58c19200 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b605ff5 5b8d10cb 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d4b89eb 5d5c0d57 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5faf64ee 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 63407f03 63b15a97 63bed161 63c78b92 644f3086 64cb995b 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 666fe626 66c95ee9 66df857e 671f5d5f 67bc9c3a 67be6d51 67d90521 68ecfd5d 692ba820 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 71c2f517 7301527c 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 833fe2a5 838f0024 83ff31b7 8407c711 84989456 84f4760a 8517b105 8588aa9e 859101f7 85c90490 862ce317 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88e66a24 89002816 893c6180 89433fbb 896dfa6a 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 92562698 929a1361 92b818df 9344e33e 9439fdfb 943c33d7 9469484c 948e6bca 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 998ca151 9a0a3779 9a17dfe6 9a211927 9a22a375 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d22f9c4 9d262032 9d3dc32f 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 a07e771b a0fceeca a1737ded a1748250 a2413960 a260a4f5 a3308c35 a42066c4 a4c4fea4 a5acc6dc a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9c26c4c aa916e99 ab13bb98 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae847e6a aef7f263 af308bdb af87f81f afbd76a6 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b8a67fac b8f1f2bb b956ba1f b9a8df50 b9da402b b9fc496b ba79acbf ba7ae515 bb208cad bbaad895 bbcd0695 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 bf202cf8 c007124e c2056159 c23bfc92 c2546201 c293bbd8 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c587d92c c5addc9a c5dd1752 c5eaa696 c672ecc1 c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9a1c3c4 c9c4682a c9cd4dbb ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc8e851e cd703a97 ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0d50703 d1a244a4 d1f74b36 d28d8cbe d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9e72f66 da05665d da32e608 da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc6c9907 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de46524c dedf727c df172315 df4f235d df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e39fd024 e4831d1f e4acaf8a e4fb12b8 e5392f66 e627a7aa e6389f23 e6a7a5c5 e7264fe6 e77d6a46 e8dc2b4c e8fc609e e9d2abdc ea244657 ea28b442 ea492de8 ea83d793 eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb979778 ec761478 ecc40113 ed5539be ed771340 edaf3095 ee3ccb67 ee7e156f eebfba27 ef1f18a3 ef43016a efa9bffe efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f1df2d3f f2187c55 f29daee7 f310b43c f3236dcb f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f587e291 f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fce6a935 fcfbf226 fd117f3c fe236ba0 fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 009f4701 00bb6209 00d17e67 00dabfb6 00f174a9 01b054cc 021a7c1b 02610b12 02a1c81f 02a8f282 030a7f96 03ca4b72 04274c70 043eaa72 052e0102 05eb28cb 06075329 064185af 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 081fadbc 085b1570 08645ff8 09033633 095e8697 0a01a313 0a3e2be9 0a92380d 0a938044 0b1c87ac 0bb14d14 0bcda11f 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 108c93be 1097c905 11400aaa 11f40e2c 12eb0373 1331cada 13713eb9 13adf42b 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 15d616f2 160d88cc 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 1a73deff 1aebaf1f 1bc946da 1bd330d0 1d2363f8 1e261bbc 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2078c341 212448d4 22586686 22c96318 231440de 2341f3c5 23c80e45 243b00c3 24514fab 25393e9f 258c0b73 25cd6623 262c9f53 2631b903 2638cdf0 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2b732c7f 2c8f8b73 2cd98069 2d4236e0 2e30c278 2e5c16db 2f8a9231 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334358e9 34975786 34b3668a 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36f30872 36f7cfab 3729f259 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 3a049a30 3a1b1737 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3ca2a321 3cb15341 3cee32ac 3d029e83 3d097221 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 488637dd 48b2ba7a 491b0201 4a98f022 4b62a538 4b983c1d 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 5033e388 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 54738ed0 550bd446 55a248b0 563fc364 56932f6a 56eebfbb 57156cc3 57822802 581a7c01 58c19200 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b605ff5 5b8d10cb 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5faf64ee 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 63407f03 63b15a97 63bed161 63c78b92 644f3086 64cb995b 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 666fe626 66c95ee9 66df857e 671f5d5f 67bc9c3a 67be6d51 67d90521 68ecfd5d 692ba820 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 71c2f517 7301527c 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 833fe2a5 838f0024 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88e66a24 89002816 893c6180 89433fbb 896dfa6a 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 92562698 929a1361 92b818df 9344e33e 9439fdfb 943c33d7 9469484c 948e6bca 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 998ca151 9a0a3779 9a17dfe6 9a211927 9a22a375 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 a07e771b a0fceeca a1737ded a1748250 a2413960 a260a4f5 a3308c35 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9c26c4c aa916e99 ab13bb98 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae847e6a aef7f263 af308bdb af87f81f afbd76a6 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b8a67fac b8f1f2bb b956ba1f b9a8df50 b9da402b b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c2056159 c23bfc92 c2546201 c293bbd8 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c587d92c c5addc9a c5dd1752 c5eaa696 c672ecc1 c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9a1c3c4 c9c4682a c9cd4dbb ca099504 caae48de cb28cba4 cb91f6b4 cbd82633 cbddf393 cbde5b59 cc8e851e cd703a97 ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0d50703 d1a244a4 d1f74b36 d28d8cbe d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9e72f66 da05665d da32e608 da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc6c9907 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de46524c dedf727c df172315 df3f6729 df4f235d df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e38ee839 e39fd024 e4831d1f e4acaf8a e4fb12b8 e5392f66 e627a7aa e6389f23 e6a7a5c5 e7264fe6 e77d6a46 e8dc2b4c e8fc609e e9d2abdc ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb979778 ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee7e156f eeaab69f eebfba27 ef1f18a3 ef43016a efa9bffe efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f1df2d3f f2187c55 f29daee7 f310b43c f3236dcb f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f587e291 f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fce6a935 fcfbf226 fd117f3c fe236ba0 fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -6972,7 +7100,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v7) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : 19)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = true; }
+    if (d && d.S && !d.S.v8) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : 24)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;

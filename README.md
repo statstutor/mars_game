@@ -46,6 +46,10 @@ for good. Farther trips mean a longer, tougher escape battle; Europa adds the Ra
 boss in Jupiter's radiation belts. After finishing a moon, build a pad and fuel plant there
 and fly on to any other world. The Shell King (Level 10) opens once Europa is done.
 
+6½. **Under Mars** (a side trip from Exodus): finishing Level 6 offers *Go underground*. A city in
+   the lava tubes with the same buildings and research as Level 6, tunnel critters that take 2 to
+   5 hits, and no Zorp (his saucer can't fit). Win it to go back up to your Level 6 game with 300
+   metal, 20 crystals and a power core.
 7. **Phobos Outpost**: the first world beyond Mars. No air, tiny gravity and falling meteors.
 8. **Deimos Watch**: Mars's outer moon, and the first **shell-beasts**: armoured aliens that
    zappers, drones and taps bounce off. Build **castles**, which train up to 3 **knights** each
