@@ -103,6 +103,14 @@ screen, saved on the device), and one day come home to free Earth.
 24. **Jupiter: The Great Red Spot**: the giant storm wakes up, floats over the platforms, throws
     tornadoes and blows in rhinos. Taps, zappers, drones and wizards hurt it; knights can't reach
     it. Calming it wins a power core and the rhinos as allies.
+25. **Saturn: Golden Clouds**, 26. **Golden Winds**, 27. **The Hexagon**, 28. **Ring Shadow**
+    (on the star map after the Great Red Spot): floating platforms in Saturn's golden clouds.
+    **Tree aliens** take 14 hits and only knights and police can chop them down. **Zorp visits
+    far more often**, and a **crystal crafter** (built from crystals) makes every defeated alien
+    drop one extra crystal for each crafter, up to three. A power core in each level.
+29. **Saturn's Rings**: the colony sits on chunks of ring ice (ice drills work). The **Elder
+    Tree** grows up out of the ice; only knights and police can hurt it. Beating it wins a power
+    core and the tree folk as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are

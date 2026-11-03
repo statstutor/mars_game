@@ -136,6 +136,8 @@ body.cramped #tip.idle { display: none; }
 .lvl.merc2 .n { background: #7be06a; } .lvl.merc2 .go { color: #a6e85a; }
 .lvl.jup .n { background: #e8c99a; } .lvl.jup .go { color: #f0dcc0; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
+.lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
+.lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
 .lvl.under .n { background: #8f68aa; font-size: 16px; } .lvl.under .go { color: #b79bff; }
 .levels { max-height: 46vh; overflow-y: auto; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
@@ -367,7 +369,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 31;
+const BUILD = 32;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -501,6 +503,8 @@ const B = {
              desc: 'Little lemon trees under a glass dome. +0.3 food/s, and every lemonade stand within 2 tiles gets fresh lemons.' },
   lemonade: { name: 'Lemonade Stand', cost: { metal: 25 }, on: ['plain', 'ore'], onText: 'Lemonade stands need flat ground.', energy: -1,
              desc: 'Squeezes lemons into water and lemonade. Near a water tower AND a lemon grove: +4 water/s, more than any ice drill. With only one of them: about +1. With neither: a trickle.' },
+  ccrafter: { name: 'Crystal Crafter', cost: { crystals: 12, metal: 20 }, on: ['plain', 'ore'], onText: 'Crystal crafters need flat ground.', max: 3,
+             desc: 'Built from crystals. Every alien you defeat drops 1 extra crystal for each crystal crafter you have (up to 3).' },
   oredrill: { name: 'Ore Drill', cost: { metal: 45 }, on: ['ore'], onText: 'Ore drills go on purple ore.', energy: -3, out: { metal: 5 },
              desc: 'A giant drill that bores deep into purple ore. +5 metal/s, more than twice a mine. Uses 3 energy/s.' },
   turbine: { name: 'Storm Turbine', cost: { metal: 30 }, on: ['plain', 'ore'], onText: 'Turbines need flat ground.', energy: 6,
@@ -542,7 +546,7 @@ const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 const WHERE = {
   solar: ['surface', 'sky'], mine: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
-  cmine: ['under'], oredrill: ['surface'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
+  cmine: ['under'], ccrafter: ['surface'], oredrill: ['surface'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
 
@@ -1970,6 +1974,262 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'Saturn: Golden Clouds', num: 25,
+  seed: 193, n: 11, offworld: true, floating: true, sky: 'saturnclouds', sun: 0.35, knights: true, wizards: true, traderEvery: 6, core: ['saturn1', 'the Golden Core'],
+  map: { ice: 0, mountains: [[1, 1, 0.6]], craters: [[3, 6], [8, 3], [7, 8]], ore: [[5, 3, 1.3], [2, 8, 1.0]], ruins: [[9, 6]], voids: [[0, 10, 1.2], [10, 0, 1.2]] },
+  start: { metal: 170, energy: 60, water: 50, food: 90 },
+  planet: { temp: -140, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 5, 8], ['turbine', 6, 8], ['condenser', 4, 8], ['castle', 6, 6]],
+  critters: { every: [15, 21], max: 6, speed: 0.75, after: () => S.time > 30, mix: { tree: 3, basic: 2, zippy: 1 } },
+  traders: true, traderFirst: 20,
+  pal: {
+    plain: ['#f0e6d0', '#d0c2a4', '#b0a284'], ore: ['#d0c2e6', '#ab9fc8', '#8a7fa8'], crater: ['#a89a78', '#8a7c5c', '#6f6244'],
+    rock: ['#faf4e6', '#ddd2bc', '#c0b49c'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#c0a878', '#9a8458', '#7a6644', '#5e4e34'],
+  },
+  deco: { pebble: '#e8d8b0', rim: '#e0d0a8', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#ddd2bc', '#faf4e6'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A golden platform drifting in Saturn’s clouds, held up by giant balloons. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Root hole', 'A tangle of roots pokes up through this hole in the platform. Tree aliens climb out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 3 storm turbines', get: () => count('turbine'), target: 3,
+      who: 'eng', hint: 'The sun is very far away now, but Saturn has some of the fastest winds in the solar system. Three storm turbines.' },
+    { text: 'Build a police station', get: () => count('police'), target: 1,
+      who: 'cmd', hint: 'Tree aliens! Zaps bounce off their bark. Only knights and police can chop them down. Build a police station.' },
+    { text: 'Build a crystal crafter', get: () => count('ccrafter'), target: 1,
+      who: 'kip', hint: 'A crystal crafter is built from crystals, and it makes every alien we beat drop an extra crystal. Zorp visits a lot here, so crystals will be handy.' },
+    { text: 'Train 4 knights and police', get: () => knightCount() + copCount(), target: 4,
+      who: 'kip', hint: 'Four knights and police officers between them. Each one eats five food first.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'Another humming stone, out on the edge of the platform. Another power core!' },
+    { text: 'Defeat 6 tree aliens', get: () => S.treesBeaten || 0, target: 6,
+      who: 'eng', hint: 'Each tree alien takes fourteen hits. Keep the knights and police near the buildings.' },
+  ],
+  intro: [['cmd', 'Saturn. Look at those rings. Every one of them is made of chunks of ice, some as big as houses.'], ['kip', 'Those trees on the next platform are walking. Trees are not supposed to walk. I have checked.']],
+  outro: [['cmd', 'A power core from Saturn. And Zorp keeps dropping by. I think he likes it here.']],
+  brief: {
+    eyebrow: 'Level 25',
+    title: 'Saturn: Golden Clouds',
+    body: ['The mission to free Earth reaches Saturn. The colony lives on <b>floating platforms</b> in its golden clouds, with the rings across the sky. <b>Zorp visits much more often</b> out here.', '<b>Tree aliens</b> take 14 hits, and only <b>knights</b> and <b>police</b> can chop them down. Build <b>crystal crafters</b> with your crystals: each one makes every defeated alien drop 1 extra crystal (up to 3).'],
+    fact: '<b>Lightest planet:</b> Saturn is so light for its size that, in a big enough bathtub, it would float.',
+  },
+  done: {
+    title: 'Life in the golden clouds',
+    body: 'Turbines turning, knights on guard and a power core from Saturn.',
+    fact: '<b>Long year:</b> one year on Saturn lasts about 29 Earth years.',
+  },
+});
+LEVELS.push({
+  name: 'Saturn: Golden Winds', num: 26,
+  seed: 197, n: 12, offworld: true, floating: true, sky: 'saturnclouds', sun: 0.35, knights: true, wizards: true, traderEvery: 6, core: ['saturn2', 'the Wind Core'],
+  map: { ice: 0, mountains: [[10, 10, 0.6]], craters: [[3, 3], [9, 3], [3, 9], [8, 8]], ore: [[6, 2, 1.2], [1, 6, 1.1]], ruins: [[10, 6]], voids: [[0, 0, 1.4], [11, 11, 1.2]] },
+  start: { metal: 180, energy: 60, water: 50, food: 100 },
+  planet: { temp: -140, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 9], ['habitat', 7, 9], ['turbine', 5, 9], ['condenser', 8, 9], ['police', 6, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.8, after: () => S.time > 25, mix: { tree: 4, basic: 1, zippy: 1 } },
+  traders: true, traderFirst: 20,
+  pal: {
+    plain: ['#f0e6d0', '#d0c2a4', '#b0a284'], ore: ['#d0c2e6', '#ab9fc8', '#8a7fa8'], crater: ['#a89a78', '#8a7c5c', '#6f6244'],
+    rock: ['#faf4e6', '#ddd2bc', '#c0b49c'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#c0a878', '#9a8458', '#7a6644', '#5e4e34'],
+  },
+  deco: { pebble: '#e8d8b0', rim: '#e0d0a8', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#ddd2bc', '#faf4e6'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A golden platform drifting in Saturn’s clouds, held up by giant balloons. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Root hole', 'A tangle of roots pokes up through this hole in the platform. Tree aliens climb out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 2 crystal crafters', get: () => count('ccrafter'), target: 2,
+      who: 'kip', hint: 'Two crystal crafters means every alien drops three crystals. That is a lot of trading with Zorp!' },
+    { text: 'Train 6 knights and police', get: () => knightCount() + copCount(), target: 6,
+      who: 'cmd', hint: 'A forest of tree aliens is coming. Six knights and police officers.' },
+    { text: 'Build a graveyard', get: () => count('graveyard'), target: 1,
+      who: 'bot', hint: 'A graveyard gives every new tree alien one less health. Every hit counts.' },
+    { text: 'House 20 colonists', get: () => S.pop, target: 20,
+      who: 'cmd', hint: 'Room for twenty colonists on the platforms.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'The next power core is under a humming stone on the far platform.' },
+    { text: 'Defeat 12 tree aliens', get: () => S.treesBeaten || 0, target: 12,
+      who: 'eng', hint: 'Twelve tree aliens. Knights and police work best together.' },
+  ],
+  intro: [['eng', 'These winds are incredible. Over one thousand kilometres an hour at the equator.'], ['kip', 'A tree alien just waved at me. With a branch. Then it tried to stomp on me.']],
+  outro: [['cmd', 'Two Saturn power cores. The tree aliens are coming from the north, near the pole.']],
+  brief: {
+    eyebrow: 'Level 26',
+    title: 'Saturn: Golden Winds',
+    body: ['Saturn’s winds blow faster than a jet plane, and a whole forest of tree aliens is on the move.', 'Build more <b>crystal crafters</b> for bigger crystal drops, a <b>graveyard</b> to weaken the trees, and plenty of knights and police.'],
+    fact: '<b>Super winds:</b> winds near Saturn’s equator can blow at around 1,800 kilometres per hour.',
+  },
+  done: {
+    title: 'Through the golden winds',
+    body: 'Crystal crafters humming, a forest held back and a second Saturn power core.',
+    fact: '<b>Many moons:</b> Saturn has more than 140 known moons, more than any other planet.',
+  },
+});
+LEVELS.push({
+  name: 'Saturn: The Hexagon', num: 27,
+  seed: 199, n: 12, offworld: true, floating: true, sky: 'saturnclouds', sun: 0.35, knights: true, wizards: true, traderEvery: 6, core: ['saturn3', 'the Hexagon Core'],
+  map: { ice: 0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[4, 3], [8, 4], [3, 8], [9, 9]], ore: [[6, 6, 1.2], [10, 2, 1.0]], ruins: [[2, 5]], voids: [[11, 0, 1.4], [0, 11, 1.4]] },
+  start: { metal: 190, energy: 70, water: 60, food: 110 },
+  planet: { temp: -140, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['turbine', 5, 10], ['condenser', 8, 10], ['police', 6, 8], ['castle', 4, 7]],
+  critters: { every: [10, 14], max: 8, speed: 0.85, after: () => S.time > 20, mix: { tree: 5, zippy: 1, armor: 1 } },
+  traders: true, traderFirst: 20,
+  pal: {
+    plain: ['#f0e6d0', '#d0c2a4', '#b0a284'], ore: ['#d0c2e6', '#ab9fc8', '#8a7fa8'], crater: ['#a89a78', '#8a7c5c', '#6f6244'],
+    rock: ['#faf4e6', '#ddd2bc', '#c0b49c'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#c0a878', '#9a8458', '#7a6644', '#5e4e34'],
+  },
+  deco: { pebble: '#e8d8b0', rim: '#e0d0a8', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#ddd2bc', '#faf4e6'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A golden platform drifting in Saturn’s clouds, held up by giant balloons. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Root hole', 'A tangle of roots pokes up through this hole in the platform. Tree aliens climb out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 3 crystal crafters', get: () => count('ccrafter'), target: 3,
+      who: 'kip', hint: 'Three crystal crafters, the most that helps. Every alien will drop four crystals!' },
+    { text: 'Train 8 knights and police', get: () => knightCount() + copCount(), target: 8,
+      who: 'cmd', hint: 'Eight knights and police officers. The forest is getting thicker.' },
+    { text: 'Build a church', get: () => count('church'), target: 1,
+      who: 'bot', hint: 'A church doubles all our damage. Tree aliens have fourteen hits, so we need it.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'The third Saturn power core is hidden near the giant hexagon storm.' },
+    { text: 'Defeat 16 tree aliens', get: () => S.treesBeaten || 0, target: 16,
+      who: 'eng', hint: 'Sixteen tree aliens. Keep the church and graveyard standing.' },
+  ],
+  intro: [['bot', 'Look north. That storm is a perfect hexagon, with six straight sides. Nobody knows exactly why.'], ['kip', 'I asked it. It did not answer.']],
+  outro: [['cmd', 'Three Saturn power cores. One more platform, then the rings.']],
+  brief: {
+    eyebrow: 'Level 27',
+    title: 'Saturn: The Hexagon',
+    body: ['Near Saturn’s north pole spins a giant <b>six-sided storm</b>, wider than two Earths. The tree aliens are coming in bigger groups.', 'Build all three <b>crystal crafters</b>, a church for double damage, and a big guard of knights and police.'],
+    fact: '<b>The Hexagon:</b> a six-sided jet stream circles Saturn’s north pole. Each side is longer than the width of Earth.',
+  },
+  done: {
+    title: 'The six-sided storm',
+    body: 'Three crystal crafters, a church and a third Saturn power core.',
+    fact: '<b>Cassini:</b> NASA’s Cassini spacecraft orbited Saturn for 13 years, and photographed the hexagon up close.',
+  },
+});
+LEVELS.push({
+  name: 'Saturn: Ring Shadow', num: 28,
+  seed: 211, n: 12, offworld: true, floating: true, sky: 'saturnclouds', sun: 0.3, knights: true, wizards: true, traderEvery: 6, core: ['saturn4', 'the Shadow Core'],
+  map: { ice: 0, mountains: [[10, 1, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8], [6, 6]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [[6, 1]], voids: [[0, 0, 1.4], [11, 11, 1.4], [0, 11, 1.0]] },
+  start: { metal: 200, energy: 70, water: 60, food: 120 },
+  planet: { temp: -140, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'condenser', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['turbine', 4, 10], ['condenser', 8, 10], ['police', 6, 8], ['castle', 4, 7], ['graveyard', 8, 7]],
+  critters: { every: [10, 13], max: 8, speed: 0.9, after: () => S.time > 20, mix: { tree: 5, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 20,
+  pal: {
+    plain: ['#f0e6d0', '#d0c2a4', '#b0a284'], ore: ['#d0c2e6', '#ab9fc8', '#8a7fa8'], crater: ['#a89a78', '#8a7c5c', '#6f6244'],
+    rock: ['#faf4e6', '#ddd2bc', '#c0b49c'], ruin: ['#c9b896', '#a8987a', '#8a7a5e'],
+    sides: ['#c0a878', '#9a8458', '#7a6644', '#5e4e34'],
+  },
+  deco: { pebble: '#e8d8b0', rim: '#e0d0a8', pit: '#8a7a5a', pit2: '#9a8a6a', cone: ['#ffffff', '#ddd2bc', '#faf4e6'] },
+  tileInfo: {
+    plain: ['Floating platform', 'A golden platform drifting in Saturn’s clouds, held up by giant balloons. Flat and buildable.'],
+    ore: ['Purple ore', 'Crystals of purple ore, scooped out of the clouds. Mines and ore drills go here.'],
+    crater: ['Root hole', 'A tangle of roots pokes up through this hole in the platform. Tree aliens climb out of them.'],
+    rock: ['Balloon mast', 'One of the giant balloons that keep the platform afloat. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+    void: ['Open sky', 'A long, long way down.'],
+  },
+  goals: [
+    { text: 'Build 3 police stations', get: () => count('police'), target: 3,
+      who: 'cmd', hint: 'Three police stations, spread across the platforms.' },
+    { text: 'Train 9 police officers', get: () => copCount(), target: 9,
+      who: 'kip', hint: 'Nine police officers. The tree aliens grow thick in the shadow of the rings.' },
+    { text: 'House 24 colonists', get: () => S.pop, target: 24,
+      who: 'bot', hint: 'Twenty four colonists, and keep them happy in the shadow.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'The fourth Saturn power core is somewhere in the shadow.' },
+    { text: 'Defeat 20 tree aliens', get: () => S.treesBeaten || 0, target: 20,
+      who: 'eng', hint: 'Twenty tree aliens. They all come from the rings, from something very old.' },
+  ],
+  intro: [['eng', 'The rings block out the sun here. It is always twilight in the ring shadow.'], ['kip', 'The tree aliens keep looking up at the rings. Like they are waiting for something.']],
+  outro: [['cmd', 'Four Saturn power cores. The tree aliens come from the rings. That is where we go next.']],
+  brief: {
+    eyebrow: 'Level 28',
+    title: 'Saturn: Ring Shadow',
+    body: ['In the shadow of the rings it is always twilight, and solar power is weakest. The tree aliens grow thickest here.', 'Build three police stations and a big police force, and find the fourth Saturn power core.'],
+    fact: '<b>Thin rings:</b> Saturn’s rings are about 280,000 kilometres wide, but in most places only about 10 metres thick.',
+  },
+  done: {
+    title: 'Out of the shadow',
+    body: 'Four power cores from Saturn. Every tree alien points toward the rings.',
+    fact: '<b>Disappearing rings:</b> every 13 to 15 years the rings line up edge-on with Earth and almost vanish from view.',
+  },
+});
+LEVELS.push({
+  name: 'Saturn’s Rings', num: 29,
+  seed: 223, n: 12, offworld: true, floating: true, sky: 'rings', sun: 0.3, knights: true, wizards: true, traderEvery: 6, elder: true,
+  map: { ice: 2.0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [], voids: [[11, 0, 1.6], [0, 11, 1.6], [6, 0, 0.8]] },
+  start: { metal: 240, energy: 80, water: 70, food: 130 },
+  planet: { temp: -140, press: 100, o2: 0 },
+  tools: ['solar', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['solar', 4, 10], ['solar', 8, 10], ['police', 6, 8], ['castle', 4, 7], ['wizhut', 8, 7], ['church', 6, 6]],
+  critters: { every: [11, 15], max: 8, speed: 0.9, after: () => S.time > 20, mix: { tree: 4, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 20,
+  pal: {
+    plain: ['#e6f0fa', '#bccbdc', '#98aac0'], ore: ['#cfc4ec', '#a89fcc', '#8a80ac'], ice: ['#f4faff', '#cfe0f0', '#a8c0d8'], crater: ['#a8b8cc', '#8a9ab0', '#6f7f96'],
+    rock: ['#ffffff', '#dce8f4', '#bccbdc'],
+    sides: ['#bccbdc', '#98aac0', '#7a8ca4', '#5e6f88'],
+  },
+  deco: { pebble: '#ffffff', rim: '#e6f0fa', pit: '#8a9ab0', pit2: '#98aac0', cone: ['#ffffff', '#dce8f4', '#f4faff'] },
+  tileInfo: {
+    plain: ['Ring ice', 'A giant chunk of water ice, one of trillions in Saturn’s rings. Flat and buildable.'],
+    ore: ['Dusty ore', 'Ice mixed with purple rock dust. Mines and ore drills go here.'],
+    ice: ['Clean ice', 'Pure, sparkling water ice. Ice drills go here.'],
+    crater: ['Root hole', 'Roots have cracked the ice here. Tree aliens climb out.'],
+    rock: ['Ice boulder', 'A huge boulder of ice. Nothing can be built here.'],
+    void: ['Ring gap', 'A gap between the ice chunks. Space, all the way down.'],
+  },
+  goals: [
+    { text: 'Train 9 knights and police', get: () => knightCount() + copCount(), target: 9,
+      who: 'cmd', hint: 'Nine knights and police officers. Something ancient lives out here on the rings.' },
+    { text: 'Build 3 crystal crafters', get: () => count('ccrafter'), target: 3,
+      who: 'kip', hint: 'Three crystal crafters again, so we can trade with Zorp for anything we need.' },
+    { text: 'Drill the ring ice', get: () => count('drill'), target: 2,
+      who: 'bot', hint: 'The rings are made of water ice! Two ice drills will give us all the water we need.' },
+    { text: 'Build a graveyard', get: () => count('graveyard'), target: 1,
+      who: 'bot', hint: 'A graveyard makes every alien weaker, and even the biggest boss a little easier.' },
+    { text: 'Defeat 15 tree aliens', get: () => S.treesBeaten || 0, target: 15,
+      who: 'eng', hint: 'Fifteen tree aliens. Then whatever is in charge of them will come out.' },
+    { text: 'Defeat the Elder Tree', get: () => S.elderDefeated ? 1 : 0, target: 1, flag: true, elder: true,
+      who: 'kip', hint: 'The Elder Tree! Only knights and police can chop it down. It goes for the castles first, so keep them standing!' },
+  ],
+  intro: [['cmd', 'Saturn’s rings. We are standing on a chunk of ice, floating in space, next to the second biggest planet.'], ['bot', 'And the ice here is cracked by roots. Very old roots. Something huge has been growing out here for a very long time.']],
+  outro: [['cmd', 'Five power cores from Saturn, and the tree folk have joined the mission to free Earth.'], ['kip', 'A small tree alien has planted itself next to me. I think it wants to be friends. I will water it.']],
+  brief: {
+    eyebrow: 'Level 29 · Saturn’s rings',
+    title: 'Saturn’s Rings',
+    body: ['Out on the <b>icy rings</b>, the colony is built on giant chunks of ice. Ice drills work here, because the rings are made of water.', 'When you are ready, the <b>Elder Tree</b> grows up out of the ice. Only <b>knights and police</b> can hurt it. Beat it for a power core and new allies.'],
+    fact: '<b>Made of ice:</b> Saturn’s rings are more than 99% water ice, in chunks from tiny grains to boulders as big as mountains.',
+  },
+  done: {
+    title: 'The Elder Tree is beaten',
+    body: 'The Elder Tree has stopped, and the tree folk of Saturn have joined the mission to free Earth.',
+    fact: '<b>Young rings?</b> Some scientists think Saturn’s rings may be much younger than the planet, maybe only a few hundred million years old.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2076,7 +2336,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -2216,7 +2476,7 @@ function tick(dt) {
   for (const t of tiles) if (t.b === 'habitat' || t.b === 'hover') { t.res = Math.min(homeSize(t.b), left); left -= t.res; }
 
   updateCritters(dt);
-  if (L.knights) { updateKnights(dt); maybeKing(L); }
+  if (L.knights) { updateKnights(dt); maybeKing(L); maybeElder(L); }
   if (L.chief) maybeChief(L);
   if (L.lizardKing) maybeLizardKing(L);
   if (L.wizards) updateWizards(dt);
@@ -2830,14 +3090,19 @@ const WORLDS = {
   jupiter3: { level: 21, name: 'Jupiter: Ammonia Snow', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter2', blurb: 'Cold, high clouds and a rhino stampede.' },
   jupiter4: { level: 22, name: 'Jupiter: Lightning Fields', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter3', blurb: 'Huge lightning storms, close to the Great Red Spot.' },
   jupiter5: { level: 23, name: 'Jupiter: The Great Red Spot', icon: 'jupiter', sys: 'jupiter', body: 'jupiterclouds', fuel: 200, needs: ['engines', 'shield'], after: 'jupiter4', blurb: 'The biggest storm in the solar system is waking up.' },
+  saturn:  { level: 25, name: 'Saturn', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'jupiter5', blurb: 'Golden clouds, the most beautiful rings in the solar system, and tree aliens.' },
+  saturn2: { level: 26, name: 'Saturn: Golden Winds', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn', blurb: 'The fastest winds on Saturn, and a forest of tree aliens.' },
+  saturn3: { level: 27, name: 'Saturn: The Hexagon', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn2', blurb: 'A giant six-sided storm spins at the north pole.' },
+  saturn4: { level: 28, name: 'Saturn: Ring Shadow', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn3', blurb: 'In the shadow of the rings, the tree aliens grow thick.' },
+  saturn5: { level: 29, name: 'Saturn’s Rings', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn4', blurb: 'Out on the icy rings, where the Elder Tree grows.' },
   chief:  { level: 11, name: 'The Five-Head Chief', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'moon', blurb: 'Back to the Moon, where the boss of the five-headed aliens is coming.' },
 };
-const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter' };
+const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter', saturnclouds: 'Saturn' };
 const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -3048,7 +3313,7 @@ function updateBoss(dt) {
     }
     return;
   }
-  if (b.kind === 'king') { kingStep(b, dt); return; }
+  if (b.kind === 'king' || b.kind === 'elder') { kingStep(b, dt); return; }
   let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
   if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
@@ -3079,7 +3344,7 @@ function hurtBoss(dmg, knight = false) {
   if (!b || b.state === 'dead' || b.state === 'burrow' || b.state === 'emerge') return;
   dmg *= dmgMul();
   if (S.tiles.some(t => t.b === 'graveyard')) dmg *= 1.1; // the graveyard makes bosses 10% easier
-  if (b.kind === 'king' && !knight) return;
+  if ((b.kind === 'king' || b.kind === 'elder') && !knight) return;
   if (b.kind === 'chief') { chiefHit(b, dmg); return; }
   if (b.kind === 'robot') { robotHit(b, dmg); return; }
   if (b.kind === 'storm') {
@@ -3101,13 +3366,14 @@ function hurtBoss(dmg, knight = false) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
     if (b.kind === 'lizard') { toast('The Lizard King dived into the lava!', 'bad'); say('kip', 'He dived into the lava! He will climb out somewhere else.', 'lk-burrow'); }
+    else if (b.kind === 'elder') { toast('The Elder Tree sank its roots into the ice!', 'bad'); say('kip', 'It pulled itself down into the ice by its roots! It will grow back up somewhere else.', 'elder-burrow'); }
     else if (b.kind === 'king') { toast('The King smashed down through the ice!', 'bad'); say('kip', 'He dived under the ice! He will burst out somewhere else, and now he is really cross.', 'king-burrow'); }
     else if (b.kind === 'cousin') { toast('Queen Skyla flew off into the clouds!', 'bad'); say('kip', 'She flew away, but she will be back, and angrier.', 'skyla2'); }
     else { toast('The queen dug underground!', 'bad'); say('kip', 'She went underground! She will pop up somewhere else, and she looks angry.', 'burrow1'); }
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
@@ -3118,6 +3384,11 @@ function hurtBoss(dmg, knight = false) {
       say('kip', 'The Lizard King is beaten! And look, the lizard people are not running away. They are bowing.', 'lkdown');
       say('cmd', 'He was forcing them to fight. Now they are free, and they want to help us free Earth.', 'lkally');
       gainCore('venus4', 'the Lizard King’s Crown Core'); gainAlly('lizards', 'the Lizard People of Venus');
+    } else if (b.kind === 'elder') {
+      toast('The Elder Tree is beaten! +25 crystals', 'good');
+      say('kip', 'The Elder Tree has stopped! And the tree aliens are waving their branches at us. Happily, I think.', 'elderdown');
+      say('cmd', 'They only fought because the Elder Tree told them to. Now they want to help us free Earth.', 'elderally');
+      gainCore('saturn5', 'the Heartwood Core'); gainAlly('trees', 'the Tree Folk of Saturn');
     } else if (b.kind === 'king') {
       toast('The Shell-beast King is defeated! +25 crystals', 'good');
       say('kip', 'The knights did it! The Shell-beast King has crawled back under the ice, and his beasts are going with him.', 'kingdown');
@@ -3133,7 +3404,7 @@ function zapBoss(t, range) {
   if (Math.hypot(b.x - (t.gx + 0.5), b.y - (t.gy + 0.5)) > range + 0.6) return false;
   const a = center(t), w = bossWorld();
   fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: w.x, y2: w.y - 30, life: 0.3, max: 0.3 });
-  if (b.kind === 'king' || (b.kind === 'lizard' && !b.flying)) { fx.push({ kind: 'text', x: w.x, y: w.y - 60, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' }); sfx('clang'); return true; }
+  if (b.kind === 'king' || b.kind === 'elder' || (b.kind === 'lizard' && !b.flying)) { fx.push({ kind: 'text', x: w.x, y: w.y - 60, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' }); sfx('clang'); return true; }
   hurtBoss(hasTech('arc') ? 2 : 1); sfx('zap');
   return true;
 }
@@ -3165,6 +3436,13 @@ function bossAt(mx, my) {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 55 * k) * sc;
     if (Math.abs(mx - bx) < 32 * k * sc && Math.abs(my - by) < 55 * k * sc) { hurtBoss(1); sfx('clang'); say('eng', 'Aim for the glowing head! That is where it really counts.', 'chief-aim'); return true; }
     return false;
+  }
+  if (b.kind === 'elder') {
+    const bx = view.x + w.x * sc, by = view.y + (w.y - 50 * QS) * sc;
+    if (Math.abs(mx - bx) > 40 * QS * sc || Math.abs(my - by) > 55 * QS * sc) return false;
+    sfx('clang'); fx.push({ kind: 'text', x: w.x, y: w.y - 90 * QS, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
+    say('eng', 'Tapping its bark does nothing. Only knights and police can chop the Elder Tree down.', 'elder-tap');
+    return true;
   }
   if (b.kind === 'king') {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 35 * QS) * sc;
@@ -3228,6 +3506,21 @@ function drawBoss(g) {
     }
     return;
   }
+  if (b.kind === 'elder') {
+    g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+    ell(g, 0, 2, 40 * k, 13 * k, 'rgba(20,40,20,0.35)');
+    g.scale(k * 2.6 * (b.face || 1), k * 2.6);
+    drawTreeBody(g, b.enraged ? '#c9a13a' : '#3f9a4a', b.state === 'walk' ? Math.sin(b.t * 4) * 2 : 0, b.hit > 0, false, b.enraged);
+    g.fillStyle = '#ffd166'; for (const [x, y] of [[-6, -38], [5, -40], [0, -44], [9, -31], [-9, -31]]) ell(g, x, y, 1.2, 1.2, '#ffd166'); // glowing fruit
+    g.restore();
+    if (b.state !== 'dead') {
+      const top = w.y - 120 * k;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE ELDER TREE', w.x, top - 6);
+    }
+    return;
+  }
   if (b.kind === 'king') {
     drawKing(g, b, w, k, alpha);
     if (b.state !== 'dead') {
@@ -3278,6 +3571,19 @@ function maybeKing(L) {
   const ki = L.goals.findIndex(g => g.king);
   if (L.goals.every((g, i) => i >= ki || S.goalsDone[i])) spawnKing();
 }
+function maybeElder(L) {
+  if (!L.elder || S.boss || S.elderDefeated) return;
+  const ci = L.goals.findIndex(g => g.elder);
+  if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnElder();
+}
+function spawnElder() {
+  const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'elder', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 500, maxhp: 500, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 10, atk: 2, enraged: false, hs: crater.h };
+  shake = RM ? 0 : 14; sfx('boom'); sfx('roar');
+  toast('THE ELDER TREE has grown up out of the ice!', 'bad');
+  say('kip', 'That is the Elder Tree! It is ancient, and it is the boss of all the tree aliens. Only knights and police can chop it down.', 'elder1');
+  say('cmd', 'It is heading for our castles. Keep the knights and police fed and fighting!', 'elder2');
+}
 function spawnKing() {
   const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
   S.boss = { kind: 'king', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 160, maxhp: 160, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 10, atk: 2, enraged: false, hs: crater.h };
@@ -3289,7 +3595,7 @@ function spawnKing() {
 function kingStep(b, dt) {
   b.spawnT -= dt;
   if (b.spawnT <= 0) {
-    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
+    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
     b.spawnT = b.enraged ? 9 : 13;
   }
   b.slam = Math.max(0, (b.slam || 0) - dt);
@@ -4001,7 +4307,7 @@ function arcadeRender() {
   // Mars falling away below
   const mr = Math.max(80, Math.min(W, H) * (0.9 - Math.min(A.t, 30) / 45));
   const by_ = H + mr * 0.55 + A.t * 6;
-  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else drawBigMars(g, W / 2, by_, mr);
+  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else if (A.cfg.from === 'saturn') drawJupiter(g, W / 2, by_, mr); else drawBigMars(g, W / 2, by_, mr);
   const toSys = WORLDS[A.cfg.to].sys, grow = Math.min(70, (A.t - A.len * 0.5) * 4);
   if (A.cfg.from !== toSys && A.t > A.len * 0.5) (toSys === 'jupiter' ? drawJupiter : toSys === 'earth' ? drawEarth : toSys === 'venus' ? drawVenus : toSys === 'mercury' ? drawMercury : drawBigMars)(g, W * 0.75, 90, grow);
   const sx = shake ? (Math.random() - 0.5) * shake : 0;
@@ -4092,6 +4398,12 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'saturn') {
+    g.save(); g.translate(x, y); g.rotate(-0.3);
+    g.strokeStyle = 'rgba(220,200,160,0.9)'; g.lineWidth = 3; g.beginPath(); g.ellipse(0, 0, r * 1.5, r * 0.4, 0, Math.PI, Math.PI * 2); g.stroke();
+    ell(g, 0, 0, r * 0.85, r * 0.85, '#e8d29e'); ell(g, 0, -r * 0.3, r * 0.8, r * 0.1, '#f3e3bc'); ell(g, 0, r * 0.25, r * 0.75, r * 0.08, '#dcc28a');
+    g.beginPath(); g.ellipse(0, 0, r * 1.5, r * 0.4, 0, 0, Math.PI); g.stroke();
+    g.restore();
   } else if (kind === 'jupiter') {
     drawJupiter(g, x, y, r);
   } else if (kind === 'mercury') {
@@ -4153,6 +4465,8 @@ const KINDS = {
   rhino:    { hp: 13, spd: 0.8, size: 1.8, steal: 1.6, immune: true, rhino: true },
   // tunnel critters under Mars: each one is born with 2 to 5 health
   burrower: { hp: 3, hpRange: [2, 5], spd: 0.9, size: 1.15, steal: 1.1 },
+  // Saturn's tree aliens: bark so thick that only knights and police can chop them down
+  tree:     { hp: 14, spd: 0.6, size: 1.8, steal: 1.5, immune: true, tree: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -4160,6 +4474,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  tree: ['eng', 'Tree aliens! Their bark is so thick that zaps and taps bounce off. Only knights and police can chop them down.'],
   burrower: ['kip', 'Tunnel critters! They are tougher down here. Some take two bonks, some take five. Count the little red dots over their heads.'],
   rhino: ['eng', 'Alien rhinos! Their hide is so thick that zaps and taps bounce right off. Only knights and police officers can stop them.'],
   blob: ['kip', 'A green blob! It takes ten hits, and knights cannot hurt it: their swords just sink into the goo. Zappers, taps and wizards work.'],
@@ -4189,7 +4504,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -4373,7 +4688,8 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     burst(p.x, p.y - 14, 6, ['#ffffff', '#9be3ff']);
     fx.push({ kind: 'text', x: p.x, y: p.y - 30, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
     sfx('clang');
-    if (KINDS[c.kind].rhino) say('eng', 'Rhino hide is too tough for zaps and taps! Only knights and police officers can stop them.', 'rhino-tink');
+    if (KINDS[c.kind].tree) say('eng', 'Tree bark is too tough for zaps and taps! Only knights and police can chop the tree aliens down.', 'tree-tink');
+    else if (KINDS[c.kind].rhino) say('eng', 'Rhino hide is too tough for zaps and taps! Only knights and police officers can stop them.', 'rhino-tink');
     else if (count('castle')) say('kip', 'Tink! Lasers and bonks bounce right off. Leave the shell-beasts to the knights.', 'shell-tink2');
     else say('eng', 'Our zaps just bounce off that shell! Build a castle. Its knights are the only thing that can beat a shell-beast.', 'shell-tink');
     return;
@@ -4398,7 +4714,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].rhino) {
+  if (KINDS[c.kind || 'basic'].tree) {
+    S.treesBeaten = (S.treesBeaten || 0) + 1;
+    say('kip', 'Timber! A tree alien fell over. It is just pretending to be a log now.', 'tree-down');
+    S.crystals += 2;
+  } else if (KINDS[c.kind || 'basic'].rhino) {
     S.rhinosBeaten = (S.rhinosBeaten || 0) + 1;
     say('kip', 'A rhino is down! It went to sleep with a very big snore.', 'rhino-down');
     S.crystals += 2;
@@ -4409,14 +4729,15 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
   }
   for (const [k, v] of Object.entries(c.loot)) S[k] += v;
   c.loot = {};
-  S.crystals += 1; S.bonks += 1; dirty = true;
+  const gems = 1 + Math.min(3, count('ccrafter'));
+  S.crystals += gems; S.bonks += 1; dirty = true;
   if (KINDS[c.kind || 'basic'].lizard) S.lizardsBeaten = (S.lizardsBeaten || 0) + 1;
   if (KINDS[c.kind || 'basic'].blob) S.blobsBeaten = (S.blobsBeaten || 0) + 1;
   if (c.kind === 'burrower') S.burrowBeaten = (S.burrowBeaten || 0) + 1;
   if (Math.random() < (KINDS[c.kind || 'basic'].lizard ? 0.12 : 0.03)) foundGold();
   const p = critWorld(c);
   burst(p.x, p.y - 8, 10, ['#ffd166', '#ffffff', c.col]);
-  fx.push({ kind: 'text', x: p.x, y: p.y - 22, text: '+1', life: 1, max: 1, color: '#9be3ff' });
+  fx.push({ kind: 'text', x: p.x, y: p.y - 22, text: '+' + gems, life: 1, max: 1, color: gems > 1 ? '#c9a7ff' : '#9be3ff' });
   sfx(zapped ? 'zap' : 'bonk');
   say('kip', 'Bonk! It dropped a glowing crystal. I will keep that. For science.', 'bonk1');
 }
@@ -4492,7 +4813,7 @@ function updateTrader(dt) {
   }
   if (tr.phase === 'arrive') { tr.p += dt / 2.5; if (tr.p >= 1) { tr.phase = 'wait'; tr.p = 0; } }
   else if (tr.phase === 'wait') { tr.t -= dt; if (tr.t <= 0) { tr.phase = 'leave'; tr.p = 0; } }
-  else if (tr.phase === 'leave') { tr.p += dt / 2.5; if (tr.p >= 1) { S.trader = null; S.traderT = 70 + Math.random() * 30; } }
+  else if (tr.phase === 'leave') { tr.p += dt / 2.5; if (tr.p >= 1) { S.trader = null; S.traderT = (LEVELS[S.level].traderEvery || 70) + Math.random() * 30 * (LEVELS[S.level].traderEvery ? 0.5 : 1); } }
 }
 function saucerWorld() {
   const tr = S.trader, c = center(S.tiles[tr.i]);
@@ -4566,6 +4887,7 @@ function canPlace(name, t) {
     const type = t.type === 'cave' || t.type === 'isle' ? 'plain' : t.type === 'magma' ? 'vent' : t.type;
     if (!d.on.includes(type)) return [false, d.onText];
     if (d.unique && count(name) > 0) return [false, `You only need one ${d.name.toLowerCase()}.`];
+    if (d.max && count(name) >= d.max) return [false, `${d.max} ${d.name.toLowerCase()}s is the most that helps.`];
   }
   if (!afford(d.cost)) {
     const miss = Object.entries(d.cost).filter(([k, v]) => S[k] < v).map(([k, v]) => `${Math.ceil(v - S[k])} more ${k}`);
@@ -5112,6 +5434,17 @@ const DRAW = {
       ell(g, x, y - 10, r, r, '#3fae6b'); ell(g, x - 2, y - 12, r * 0.55, r * 0.5, '#7ddc9f');
     }
   },
+  ccrafter(g, T, v) {
+    shadow(g, 16, 7);
+    isoBox(g, 0, 4, 13, 6.5, 8, '#b8b0dc', '#8a82b8', '#6f6898');
+    const spin = T * 1.5 + v * 6, pulse = 0.7 + 0.3 * Math.sin(T * 4 + v * 5);
+    ell(g, 0, -16, 11 * pulse, 6 * pulse, 'rgba(201,167,255,0.3)');
+    for (let i = 0; i < 3; i++) {
+      const a = spin + i * 2.09, x = Math.cos(a) * 9, y = -16 + Math.sin(a) * 3;
+      g.fillStyle = ['#c9a7ff', '#7ff7ff', '#ff9fe8'][i]; poly(g, [[x, y - 5], [x + 2.6, y], [x, y + 4], [x - 2.6, y]]);
+    }
+    g.fillStyle = '#e8dcff'; poly(g, [[0, -26], [4, -18], [0, -10], [-4, -18]]);
+  },
   oredrill(g, T, v) {
     shadow(g, 18, 8);
     isoBox(g, 0, 4, 14, 7, 8, '#9aa0c4', '#757aa0', '#5d6186');
@@ -5573,7 +5906,7 @@ const LIGHTS = {
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
   zapper: [[0, -37, 16, '#9be3ff']],
-  condenser: [[0, -9, 10, '#5cc8ff']], oredrill: [[0, -36, 8, '#c9a7ff']], police: [[-6, -30, 8, '#ff6b81'], [6, -30, 8, '#5cc8ff']], graveyard: [[8, -22, 10, '#b8f0ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
+  condenser: [[0, -9, 10, '#5cc8ff']], oredrill: [[0, -36, 8, '#c9a7ff']], ccrafter: [[0, -18, 14, '#c9a7ff']], police: [[-6, -30, 8, '#ff6b81'], [6, -30, 8, '#5cc8ff']], graveyard: [[8, -22, 10, '#b8f0ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
   lemonade: [[0, -26, 10, '#ffe066']], lemon: [[0, -14, 12, '#fff3a0']],
   castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
   solar: [], mine: [[0, -30, 6, '#ffe08a']],
@@ -5660,6 +5993,35 @@ function drawLizard(g, c, p, k, alpha, walking) {
   g.scale(sc * c.face, sc);
   if (c.state === 'bonked') g.rotate(Math.min(1.4, c.t * 4));
   drawLizardBody(g, c.col, walking && !fly ? Math.sin(c.t * 12 + c.seed) * 4 : 0, fly, c.hit > 0, false);
+  g.restore();
+}
+// a walking tree: root legs, a bark body with a face, and a round leafy crown
+function drawTreeBody(g, leaf, step, hit, bonked, angry) {
+  const bark = hit ? '#ffffff' : '#8a5a3c', dark = '#5e3a24';
+  g.strokeStyle = dark; g.lineWidth = 3; g.lineCap = 'round';
+  for (const [x, s_] of [[-5, 1], [0, -1], [5, 1]]) { g.beginPath(); g.moveTo(x * 0.6, -6); g.quadraticCurveTo(x, -2, x * 1.4 + step * s_, 0); g.stroke(); }
+  g.fillStyle = bark; g.beginPath(); g.moveTo(-6, -4); g.lineTo(-5, -24); g.lineTo(5, -24); g.lineTo(6, -4); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 0.8; for (const x of [-3, 1, 3.5]) { g.beginPath(); g.moveTo(x, -6); g.lineTo(x - 0.5, -20); g.stroke(); }
+  g.strokeStyle = bark; g.lineWidth = 2.4; g.beginPath(); g.moveTo(-5, -18); g.lineTo(-11, -24 - step); g.moveTo(5, -18); g.lineTo(11, -24 + step); g.stroke();
+  const L = hit ? '#ffffff' : leaf;
+  for (const [x, y, r] of [[0, -32, 10], [-8, -27, 7], [8, -27, 7], [-11, -24 - step, 3.5], [11, -24 + step, 3.5]]) ell(g, x, y, r, r * 0.9, L);
+  ell(g, -3, -36, 4, 3, 'rgba(255,255,255,0.25)');
+  if (bonked) { g.strokeStyle = '#1a1238'; g.lineWidth = 0.9; for (const ex of [-2, 2.5]) { g.beginPath(); g.moveTo(ex - 1.2, -17); g.lineTo(ex + 1.2, -15); g.moveTo(ex + 1.2, -17); g.lineTo(ex - 1.2, -15); g.stroke(); } return; }
+  for (const ex of [-2, 2.5]) { ell(g, ex, -16, 1.8, 2, angry ? '#ff9b9b' : '#fff3a0'); ell(g, ex + 0.5, -15.8, 0.8, 1, '#1a1238'); }
+  g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); g.arc(0.3, -11, 2, Math.PI + 0.3, -0.3); g.stroke();
+}
+function drawTree(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  ell(g, 0, 1, 9 * k, 3.4 * k, 'rgba(20,40,20,0.3)');
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -44 * k, w, 4);
+    g.fillStyle = '#7cc15a'; g.fillRect(-w / 2 + 1, -44 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  if (c.state === 'bonked') g.rotate(Math.min(1.5, c.t * 3));
+  drawTreeBody(g, c.col, walking ? Math.sin(c.t * 8 + c.seed) * 1.5 : 0, c.hit > 0, c.state === 'bonked', c.fighting > 0);
   g.restore();
 }
 function drawRhino(g, c, p, k, alpha, walking) {
@@ -5796,7 +6158,7 @@ function updateKnights(dt) {
     }
   }
   knights = knights.filter(k => k.home.b === (k.cop ? 'police' : 'castle'));
-  const king = S.boss && (S.boss.kind === 'king' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  const king = S.boss && (S.boss.kind === 'king' || S.boss.kind === 'elder' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
   for (const k of knights) {
     k.t += dt; k.cd -= dt; k.swing = Math.max(0, k.swing - dt); k.hit = Math.max(0, k.hit - dt);
     const hx = k.home.gx + 0.5, hy = k.home.gy + 0.5;
@@ -5980,6 +6342,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.tree) { drawTree(g, c, p, k, alpha, walking); return; }
   if (K.rhino) { drawRhino(g, c, p, k, alpha, walking); return; }
   if (K.immune) { drawShell(g, c, p, k, alpha, walking, bob); return; }
   if (c.kind === 'fivehead') { drawFive(g, c, p, k, alpha, walking); return; }
@@ -6185,7 +6548,7 @@ function cloudShape(g, x, y, s, col) {
   ell(g, x + 24 * s, y - 4 * s, 14 * s, 10 * s, col);
 }
 function drawClouds(g) {
-  if (LEVELS[S.level].sky === 'cave') return; // no clouds underground
+  if (LEVELS[S.level].sky === 'cave' || LEVELS[S.level].sky === 'rings') return; // no clouds underground or out in space
   const a = clamp((S.planet.press - 3) / 9, 0, 1) * 0.85;
   if (a <= 0.01) return;
   for (const c of clouds) {
@@ -6329,6 +6692,26 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'saturnclouds' || sk === 'rings') {
+    if (sk === 'saturnclouds') { // pale gold cloud bands, with the rings arching across the sky
+      const bands = ['#f3e3bc', '#e8d29e', '#f6ead0', '#dcc28a', '#efdcb0', '#e4cc96'];
+      for (let i = 0; i < bands.length; i++) {
+        const y0 = (i / bands.length) * H, hgt = H / bands.length + 2;
+        g.fillStyle = bands[i]; g.beginPath(); g.moveTo(0, y0);
+        for (let x = 0; x <= W; x += 40) g.lineTo(x, y0 + Math.sin(x * 0.008 + RT * 0.1 + i) * 6);
+        g.lineTo(W, y0 + hgt); g.lineTo(0, y0 + hgt); g.fill();
+      }
+      g.save(); g.translate(W * 0.5, H * 0.05); g.rotate(-0.12);
+      for (const [r, a, w] of [[W * 0.9, 0.35, 10], [W * 0.82, 0.25, 6], [W * 0.75, 0.3, 14]]) { g.strokeStyle = `rgba(200,180,150,${a})`; g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, r, r * 0.18, 0, 0.05, Math.PI - 0.05); g.stroke(); }
+      g.restore();
+    } else { // out on the rings: black space, ice chunks drifting past, and Saturn itself
+      for (const st of stars) ell(g, st.x * W, st.y * H, st.z, st.z, `rgba(255,248,235,${st.a * 0.7})`);
+      const sx = W * 0.82, sy = H * 0.3, sr = Math.min(W, H) * 0.24;
+      ell(g, sx, sy, sr, sr, '#e8d29e'); for (let i = 0; i < 5; i++) ell(g, sx, sy - sr * 0.6 + i * sr * 0.3, sr * 0.95, sr * 0.06, i % 2 ? '#dcc28a' : '#f3e3bc');
+      for (let i = 0; i < 40; i++) { const x = ((i * 97 + RT * (20 + (i % 4) * 10)) % (W + 40)) - 20, y = H * 0.55 + Math.sin(i * 1.7) * H * 0.35; ell(g, x, y, 1.5 + (i % 3), 1 + (i % 2), 'rgba(230,240,255,0.7)'); }
+    }
+    return;
+  }
   if (sk === 'cave') { // a vast lava-tube cavern: dark rock above, stalactites and glowing crystals
     const gr = g.createLinearGradient(0, 0, 0, H);
     gr.addColorStop(0, '#120a18'); gr.addColorStop(0.6, '#24142c'); gr.addColorStop(1, '#3a2240');
@@ -6623,6 +7006,11 @@ function showTitle() {
       <button class="lvl jup" data-l="21"><span class="n">22</span><span><b>Jupiter: Ammonia Snow</b><small>Snow made of ammonia, and a rhino stampede.</small></span><span class="go">Play</span></button>
       <button class="lvl jup" data-l="22"><span class="n">23</span><span><b>Jupiter: Lightning Fields</b><small>Lightning, tornadoes and a big police force.</small></span><span class="go">Play</span></button>
       <button class="lvl jup2" data-l="23"><span class="n">24</span><span><b>Jupiter: The Great Red Spot</b><small>The biggest storm in the solar system wakes up.</small></span><span class="go">Play</span></button>
+      <button class="lvl sat" data-l="25"><span class="n">25</span><span><b>Saturn: Golden Clouds</b><small>Tree aliens, crystal crafters, and Zorp visits a lot.</small></span><span class="go">Play</span></button>
+      <button class="lvl sat" data-l="26"><span class="n">26</span><span><b>Saturn: Golden Winds</b><small>Super-fast winds and a forest on the move.</small></span><span class="go">Play</span></button>
+      <button class="lvl sat" data-l="27"><span class="n">27</span><span><b>Saturn: The Hexagon</b><small>A six-sided storm at the north pole.</small></span><span class="go">Play</span></button>
+      <button class="lvl sat" data-l="28"><span class="n">28</span><span><b>Saturn: Ring Shadow</b><small>Twilight under the rings, and a big police force.</small></span><span class="go">Play</span></button>
+      <button class="lvl sat2" data-l="29"><span class="n">29</span><span><b>Saturn’s Rings</b><small>Out on the icy rings, where the Elder Tree grows.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -7100,7 +7488,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v8) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : 24)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = true; }
+    if (d && d.S && !d.S.v9) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : 25)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;
