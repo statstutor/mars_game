@@ -371,7 +371,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 33;
+const BUILD = 34;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2181,12 +2181,13 @@ LEVELS.push({
 });
 LEVELS.push({
   name: 'Saturn’s Rings', num: 29,
-  seed: 223, n: 12, offworld: true, floating: true, sky: 'rings', sun: 0.3, knights: true, wizards: true, traderEvery: 6, elder: true,
-  map: { ice: 2.0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [], voids: [[11, 0, 1.6], [0, 11, 1.6], [6, 0, 0.8]] },
+  seed: 223, n: 12, offworld: true, floating: true, sky: 'rings', sun: 0.7, knights: true, wizards: true, traderEvery: 6, elder: true,
+  map: { ice: 0, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8]], ore: [[2, 7, 1.2], [10, 5, 1.0]], ruins: [], voids: [[11, 0, 1.6], [0, 11, 1.6], [6, 0, 0.8]],
+         frost: [[5, 3], [6, 3], [2, 5], [3, 6], [7, 5], [8, 6], [9, 5], [5, 7], [2, 9], [10, 3]] },
   start: { metal: 240, energy: 80, water: 70, food: 130 },
   planet: { temp: -140, press: 100, o2: 0 },
   tools: ['solar', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'graveyard', 'church', 'wizhut', 'crafter', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
-  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['solar', 4, 10], ['solar', 8, 10], ['police', 6, 8], ['castle', 4, 7], ['wizhut', 8, 7], ['church', 6, 6]],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['habitat', 5, 10], ['solar', 4, 10], ['solar', 8, 10], ['police', 6, 8], ['castle', 4, 7], ['wizhut', 8, 7], ['church', 6, 6], ['drill', 7, 9]],
   critters: { every: [11, 15], max: 8, speed: 0.9, after: () => S.time > 20, mix: { tree: 4, zippy: 1, brute: 1 } },
   traders: true, traderFirst: 20,
   pal: {
