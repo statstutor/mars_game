@@ -111,6 +111,18 @@ screen, saved on the device), and one day come home to free Earth.
 29. **Saturn's Rings**: the colony sits on chunks of ring ice (ice drills work). The **Elder
     Tree** grows up out of the ice; only knights and police can hurt it. Beating it wins a power
     core and the tree folk as allies.
+30. **Titan: Methane Shores** (on the star map after Saturn's Rings): Saturn's biggest moon,
+    with thick orange air and methane rain. Its rocks are water ice, so ice drills work.
+    **Rock monsters** take 15 hits; zappers, wizards and taps hurt them, knights can't. A hurt
+    one (5 hits or fewer left) sometimes runs to a **hole** to hide for a few seconds, and may
+    come back with a hit healed. A **dig site** on a hole fills it in for good. A **tunnel** on a
+    hole opens an underground layer to build in; a rock monster hiding in a tunnelled hole shows
+    up underground, where zappers and taps can still hit it (and it can't heal if hit). A power
+    core is buried here.
+31. **Titan: The Rock Giant**: build tunnels and underground zappers, then the **Rock Giant**
+    climbs out. Zappers, wizards and taps hurt it. Each time its health drops past ¾, ½ and ¼,
+    it digs into the nearest open hole to heal (+60). Filled-in holes stop that, and a tunnelled
+    hole chases it out with no healing. Beating it wins a power core and the Rock Folk as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are

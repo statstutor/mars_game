@@ -140,6 +140,8 @@ body.cramped #tip.idle { display: none; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
+.lvl.titan .n { background: #d08a40; } .lvl.titan .go { color: #f0b060; }
+.lvl.titan2 .n { background: #9a7a5e; } .lvl.titan2 .go { color: #d8b48a; }
 .lvl.under .n { background: #8f68aa; font-size: 16px; } .lvl.under .go { color: #b79bff; }
 .levels { max-height: 46vh; overflow-y: auto; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
@@ -374,7 +376,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 35;
+const BUILD = 36;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -458,7 +460,9 @@ const B = {
              desc: 'Grass, a pond and two slightly confused trees for 12 colonists. +6 happiness.' },
   zapper:  { name: 'Zapper', cost: { metal: 35 }, on: ['plain', 'ore'], onText: 'Zappers need flat ground.', energy: -1,
              desc: 'Automatically zaps critters within 2 tiles. Uses 1 energy/s.' },
-  dig:     { name: 'Dig Site', cost: { metal: 20 }, on: ['ruin'], onText: 'Dig sites go on glowing alien ruins.', energy: -1,
+  tunnel:  { name: 'Tunnel', cost: { metal: 40 }, on: ['hole'], onText: 'Tunnels go into the rock monsters’ holes.', energy: -1,
+             desc: 'Opens a rock monster hole into a tunnel. It opens the underground to build in, and rock monsters hiding in it can be zapped and tapped from underground. Uses 1 energy/s.' },
+  dig:     { name: 'Dig Site', cost: { metal: 20 }, on: ['ruin', 'hole'], onText: 'Dig sites go on glowing alien ruins (or rock monster holes, on Titan).', energy: -1,
              desc: 'Carefully digs up an alien ruin in about 20 seconds. Every ruin hides a relic with a special power.' },
   lab:     { name: 'Research Lab', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Labs need flat ground.', energy: -2, science: 0.6,
              desc: 'Scientists make 0.6 science/s. Spend science in the Research tree (press R). Uses 2 energy/s.' },
@@ -550,7 +554,7 @@ const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 // which layers each building may go on (default: all three)
 const WHERE = {
   solar: ['surface', 'sky'], mine: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
-  dig: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
+  dig: ['surface'], tunnel: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
   cmine: ['under'], ccrafter: ['surface'], oredrill: ['surface'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
@@ -2236,6 +2240,114 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'Titan: Methane Shores', num: 30,
+  seed: 227, n: 11, offworld: true, sky: 'titan', sun: 0.3, wizards: true, titan: true, traderEvery: 6, core: ['titan1', 'the Methane Core'],
+  map: { ice: 0, mountains: [[1, 1, 0.7], [9, 9, 0.5]], craters: [], holes: [[3, 3], [8, 3], [2, 7], [8, 7]], ore: [[5, 2, 1.2], [1, 5, 1.0]], ruins: [[10, 5]],
+         frost: [[6, 5], [4, 6], [9, 1], [0, 9]] },
+  start: { metal: 200, energy: 60, water: 50, food: 100 },
+  planet: { temp: -179, press: 147, o2: 0 },
+  tools: ['solar', 'turbine', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'tunnel', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 5, 9], ['solar', 4, 9], ['turbine', 6, 9], ['drill', 5, 6], ['zapper', 5, 7]],
+  critters: { every: [14, 20], max: 6, speed: 0.75, after: () => S.time > 30, mix: { rock: 3, basic: 2, zippy: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#b8845a', '#946644', '#7a5236'], ore: ['#b89ac8', '#9478a8', '#78608c'], ice: ['#e8e0d4', '#c4b8a8', '#a09484'], crater: ['#8a6444', '#6f4e34', '#583c28'],
+    rock: ['#9a7a5e', '#7e6048', '#644a36'], ruin: ['#a88a6a', '#8a6e52', '#6e5640'],
+    sides: ['#8a6444', '#6f4e34', '#583c28', '#44301f'],
+  },
+  deco: { pebble: '#d8b48a', rim: '#a87e58', pit: '#5e4430', pit2: '#6f5238', cone: ['#c4a080', '#9a7a5e', '#b08a68'] },
+  tileInfo: {
+    plain: ['Titan sand', 'Orange grains of frozen gunk that fell out of the sky, like soot snow. Flat and buildable.'],
+    ore: ['Purple ore', 'Purple rock poking up through the sand. Mines and ore drills go here.'],
+    ice: ['Ice rock', 'On Titan the rocks are water ice, frozen as hard as stone. Ice drills go here.'],
+    hole: ['Rock monster hole', 'A deep, dark hole. Rock monsters climb out of these, and hurt ones hide in them to heal. A dig site fills it in. A tunnel opens it up.'],
+    sealed: ['Filled-in hole', 'Packed full of rubble. No rock monster can hide in here any more.'],
+    rock: ['Ice cliff', 'A cliff of rock-hard water ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 2 storm turbines', get: () => count('turbine'), target: 2,
+      who: 'eng', hint: 'Titan is ten times farther from the Sun than Earth, so sunlight is weak. But the air is thick. Two storm turbines.' },
+    { text: 'Drill the ice rock', get: () => count('drill'), target: 2,
+      who: 'bot', hint: 'On Titan, the rocks are made of water ice, frozen as hard as stone. Two ice drills will turn it into water.' },
+    { text: 'Build a wizard hut', get: () => count('wizhut'), target: 1,
+      who: 'cmd', hint: 'Rock monsters! Zappers, wizards and taps can crack them. Knights would just bounce off. Build a wizard hut.' },
+    { text: 'Fill in a hole with a dig site', get: () => S.holesSealed || 0, target: 1,
+      who: 'kip', hint: 'Hurt rock monsters dive into those dark holes to hide, and sometimes come back with a hit healed. A dig site fills a hole in for good.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'There is a humming stone on the edge of the shore. A power core, I bet!' },
+    { text: 'Defeat 8 rock monsters', get: () => S.rocksBeaten || 0, target: 8,
+      who: 'eng', hint: 'Each rock monster takes fifteen hits. Zappers next to the holes are a very good idea.' },
+  ],
+  intro: [['cmd', 'Titan, Saturn’s biggest moon. It is the only moon in the solar system with thick air.'], ['bot', 'And it rains here! Not water, though. Methane. The lakes are full of it.'], ['kip', 'One of those rocks just blinked at me.']],
+  outro: [['cmd', 'A power core from Titan. The rock monsters are rumbling. Something big is down there.']],
+  brief: {
+    eyebrow: 'Level 30 · Titan',
+    title: 'Titan: Methane Shores',
+    body: ['The mission reaches <b>Titan</b>, Saturn’s biggest moon, with thick orange air and methane rain. Its rocks are made of <b>water ice</b>, so ice drills work here.', '<b>Rock monsters</b> take 15 hits, and only <b>zappers, wizards and taps</b> can crack them. Hurt ones hide in <b>holes</b> and can heal. A <b>dig site</b> fills a hole in for good. A <b>tunnel</b> opens it up, so anything hiding there can be hit from underground.'],
+    fact: '<b>Thick air:</b> Titan’s air is so thick, and its gravity so weak, that a person could strap on wings and fly.',
+  },
+  done: {
+    title: 'Settled on Titan',
+    body: 'Turbines spinning in the thick air, holes filled in and a power core from Titan.',
+    fact: '<b>Methane lakes:</b> Titan is the only place besides Earth known to have liquid lakes and seas on its surface. They are full of methane and ethane.',
+  },
+});
+LEVELS.push({
+  name: 'Titan: The Rock Giant', num: 31,
+  seed: 229, n: 12, offworld: true, sky: 'titan', sun: 0.3, wizards: true, titan: true, traderEvery: 6, golem: true,
+  map: { ice: 0, mountains: [[1, 10, 0.6], [10, 1, 0.6]], craters: [], holes: [[3, 3], [8, 2], [2, 7], [9, 7], [6, 4]], ore: [[4, 1, 1.2], [1, 4, 1.0]], ruins: [],
+         frost: [[5, 7], [8, 5], [10, 4], [3, 5], [0, 0]] },
+  start: { metal: 260, energy: 80, water: 70, food: 130 },
+  planet: { temp: -179, press: 147, o2: 0 },
+  tools: ['solar', 'turbine', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'tunnel', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['habitat', 6, 10], ['habitat', 7, 10], ['solar', 5, 10], ['turbine', 8, 10], ['turbine', 4, 10], ['wizhut', 7, 8], ['zapper', 5, 8], ['drill', 6, 9]],
+  critters: { every: [11, 15], max: 8, speed: 0.85, after: () => S.time > 20, mix: { rock: 4, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#b8845a', '#946644', '#7a5236'], ore: ['#b89ac8', '#9478a8', '#78608c'], ice: ['#e8e0d4', '#c4b8a8', '#a09484'], crater: ['#8a6444', '#6f4e34', '#583c28'],
+    rock: ['#9a7a5e', '#7e6048', '#644a36'], ruin: ['#a88a6a', '#8a6e52', '#6e5640'],
+    sides: ['#8a6444', '#6f4e34', '#583c28', '#44301f'],
+  },
+  deco: { pebble: '#d8b48a', rim: '#a87e58', pit: '#5e4430', pit2: '#6f5238', cone: ['#c4a080', '#9a7a5e', '#b08a68'] },
+  tileInfo: {
+    plain: ['Titan sand', 'Orange grains of frozen gunk that fell out of the sky, like soot snow. Flat and buildable.'],
+    ore: ['Purple ore', 'Purple rock poking up through the sand. Mines and ore drills go here.'],
+    ice: ['Ice rock', 'On Titan the rocks are water ice, frozen as hard as stone. Ice drills go here.'],
+    hole: ['Rock monster hole', 'A deep, dark hole. Rock monsters climb out of these, and hurt ones hide in them to heal. A dig site fills it in. A tunnel opens it up.'],
+    sealed: ['Filled-in hole', 'Packed full of rubble. No rock monster can hide in here any more.'],
+    rock: ['Ice cliff', 'A cliff of rock-hard water ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 2 wizard huts', get: () => count('wizhut'), target: 2,
+      who: 'cmd', hint: 'Two wizard huts. Wizards zap two rock monsters at once.' },
+    { text: 'Build a tunnel', get: () => count('tunnel'), target: 1,
+      who: 'kip', hint: 'Build a tunnel in one of the holes. It opens up the underground, and rock monsters hiding in it can still be hit down there.' },
+    { text: 'Build a zapper underground', get: () => (S.under || []).filter(t => t.b === 'zapper').length, target: 1,
+      who: 'eng', hint: 'Switch to the underground view and build a zapper right next to the tunnel. Anything hiding in it gets a nasty surprise.' },
+    { text: 'Fill in 2 holes with dig sites', get: () => S.holesSealed || 0, target: 2,
+      who: 'bot', hint: 'Fill in two more holes with dig sites. The fewer places to hide, the better.' },
+    { text: 'Defeat 12 rock monsters', get: () => S.rocksBeaten || 0, target: 12,
+      who: 'eng', hint: 'Twelve rock monsters. Then whatever is rumbling down there will come out.' },
+    { text: 'Defeat the Rock Giant', get: () => S.golemDefeated ? 1 : 0, target: 1, flag: true, golem: true,
+      who: 'kip', hint: 'The Rock Giant! Zap it, tap it, send the wizards. When it gets hurt it digs into a hole to heal, so fill the holes or put tunnels in them!' },
+  ],
+  intro: [['cmd', 'Back to Titan. The ground has been shaking ever since we found the power core.'], ['kip', 'My seismometer says something very big is walking around under us. It also says ow.']],
+  outro: [['cmd', 'Two power cores from Titan, and the Rock Folk have joined the mission to free Earth.'], ['kip', 'A small rock monster is following me around. I have named it Pebble.']],
+  brief: {
+    eyebrow: 'Level 31 · Titan',
+    title: 'Titan: The Rock Giant',
+    body: ['Something huge is digging under Titan. Build <b>tunnels</b> in the holes to open up the <b>underground</b>, and put <b>zappers</b> down there to hit rock monsters while they hide.', 'Then the <b>Rock Giant</b> comes out. Zappers, wizards and taps can hurt it. Every time it gets badly hurt it <b>digs into a hole to heal</b>. A filled-in hole stops it, and a tunnelled hole chases it straight back out.'],
+    fact: '<b>Ice volcanoes?</b> Scientists think Titan may have cryovolcanoes, which erupt icy slush instead of hot lava.',
+  },
+  done: {
+    title: 'The Rock Giant is beaten',
+    body: 'The Rock Giant has crumbled, and the Rock Folk of Titan have joined the mission to free Earth.',
+    fact: '<b>Dragonfly:</b> NASA is building a flying robot called Dragonfly, a drone the size of a car, to explore Titan in the 2030s.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2324,6 +2436,7 @@ function newState(li) {
     if (t.type === 'plain' && (d < 0.5 || (d <= orr && r() > 0.35))) t.type = 'ore';
   }
   for (const [cx, cy] of m.craters) { const t = T(cx, cy); t.type = m.wet ? 'lake' : 'crater'; t.h = 0; t.basin = true; }
+  for (const [hx_, hy_] of m.holes || []) { const t = T(hx_, hy_); t.type = 'crater'; t.h = 0; t.basin = true; t.rh = true; }
   for (const [fx_, fy] of m.frost || []) { const t = T(fx_, fy); t.type = 'ice'; t.h = 1; }
   for (const [rx, ry] of m.ruins) { const t = T(rx, ry); t.type = 'ruin'; t.h = Math.max(1, Math.min(t.h, 2)); }
   for (const [qx, qy, qr] of m.voids || []) for (const t of tiles) if (Math.hypot(t.gx - qx, t.gy - qy) <= qr) { t.type = 'void'; t.h = 1; }
@@ -2342,7 +2455,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -2489,6 +2602,7 @@ function tick(dt) {
   if (L.robot) maybeRobot(L);
   if (L.tornado || tornados.length) updateTornados(dt, L);
   if (L.storm) maybeStorm(L);
+  if (L.golem) maybeGolem(L);
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
@@ -2701,9 +2815,19 @@ function makeUnder() {
   const put = (type, k, extra = {}) => { for (let i = 0; i < k; i++) { const f = floor(); if (!f.length) return; Object.assign(f[Math.floor(r() * f.length)], { type }, extra); } };
   put('crystal', Math.max(4, Math.floor(floor().length * 0.08)));
   put('magma', 3);
-  const far = floor().sort((a, b) => Math.hypot(b.gx - n / 2, b.gy - n / 2) - Math.hypot(a.gx - n / 2, a.gy - n / 2)).slice(0, 2);
+  const far = LEVELS[S.level].titan ? [] : floor().sort((a, b) => Math.hypot(b.gx - n / 2, b.gy - n / 2) - Math.hypot(a.gx - n / 2, a.gy - n / 2)).slice(0, 2);
   for (const t of far) { t.type = 'nest'; t.nhp = 14; }
   S.under = g;
+}
+function openTunnel(t) {
+  const first = !S.under;
+  if (first) makeUnder();
+  const n = S.n || N, at = (x, y) => S.under[clamp(y, 0, n - 1) * n + clamp(x, 0, n - 1)];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const u = at(t.gx + dx, t.gy + dy); if (u.type === 'wall') { u.type = 'cave'; u.h = 1; } }
+  const u = at(t.gx, t.gy); u.type = 'cave'; u.h = 1; u.b = null; u.shaft = true;
+  updateLayerTabs();
+  if (first) say('kip', 'The tunnel broke through into caves under Titan! Switch to the underground view. Build zappers next to the tunnel, so anything hiding in it gets zapped.', 'tunnel1');
+  else say('eng', 'Another tunnel open. Anything hiding in it can be hit from underground.', 'tunnel2');
 }
 function makeSky() {
   const n = S.n || N, r = rng(n * 104729 + S.level);
@@ -3102,14 +3226,16 @@ const WORLDS = {
   saturn3: { level: 27, name: 'Saturn: The Hexagon', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn2', blurb: 'A giant six-sided storm spins at the north pole.' },
   saturn4: { level: 28, name: 'Saturn: Ring Shadow', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn3', blurb: 'In the shadow of the rings, the tree aliens grow thick.' },
   saturn5: { level: 29, name: 'Saturn’s Rings', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn4', blurb: 'Out on the icy rings, where the Elder Tree grows.' },
+  titan:   { level: 30, name: 'Titan', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'saturn5', blurb: 'Saturn’s biggest moon: thick orange air, methane rain, and rock monsters.' },
+  titan2:  { level: 31, name: 'Titan: The Rock Giant', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'titan', blurb: 'Something huge is rumbling under Titan’s ice.' },
   chief:  { level: 11, name: 'The Five-Head Chief', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'moon', blurb: 'Back to the Moon, where the boss of the five-headed aliens is coming.' },
 };
-const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter', saturnclouds: 'Saturn' };
+const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter', saturnclouds: 'Saturn', titan: 'Titan' };
 const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -3309,6 +3435,7 @@ function updateBoss(dt) {
   if (b.kind === 'lizard') { lizardStep(b, dt); return; }
   if (b.kind === 'robot') { robotStep(b, dt); return; }
   if (b.kind === 'storm') { stormStep(b, dt); return; }
+  if (b.kind === 'golem') { golemStep(b, dt); return; }
   b.spotT -= dt; if (b.spotT <= 0) { b.spot = (b.spot + 1 + Math.floor(Math.random() * 2)) % 3; b.spotT = b.enraged ? 1.6 : 2.3; }
   if (b.state === 'emerge') { if (b.t > 2) { b.state = 'walk'; b.t = 0; } return; }
   if (b.state === 'burrow') {
@@ -3352,6 +3479,7 @@ function hurtBoss(dmg, knight = false) {
   dmg *= dmgMul();
   if (S.tiles.some(t => t.b === 'graveyard')) dmg *= 1.1; // the graveyard makes bosses 10% easier
   if ((b.kind === 'king' || b.kind === 'elder') && !knight) return;
+  if (b.kind === 'golem' && knight) return;
   if (b.kind === 'chief') { chiefHit(b, dmg); return; }
   if (b.kind === 'robot') { robotHit(b, dmg); return; }
   if (b.kind === 'storm') {
@@ -3380,7 +3508,7 @@ function hurtBoss(dmg, knight = false) {
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
@@ -3391,6 +3519,11 @@ function hurtBoss(dmg, knight = false) {
       say('kip', 'The Lizard King is beaten! And look, the lizard people are not running away. They are bowing.', 'lkdown');
       say('cmd', 'He was forcing them to fight. Now they are free, and they want to help us free Earth.', 'lkally');
       gainCore('venus4', 'the Lizard King’s Crown Core'); gainAlly('lizards', 'the Lizard People of Venus');
+    } else if (b.kind === 'golem') {
+      toast('The Rock Giant is beaten! +25 crystals', 'good');
+      say('kip', 'The Rock Giant crumbled! And the rock monsters are rolling over to us. I think they want their tummies scratched.', 'golemdown');
+      say('cmd', 'The giant was making them fight. Now the Rock Folk of Titan want to help us free Earth.', 'golemally');
+      gainCore('titan2', 'the Mountain Core'); gainAlly('rocks', 'the Rock Folk of Titan');
     } else if (b.kind === 'elder') {
       toast('The Elder Tree is beaten! +25 crystals', 'good');
       say('kip', 'The Elder Tree has stopped! And the tree aliens are waving their branches at us. Happily, I think.', 'elderdown');
@@ -3443,6 +3576,12 @@ function bossAt(mx, my) {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 55 * k) * sc;
     if (Math.abs(mx - bx) < 32 * k * sc && Math.abs(my - by) < 55 * k * sc) { hurtBoss(1); sfx('clang'); say('eng', 'Aim for the glowing head! That is where it really counts.', 'chief-aim'); return true; }
     return false;
+  }
+  if (b.kind === 'golem') {
+    if (b.state === 'emerge') return false;
+    const k = QS * 2.4, bx = view.x + w.x * sc, by = view.y + (w.y - 11 * k) * sc;
+    if (Math.abs(mx - bx) > 11 * k * sc || Math.abs(my - by) > 11 * k * sc) return false;
+    hurtBoss(2); sfx('bonk'); burst(w.x, w.y - 11 * k, 8, ['#c9a27a', '#ffffff']); return true;
   }
   if (b.kind === 'elder') {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 50 * QS) * sc;
@@ -3510,6 +3649,23 @@ function drawBoss(g) {
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
       g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center';
       g.fillText('LIZARD KING' + (b.flying ? ' · FLYING' : ''), w.x, top - 6);
+    }
+    return;
+  }
+  if (b.kind === 'golem') {
+    const kk = k * 2.4;
+    g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+    ell(g, 0, 2, 11 * kk, 4 * kk, 'rgba(40,20,10,0.35)');
+    if (b.hit > 0) g.translate((Math.random() - 0.5) * 3, 0);
+    g.scale(kk * (b.face || 1), kk);
+    drawRockBody(g, b.enraged ? '#9a6a50' : '#7a6f66', b.state === 'walk' || b.state === 'todig' ? Math.sin(b.t * 4) * 1.4 : 0, b.hit > 0, false, b.enraged);
+    g.fillStyle = '#ffd166'; for (const [x, y] of [[-3, -19.5], [0, -20.5], [3, -19.5]]) poly(g, [[x - 1, y + 1], [x, y - 2.2], [x + 1, y + 1]]); // a crown of crystals
+    g.restore();
+    if (b.state !== 'dead') {
+      const top = w.y - 24 * kk;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#ffb35c'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE ROCK GIANT' + (b.state === 'todig' ? ' · DIGGING' : ''), w.x, top - 6);
     }
     return;
   }
@@ -3582,6 +3738,86 @@ function maybeElder(L) {
   if (!L.elder || S.boss || S.elderDefeated) return;
   const ci = L.goals.findIndex(g => g.elder);
   if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnElder();
+}
+function maybeGolem(L) {
+  if (!L.golem || S.boss || S.golemDefeated) return;
+  const gi = L.goals.findIndex(g => g.golem);
+  if (L.goals.every((g, i) => i >= gi || S.goalsDone[i])) spawnGolem();
+}
+function spawnGolem() {
+  const h = S.tiles.filter(t => t.rh || t.sealed).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'golem', x: h.gx + 0.5, y: h.gy + 0.5, hp: 450, maxhp: 450, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 10, enraged: false, burrowed: true, digs: 0, hs: h.h };
+  shake = RM ? 0 : 16; sfx('boom'); sfx('roar');
+  toast('THE ROCK GIANT has climbed out of the ground!', 'bad');
+  say('kip', 'That is the Rock Giant, the boss of all the rock monsters! Zappers, wizards and taps can crack it. Knights cannot.', 'golem1');
+  say('eng', 'When it gets hurt, it will dig into a hole to heal. Fill the holes in with dig sites, or put tunnels in them!', 'golem2');
+}
+function golemStep(b, dt) {
+  if (b.state === 'emerge') { if (b.t > 2) { b.state = 'walk'; b.t = 0; } return; }
+  if (b.state === 'burrow') {
+    const h = S.tiles[b.hole], tun = h && h.b === 'tunnel';
+    if (b.t < (tun ? 2 : 6)) return;
+    if (tun) {
+      toast('Your tunnel crew chased the Rock Giant out before it could heal!', 'good');
+      say('kip', 'Ha! It tried to hide in our tunnel, and we chased it straight back out. No healing!', 'golem-tun');
+    } else {
+      const heal = Math.min(b.maxhp - b.hp, 60); b.hp += heal;
+      toast(`The Rock Giant hid underground and healed ${heal}!`, 'bad');
+      say('eng', 'It healed while it was hiding. Fill that hole in, or put a tunnel in it!', 'golem-heal');
+    }
+    const opts = S.tiles.filter(holeOpen), e = opts[Math.floor(Math.random() * opts.length)] || h || S.tiles[0];
+    b.x = e.gx + 0.5; b.y = e.gy + 0.5; b.hs = e.h; b.state = 'emerge'; b.t = 0;
+    shake = RM ? 0 : 10; sfx('roar');
+    return;
+  }
+  // it digs in to heal each time its health drops past three quarters, half and a quarter
+  const f = b.hp / b.maxhp, lvl = f <= 0.25 ? 3 : f <= 0.5 ? 2 : f <= 0.75 ? 1 : 0;
+  if (lvl > b.digs) {
+    b.digs = lvl; b.enraged = lvl >= 2;
+    const h = nearestHole(b.x, b.y, 99);
+    if (h) { b.state = 'todig'; b.hole = S.tiles.indexOf(h); say('kip', 'The Rock Giant is heading for a hole, to hide and heal! Hit it hard before it gets there!', 'golem-dig'); }
+    else say('eng', 'It tried to dig in, but every hole is filled! No healing for it.', 'golem-nohole');
+  }
+  if (b.state === 'todig') {
+    const h = S.tiles[b.hole];
+    if (!holeOpen(h)) b.state = 'walk';
+    else {
+      const tx = h.gx + 0.5, ty = h.gy + 0.5, d = Math.hypot(tx - b.x, ty - b.y);
+      if (d < 0.3) {
+        b.state = 'burrow'; b.t = 0;
+        const w = center(h); burst(w.x, w.y - 8, 30, ['#8a7a6a', '#c9a27a', '#ffb35c'], 1.6); shake = RM ? 0 : 8; sfx('boom');
+        toast('The Rock Giant dug down into a hole!', 'bad');
+      } else { const sp = 0.4 * dt; b.x += (tx - b.x) / d * Math.min(sp, d); b.y += (ty - b.y) / d * Math.min(sp, d); b.face = (tx - b.x) - (ty - b.y) > 0 ? 1 : -1; }
+      return;
+    }
+  }
+  b.spawnT -= dt;
+  if (b.spawnT <= 0) {
+    if (crits.filter(c => c.state !== 'bonked').length < 8) spawnCritter('rock', tileAt(clamp(Math.floor(b.x), 0, S.n - 1), clamp(Math.floor(b.y), 0, S.n - 1)));
+    b.spawnT = b.enraged ? 10 : 14;
+  }
+  let tgt = S.tiles[b.ti];
+  if (!tgt || !tgt.b) {
+    const opts = S.tiles.filter(t => t.b && t.b !== 'tunnel' && t.b !== 'dig');
+    tgt = opts.sort((p, q) => Math.hypot(p.gx + 0.5 - b.x, p.gy + 0.5 - b.y) - Math.hypot(q.gx + 0.5 - b.x, q.gy + 0.5 - b.y))[0];
+    b.ti = S.tiles.indexOf(tgt); b.chew = 0;
+  }
+  if (!tgt) return;
+  const tx = tgt.gx + 0.5, ty = tgt.gy + 0.5, d = Math.hypot(tx - b.x, ty - b.y);
+  if (d > 1.1) {
+    const sp = (b.enraged ? 0.3 : 0.22) * dt;
+    b.x += (tx - b.x) / d * sp; b.y += (ty - b.y) / d * sp; b.face = (tx - b.x) - (ty - b.y) > 0 ? 1 : -1;
+    b.state = 'walk';
+  } else {
+    b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4);
+    b.chew = (b.chew || 0) + dt;
+    if (Math.sin(b.t * 6) > 0.95) shake = RM ? 0 : 4;
+    if (b.chew > 10) {
+      toast(`The Rock Giant smashed the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      const w = center(tgt); burst(w.x, w.y - 10, 26, ['#8a7a6a', '#ffd166', '#ffffff'], 1.4);
+      tgt.b = null; b.chew = 0; sfx('boom'); shake = RM ? 0 : 10;
+    }
+  }
 }
 function spawnElder() {
   const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
@@ -4405,6 +4641,12 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'titan') {
+    const tg = g.createRadialGradient(x - 8, y - 8, 4, x, y, r);
+    tg.addColorStop(0, '#f0b060'); tg.addColorStop(1, '#a8601e');
+    g.fillStyle = tg; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,200,130,0.55)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r + 2, 0, Math.PI * 2); g.stroke();
+    ell(g, x - 6, y + 6, 6, 3, 'rgba(60,30,10,0.4)'); ell(g, x + 8, y - 4, 4, 2, 'rgba(60,30,10,0.35)');
   } else if (kind === 'saturn') {
     g.save(); g.translate(x, y); g.rotate(-0.3);
     g.strokeStyle = 'rgba(220,200,160,0.9)'; g.lineWidth = 3; g.beginPath(); g.ellipse(0, 0, r * 1.5, r * 0.4, 0, Math.PI, Math.PI * 2); g.stroke();
@@ -4474,6 +4716,8 @@ const KINDS = {
   burrower: { hp: 3, hpRange: [2, 5], spd: 0.9, size: 1.15, steal: 1.1 },
   // Saturn's tree aliens: bark so thick that only knights and police can chop them down
   tree:     { hp: 14, spd: 0.6, size: 1.8, steal: 1.5, immune: true, tree: true },
+  // Titan's rock monsters: fifteen hits, knights just bounce off, and hurt ones hide in holes to heal
+  rock:     { hp: 15, spd: 0.55, size: 1.6, steal: 1.4, rock: true, noKnight: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -4481,6 +4725,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  rock: ['eng', 'Rock monsters! They take fifteen hits. Zappers, wizards and taps can crack them. When they get hurt, they dive into holes to hide.'],
   tree: ['eng', 'Tree aliens! Their bark is so thick that zaps and taps bounce off. Only knights and police can chop them down.'],
   burrower: ['kip', 'Tunnel critters! They are tougher down here. Some take two bonks, some take five. Count the little red dots over their heads.'],
   rhino: ['eng', 'Alien rhinos! Their hide is so thick that zaps and taps bounce right off. Only knights and police officers can stop them.'],
@@ -4511,7 +4756,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -4530,8 +4775,66 @@ function spawnCritter(kind = pickKind(), from = null) {
   if (first) say(first[0], first[1], 'crit1-' + S.level);
   return true;
 }
+// ---- Titan's holes: hurt rock monsters hide in them, and sometimes come back with a hit healed.
+// A dig site fills a hole in for good. A tunnel keeps it open, but whatever hides in it can be
+// zapped or tapped from the underground view.
+let burrowed = [];
+const holeOpen = h => !!(h && h.rh && h.b !== 'dig');
+function nearestHole(x, y, far = 7) {
+  let best = null, bd = far;
+  for (const h of S.tiles) if (holeOpen(h)) { const d = Math.hypot(h.gx + 0.5 - x, h.gy + 0.5 - y); if (d < bd) { bd = d; best = h; } }
+  return best;
+}
+function hideRock(c, h) {
+  c.gone = true; c.out = false; c.state = 'hide'; c.t = 0; c.hideT = 5 + Math.random() * 3; c.hurt = false; c.hides = (c.hides || 0) + 1;
+  c.x = h.gx + 0.5; c.y = h.gy + 0.5; c.hx = c.x; c.hy = c.y; c.htile = h; c.tun = h.b === 'tunnel'; c.uh = c.tun ? 1 : null;
+  burrowed.push(c);
+  const w = center(h);
+  burst(w.x, w.y - 4, 14, ['#8a7a6a', '#c9a27a', '#ffb35c']);
+  fx.push({ kind: 'text', x: w.x, y: w.y - 26, text: 'Hiding!', life: 1, max: 1, color: '#ffb35c' });
+  sfx('pop');
+  if (c.tun) say('kip', 'It hid in our tunnel! Switch to the underground view. Zappers down there, and taps, can still hit it.', 'rock-tun');
+  else say('kip', 'That rock monster dived into a hole to hide! It might come back with a hit healed. Dig sites fill the holes in for good.', 'rock-hide');
+}
+function updateBurrowed(dt) {
+  if (!burrowed.length) return;
+  for (const c of burrowed) {
+    c.t += dt; c.hit = Math.max(0, c.hit - dt);
+    const h = c.htile;
+    c.x = h.gx + 0.5; c.y = h.gy + 0.5;
+    if (c.state === 'bonked') { if (c.t > 0.9) c.out = true; continue; }
+    c.tun = h.b === 'tunnel'; c.uh = c.tun ? 1 : null;
+    c.hideT -= dt;
+    if (c.hideT > 0) continue;
+    const w = center(h);
+    if (!c.hurt && c.hp < c.maxhp && Math.random() < 0.6) {
+      c.hp++;
+      fx.push({ kind: 'text', x: w.x, y: w.y - 30, text: '+1 healed', life: 1.2, max: 1.2, color: '#ff9b9b' });
+      say('eng', 'That rock monster came back up with a crack healed! Fill in the holes, or put tunnels in them.', 'rock-heal');
+    }
+    c.state = 'emerge'; c.t = 0; c.gone = false; c.out = true; c.low = false; c.tun = false; c.uh = null;
+    burst(w.x, w.y - 4, 10, ['#8a7a6a', '#c9a27a']);
+    crits.push(c);
+  }
+  burrowed = burrowed.filter(c => !c.out);
+}
+function rockStep(c, dt, speed) { // true when the rock monster is busy going into hiding
+  if (c.state === 'tohole') {
+    const h = S.tiles[c.hole];
+    if (!holeOpen(h)) { c.state = 'walk'; c.t = 0; return true; }
+    if (stepToward(c, h.gx + 0.5, h.gy + 0.5, speed * 1.4 * dt) < 0.15) hideRock(c, h);
+    return true;
+  }
+  if (c.hp <= 5 && !c.low && (c.hides || 0) < 2 && (c.state === 'walk' || c.state === 'nibble' || c.state === 'flee')) {
+    c.low = true; // decide once each time it gets low: "sometimes" it runs off to hide
+    const h = Math.random() < 0.7 && nearestHole(c.x, c.y);
+    if (h) { c.state = 'tohole'; c.hole = S.tiles.indexOf(h); c.t = 0; return true; }
+  }
+  return false;
+}
 function critTile(c) { return tileAt(clamp(Math.floor(c.x), 0, N - 1), clamp(Math.floor(c.y), 0, N - 1)); }
 function critWorld(c) {
+  if (c.uh != null) return { x: (c.x - c.y) * 32, y: (c.x + c.y) * 16 - c.uh * HZ }; // hiding down a tunnel
   const t = critTile(c);
   c.hs = c.hs == null ? t.h : c.hs + (t.h - c.hs) * 0.2;
   return { x: (c.x - c.y) * 32, y: (c.x + c.y) * 16 - c.hs * HZ };
@@ -4556,6 +4859,7 @@ function updateCritters(dt) {
     }
   }
   const base = cfg ? cfg.speed : 0.7;
+  updateBurrowed(dt);
   for (const c of crits) {
     c.t += dt; c.hit = Math.max(0, c.hit - dt);
     const K = KINDS[c.kind || 'basic'], speed = base * K.spd;
@@ -4599,6 +4903,7 @@ function updateCritters(dt) {
         say('kip', 'Oh no, its head grew back! Knock them all off before that happens.', 'regrow1');
       }
     }
+    if (K.rock && c.state !== 'emerge' && c.state !== 'bonked' && rockStep(c, dt, speed)) continue;
     if (c.state === 'emerge') { if (c.t > 0.7) { c.state = 'walk'; c.t = 0; } }
     else if (c.state === 'walk') {
       if (!tgt.b) { c.state = 'flee'; c.t = 0; continue; }
@@ -4655,6 +4960,16 @@ function updateCritters(dt) {
       t.cd = 1.4;
     } else if (zapBoss(t, range) || zapCrasher(t, range, dmg)) t.cd = 1.4;
   }
+  // zappers underground can reach rock monsters hiding down a tunnel
+  if (S.under && burrowed.length) for (const t of S.under) {
+    if (t.b !== 'zapper' || t.off > 0) continue;
+    t.cd = (t.cd || 0) - dt * S.eff;
+    if (t.cd > 0) continue;
+    const prey = burrowed.find(c => c.tun && c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= 2.3);
+    if (!prey) continue;
+    if (S.view === 'under') { const a = center(t), b = critWorld(prey); fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: b.x, y2: b.y - 8, life: 0.3, max: 0.3 }); }
+    bonk(prey, true, hasTech('arc') ? 2 : 1); t.cd = 1.4;
+  }
   // bonk drones: each bay sends a drone at the nearest critter, nest or boss within 4 tiles
   for (const t of S.tiles) {
     if (t.b !== 'dronebay' || t.off > 0) continue;
@@ -4702,6 +5017,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   dmg *= dmgMul();
+  if (c.tun) c.hurt = true; // hit while hiding down a tunnel: no healing this time
   if (c.kind === 'fivehead') {
     c.calm = 0;
     const p = critWorld(c), n = Math.min(dmg, c.hp ?? 1);
@@ -4721,7 +5037,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].tree) {
+  if (KINDS[c.kind || 'basic'].rock) {
+    S.rocksBeaten = (S.rocksBeaten || 0) + 1;
+    say('kip', 'Crack! The rock monster fell into a pile of pebbles. Pebbles with a grumpy face.', 'rock-down');
+    S.crystals += 2;
+  } else if (KINDS[c.kind || 'basic'].tree) {
     S.treesBeaten = (S.treesBeaten || 0) + 1;
     say('kip', 'Timber! A tree alien fell over. It is just pretending to be a log now.', 'tree-down');
     S.crystals += 2;
@@ -4749,9 +5069,10 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
   say('kip', 'Bonk! It dropped a glowing crystal. I will keep that. For science.', 'bonk1');
 }
 function critterAt(mx, my) {
-  if (S.view && S.view !== 'surface') return null;
+  const under = S.view === 'under';
+  if (S.view && S.view !== 'surface' && !under) return null;
   let best = null, bd = Infinity;
-  for (const c of crits) {
+  for (const c of under ? burrowed.filter(c => c.tun) : crits) {
     if (c.state === 'bonked') continue;
     const k = KINDS[c.kind || 'basic'].size;
     const p = critWorld(c), sx = view.x + p.x * view.s, sy = view.y + (p.y - 7 * k - (c.fly > 0 ? 24 : 0)) * view.s;
@@ -4771,6 +5092,15 @@ function critAlpha(c) {
 // ---------------------------------------------------------------- ruins & relics
 function finishDig(t) {
   const L_ = LEVELS[S.level];
+  if (t.rh) { // a rock monster hole, filled in for good
+    t.b = null; t.rh = false; t.sealed = true; t.prog = 0;
+    S.holesSealed = (S.holesSealed || 0) + 1; S.crystals += 3; dirty = true;
+    const c = center(t);
+    burst(c.x, c.y - 6, 20, ['#8a7a6a', '#c9a27a', '#ffffff']);
+    toast('Hole filled in! Rock monsters can’t hide there any more. +3 crystals', 'good'); sfx('build');
+    say('eng', 'That hole is filled in for good. No more hiding there!', 'hole-sealed');
+    return;
+  }
   if (L_.core && !S.coreFound) {
     t.b = null; t.type = 'relic'; t.prog = 0; t.born = RT; S.coreFound = true; dirty = true;
     const c = center(t);
@@ -4891,7 +5221,7 @@ function canPlace(name, t) {
     if (t.b) return [false, 'This tile already has a building.'];
     const layer = t.layer || 'surface', where = WHERE[name] || ['surface', 'under', 'sky'];
     if (!where.includes(layer)) return [false, `${d.name}s can’t go ${LAYER_NAME[layer]}.`];
-    const type = t.type === 'cave' || t.type === 'isle' ? 'plain' : t.type === 'magma' ? 'vent' : t.type;
+    const type = t.rh ? 'hole' : t.type === 'cave' || t.type === 'isle' ? 'plain' : t.type === 'magma' ? 'vent' : t.type;
     if (!d.on.includes(type)) return [false, d.onText];
     if (d.unique && count(name) > 0) return [false, `You only need one ${d.name.toLowerCase()}.`];
     if (d.max && count(name) >= d.max) return [false, `${d.max} ${d.name.toLowerCase()}s is the most that helps.`];
@@ -4926,6 +5256,7 @@ function place(name, t) {
   }
   t.b = name; t.born = RT;
   if (name === 'field') t.fhp = FIELD_HP;
+  if (name === 'tunnel') openTunnel(t);
   if (name === 'tower' || FARMS.includes(name) || name === 'pipe') updateWater();
   fx.push({ kind: 'ring', x: c.x, y: c.y, r: 6, life: 0.6, max: 0.6, color: '#ffffff' });
   burst(c.x, c.y, 8, ['#ffd7b8', '#ffffff']);
@@ -5160,6 +5491,15 @@ function decorate(g, t) {
       break;
     }
     case 'crater': {
+      if (t.rh || t.sealed) { // a rock monster hole, or one filled in with rubble
+        ell(g, 0, 0, 23, 10.5, D.rim);
+        if (t.sealed) { ell(g, 0, 1, 19, 8.5, D.pit2); for (const [x, y, r] of [[-8, 0, 4], [-1, 3, 4.5], [7, 0, 3.6], [2, -3, 3], [-5, -3, 2.6], [10, 3, 2.4]]) ell(g, x, y, r, r * 0.6, x % 2 ? D.pit : D.rim); break; }
+        ell(g, 0, 1, 19, 8.5, '#1a0f0a'); ell(g, 0, 3, 14, 5.5, '#0a0604');
+        const gl = 0.25 + 0.15 * Math.sin(T * 2 + v * 6);
+        ell(g, 0, 3, 8, 3, `rgba(255,150,60,${gl})`);
+        for (const [x, y, r] of [[-17, -2, 3], [15, -3, 3.4], [-6, -8, 2.6], [8, 7, 2.8]]) ell(g, x, y, r, r * 0.7, D.pit);
+        break;
+      }
       ell(g, 0, 0, 23, 10.5, D.rim);
       ell(g, 0, 1, 20, 9, D.pit);
       g.save(); g.beginPath(); g.ellipse(0, 1, 20, 9, 0, 0, Math.PI * 2); g.clip();
@@ -5602,6 +5942,17 @@ const DRAW = {
     ell(g, 0, -37, 8, 8, `rgba(155,227,255,${a * 0.35})`);
     ell(g, 0, -37, 4.5, 4.5, '#bff4ff');
   },
+  tunnel(g, T, v) {
+    ell(g, 0, 2, 19, 8.5, '#2a1a10');
+    isoBox(g, -13, 0, 3.5, 2, 18, '#9a8670', '#7a6a58', '#5e5044'); isoBox(g, 13, 0, 3.5, 2, 18, '#9a8670', '#7a6a58', '#5e5044');
+    g.strokeStyle = '#9a8670'; g.lineWidth = 4; g.beginPath(); g.moveTo(-13, -18); g.quadraticCurveTo(0, -30, 13, -18); g.stroke();
+    ell(g, 0, 2, 10, 4.5, '#0a0604');
+    g.strokeStyle = '#c98a5a'; g.lineWidth = 1.2; g.beginPath();
+    for (let i = 0; i < 3; i++) { g.moveTo(-4, -1 + i * 2); g.lineTo(4, -1 + i * 2); }
+    g.moveTo(-4, -2); g.lineTo(-4, 5); g.moveTo(4, -2); g.lineTo(4, 5); g.stroke();
+    const blink = Math.sin(T * 3 + v * 5) > 0;
+    ell(g, 0, -25, 2, 2, blink ? '#ffd166' : '#8a6a3a');
+  },
   dig(g, T, v) {
     ell(g, 0, 2, 17, 7, '#8e3c22');
     ell(g, 13, 4, 6, 3, '#c4552d'); ell(g, 12, 2.5, 4, 2, '#d9784a');
@@ -6032,6 +6383,37 @@ function drawTree(g, c, p, k, alpha, walking) {
   drawTreeBody(g, c.col, walking ? Math.sin(c.t * 8 + c.seed) * 1.5 : 0, c.hit > 0, c.state === 'bonked', c.fighting > 0);
   g.restore();
 }
+// a lumpy boulder on stubby legs, with glowing cracks and eyes
+function drawRockBody(g, col, step, hit, bonked, angry) {
+  const body = hit ? '#ffffff' : col, dark = shade(col, -0.35), light = shade(col, 0.25);
+  if (bonked) { // a heap of pebbles
+    for (const [x, y, r] of [[-5, -2, 3.5], [0, -3, 4], [5, -2, 3.2], [-2, -6, 3], [3, -6.5, 2.6]]) ell(g, x, y, r, r * 0.8, x % 2 ? light : body);
+    ell(g, 0.5, -6, 0.7, 0.4, '#1a1238'); ell(g, 3.5, -6.5, 0.7, 0.4, '#1a1238');
+    return;
+  }
+  g.fillStyle = dark; g.fillRect(-5 + step * 0.6, -4, 3.6, 4.4); g.fillRect(1.6 - step * 0.6, -4, 3.6, 4.4);
+  ell(g, -9, -9 + step * 0.4, 3, 2.6, dark); ell(g, 9.5, -9 - step * 0.4, 3, 2.6, dark);
+  g.fillStyle = body; poly(g, [[-8, -4], [-9.5, -11], [-6, -17], [0, -19], [6, -17.5], [9.5, -12], [8.5, -4], [2, -2.5], [-4, -2.5]]);
+  g.fillStyle = light; poly(g, [[-6, -16.5], [0, -18.5], [5.5, -17], [3, -13.5], [-3, -13.5]]);
+  g.strokeStyle = angry ? '#ffd166' : '#ffb35c'; g.lineWidth = 0.9; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(-6, -7); g.lineTo(-3, -9.5); g.lineTo(-4, -12); g.moveTo(6, -6); g.lineTo(4, -8); g.stroke();
+  ell(g, 1.8, -12, 1.5, 1, angry ? '#ffd166' : '#ffb35c'); ell(g, 5.6, -11.6, 1.5, 1, angry ? '#ffd166' : '#ffb35c');
+  ell(g, 2.1, -12, 0.6, 0.6, '#3a1a08'); ell(g, 5.9, -11.6, 0.6, 0.6, '#3a1a08');
+  g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); g.moveTo(1, -8); g.lineTo(6.5, -8.3); g.stroke();
+}
+function drawRock(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  ell(g, 0, 1, 9 * k, 3.4 * k, 'rgba(40,20,10,0.3)');
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -24 * k, w, 4);
+    g.fillStyle = c.hp <= 5 ? '#ff6b81' : '#ffb35c'; g.fillRect(-w / 2 + 1, -24 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  drawRockBody(g, c.col, walking ? Math.sin(c.t * 9 + c.seed) * 1.4 : 0, c.hit > 0, c.state === 'bonked', c.hp <= 5);
+  g.restore();
+}
 function drawRhino(g, c, p, k, alpha, walking) {
   g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 10 * k, 3.6 * k, 'rgba(20,20,40,0.3)');
@@ -6350,6 +6732,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.rock) { drawRock(g, c, p, k, alpha, walking || c.state === 'tohole'); return; }
   if (K.tree) { drawTree(g, c, p, k, alpha, walking); return; }
   if (K.rhino) { drawRhino(g, c, p, k, alpha, walking); return; }
   if (K.immune) { drawShell(g, c, p, k, alpha, walking, bob); return; }
@@ -6700,6 +7083,21 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'titan') { // thick orange haze, Saturn faint behind it, and slow methane drizzle
+    const tg = g.createLinearGradient(0, 0, 0, H);
+    tg.addColorStop(0, '#3a2614'); tg.addColorStop(0.55, '#8a5424'); tg.addColorStop(1, '#c47a34');
+    g.fillStyle = tg; g.fillRect(0, 0, W, H);
+    const sx = W * 0.78, sy = H * 0.22, sr = Math.min(W, H) * 0.2;
+    g.save(); g.globalAlpha = 0.35;
+    ell(g, sx, sy, sr, sr, '#e8c890');
+    g.strokeStyle = '#f0d8a8'; g.lineWidth = 5; g.beginPath(); g.ellipse(sx, sy, sr * 1.7, sr * 0.35, -0.15, 0, Math.PI * 2); g.stroke();
+    g.restore();
+    for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(230,160,80,${0.07 + i * 0.02})`; g.fillRect(0, H * (0.3 + i * 0.14), W, H * 0.1); }
+    g.strokeStyle = 'rgba(255,220,170,0.18)'; g.lineWidth = 1; g.beginPath();
+    for (let i = 0; i < 50; i++) { const x = (i * 83.7 + RT * 18) % W, y = (i * 47.3 + RT * 70) % H; g.moveTo(x, y); g.lineTo(x - 2, y + 9); }
+    g.stroke();
+    return;
+  }
   if (sk === 'saturnclouds' || sk === 'rings') {
     if (sk === 'saturnclouds') { // pale gold cloud bands, with the rings arching across the sky
       const bands = ['#f3e3bc', '#e8d29e', '#f6ead0', '#dcc28a', '#efdcb0', '#e4cc96'];
@@ -6790,9 +7188,13 @@ function render() {
   if (S.view === 'sky') for (const c of clouds) { ctx.save(); ctx.globalAlpha = 0.5; cloudShape(ctx, c.x, c.y + 260, c.s * 1.4, '#ffffff'); ctx.restore(); }
   const byTile = new Map();
   for (const c of crits.concat(knights, wizards)) { const k = critTile(c); if (!byTile.has(k)) byTile.set(k, []); byTile.get(k).push(c); }
+  let ub = null; // rock monsters hiding down a tunnel show up in the underground view
+  if (S.view === 'under' && S.under) for (const c of burrowed) if (c.tun) { const u = S.under[Math.floor(c.y) * S.n + Math.floor(c.x)]; if (!ub) ub = new Map(); if (!ub.has(u)) ub.set(u, []); ub.get(u).push(c); }
   for (const t of order) {
     drawTile(ctx, t);
     if (t.b) drawBuildingOn(ctx, t);
+    if (t.shaft) { const c = center(t); ell(ctx, 0 + c.x, c.y, 16, 7, 'rgba(255,210,150,0.28)'); ctx.fillStyle = 'rgba(255,210,150,0.12)'; ctx.fillRect(c.x - 9, c.y - 70, 18, 70); }
+    if (ub && ub.has(t)) for (const c of ub.get(t)) drawCritter(ctx, c);
     const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.wiz ? drawWizard : c.cop ? drawCop : c.home ? drawKnight : drawCritter)(ctx, c);
   }
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
@@ -6886,7 +7288,8 @@ function showTip(preview) {
   if (hoverThing === 'saucer') { el.innerHTML = '<strong>Zorp’s flying saucer</strong>An alien trader! Click it to see what Zorp wants to swap.'; return; }
   if (hoverThing === 'critter') { el.innerHTML = '<strong>Critter</strong>A cheeky little native of Mars. Tap it to bonk it before it nibbles something!'; return; }
   if (hover) {
-    const [n, txt] = (LEVELS[S.level].tileInfo || {})[hover.type] || TILE_INFO[hover.type];
+    const info = LEVELS[S.level].tileInfo || {};
+    const [n, txt] = (hover.rh && info.hole) || (hover.sealed && info.sealed) || info[hover.type] || TILE_INFO[hover.type];
     let b = '';
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
     if (hover.b === 'dig') b += ` <b>${Math.round((hover.prog || 0) * 100)}% dug.</b>`;
@@ -7038,6 +7441,8 @@ function showTitle() {
       <button class="lvl sat" data-l="27"><span class="n">27</span><span><b>Saturn: The Hexagon</b><small>A six-sided storm at the north pole.</small></span><span class="go">Play</span></button>
       <button class="lvl sat" data-l="28"><span class="n">28</span><span><b>Saturn: Ring Shadow</b><small>Twilight under the rings, and a big police force.</small></span><span class="go">Play</span></button>
       <button class="lvl sat2" data-l="29"><span class="n">29</span><span><b>Saturn’s Rings</b><small>Out on the icy rings, where the Elder Tree grows.</small></span><span class="go">Play</span></button>
+      <button class="lvl titan" data-l="30"><span class="n">30</span><span><b>Titan: Methane Shores</b><small>Orange air, methane rain, and rock monsters that hide in holes.</small></span><span class="go">Play</span></button>
+      <button class="lvl titan2" data-l="31"><span class="n">31</span><span><b>Titan: The Rock Giant</b><small>Tunnels, underground zappers, and the Rock Giant.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -7181,7 +7586,7 @@ function afterLoad() {
   S.view = S.view || 'surface'; S.techs = S.techs || []; S.science = S.science || 0; S.fuel = S.fuel || 0; S.nestsSmashed = S.nestsSmashed || 0;
   S.said = S.said || {}; S.lastProgress = S.lastProgress ?? S.time; S.lastNudge = S.lastNudge ?? 0;
   buildOrder(); buildToolbar(); buildGoals();
-  tool = null; hover = null; fx = []; comets = []; crits = []; meteors = []; knights = []; wizards = []; tornados = []; once.clear(); shortageWarned = false;
+  tool = null; hover = null; fx = []; comets = []; crits = []; burrowed = []; meteors = []; knights = []; wizards = []; tornados = []; once.clear(); shortageWarned = false;
   if (S.launchT) S.launchT = 0;
   if (S.rocket && S.rocket.launched && !S.escaped) {
     S.rocket.launched = false;
@@ -7237,7 +7642,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05eb28cb 06075329 064185af 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 095e8697 0a01a313 0a273192 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 108c93be 1097c905 11400aaa 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1aebaf1f 1bc946da 1bd330d0 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 22586686 22c96318 22dc1977 231440de 2341f3c5 23c80e45 242204ab 243b00c3 24514fab 245d9643 25393e9f 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2b732c7f 2c8f8b73 2ccc105c 2cd98069 2d4236e0 2e30c278 2e5c16db 2f8a9231 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334358e9 34975786 349e917d 34b3668a 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 4280a778 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 46ae4ea6 46daebf2 488637dd 48b2ba7a 491b0201 49e42d70 4a98f022 4b62a538 4b983c1d 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 502882ca 5033e388 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 54738ed0 550bd446 55a248b0 563fc364 5681770d 56932f6a 56eebfbb 570313a4 57156cc3 57822802 581a7c01 58a66ef9 58c19200 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 644f3086 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6d8a77e3 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 71c2f517 7301527c 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88e66a24 89002816 893c6180 89433fbb 896dfa6a 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a403ebc2 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae1c65a0 ae847e6a aef7f263 af308bdb af87f81f afbd76a6 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b8a67fac b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c325df07 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c672ecc1 c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c9a1c3c4 c9c4682a c9cd4dbb ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e4acaf8a e4fb12b8 e5392f66 e627a7aa e6389f23 e68ab45f e6a7a5c5 e7264fe6 e77d6a46 e8dc2b4c e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb979778 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee639766 ee7e156f eeaab69f eebfba27 ef1f18a3 ef43016a efa64c1e efa9bffe efbbf903 efd02516 f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5e28285 f69a474e f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 064185af 06a2ace1 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 095e8697 0a01a313 0a273192 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1aebaf1f 1bc946da 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 22586686 22c96318 22dc1977 231440de 231d8460 2341f3c5 235ed52f 23c80e45 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2b732c7f 2c8f8b73 2ccc105c 2cd98069 2d4236e0 2e30c278 2e5c16db 2f8a9231 2f8ab1a6 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 34975786 349e917d 34b3668a 34f107c0 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4b62a538 4b983c1d 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 5681770d 56932f6a 56eebfbb 570313a4 57156cc3 57822802 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6d8a77e3 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71c2f517 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 893c6180 89433fbb 896dfa6a 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a403ebc2 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b4b9f647 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b7bacc46 b8a67fac b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c08db08b c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c325df07 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c672ecc1 c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 dae95449 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e4acaf8a e4fb12b8 e5392f66 e627a7aa e6389f23 e68ab45f e68aec3f e6a7a5c5 e7264fe6 e77d6a46 e7f5c545 e8dc2b4c e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f3a2e59e f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5e28285 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -7516,7 +7921,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v9) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : 25)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = true; }
+    if (d && d.S && !d.S.v10) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : 30)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;
