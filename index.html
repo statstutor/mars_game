@@ -36,7 +36,7 @@ canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
 .card { pointer-events: auto; background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 18px; }
 
 #goals { width: 290px; max-width: 100%; padding: 12px 14px; }
-#goals summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+#goals summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding-right: 86px; }
 #goals summary::-webkit-details-marker { display: none; }
 #goals h2::after { content: ' ▾'; font-size: 13px; color: var(--muted); }
 #goals:not([open]) h2::after { content: ' ▸'; }
@@ -100,6 +100,8 @@ body.cramped #tip.idle { display: none; }
 .toast.out { opacity: 0; transform: translateY(6px); transition: all .4s; }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+#to-levels { position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 12; font: 700 13px/1 inherit; font-family: inherit; color: #fff; background: rgba(40, 24, 78, 0.92); border: 1.5px solid rgba(255, 255, 255, 0.35); border-radius: 999px; padding: 8px 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+#to-levels:hover { background: rgba(70, 44, 130, 0.95); }
 #modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(12, 7, 32, 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 16px; z-index: 10; }
 .sheet { width: min(540px, 100%); max-height: 100%; overflow: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 80px rgba(0, 0, 0, .45); animation: pop .35s ease-out; }
 .sheet h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(38px, 9vw, 58px); line-height: .95; letter-spacing: -0.01em; text-wrap: balance; }
@@ -359,6 +361,7 @@ body.cramped #tip.idle { display: none; }
   <button class="skip" id="talk-skip" title="Skip (Enter)">Skip</button>
 </div>
 <div id="modal" hidden></div>
+<button id="to-levels" hidden title="Level select">☰ Levels</button>
 
 <script>
 (() => {
@@ -371,7 +374,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 34;
+const BUILD = 35;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4185,7 +4188,7 @@ function tripCfg() {
 const TRIPS = { 1: { len: 32, hp: 60 }, 2: { len: 42, hp: 80 }, 3: { len: 46, hp: 85 } };
 function startArcade(cfg = { to: 'phobos', from: 'mars', trip: 1 }) {
   A = { cfg, len: TRIPS[cfg.trip].len, t: 0, x: view.W / 2, tx: view.W / 2, shields: 5, inv: 0, fireT: 0, bullets: [], foes: [], picks: [], orbs: [], parts: [], spawnT: 1, boss: null, phase: 'waves', endT: 0, keys: {} };
-  $('#ui').hidden = true; selectTool(null);
+  $('#ui').hidden = true; selectTool(null); levelsBtn();
   toast(`${cfg.from === 'jupiter' ? 'Escape Jupiter' : cfg.from === 'mars' && !LEVELS[S.level].offworld ? 'Escape Mars orbit' : 'Blast off'}! Move to dodge, the rocket fires by itself.`, 'good');
   if (cfg.trip === 3 && (cfg.from === 'jupiter' || WORLDS[cfg.to].sys === 'jupiter')) say('cmd', 'This is the long trip, through Jupiter’s radiation belts. Hold on tight.', 'longtrip');
   say('kip', 'Space critters! They are guarding the orbit. Move the rocket left and right to dodge. Our cannons fire by themselves!', 'arcade1');
@@ -5035,6 +5038,7 @@ function layout(force = false) {
   document.body.classList.toggle('cramped', cramped);
   if (cramped !== layout.cramped) { layout.cramped = cramped; $('#goals').open = !cramped; }
   const gr = $('#goals').getBoundingClientRect(), st = $('.stats').getBoundingClientRect();
+  levelsBtn();
   const top = $('.top').getBoundingClientRect().bottom + 8;
   const barTop = $('.bottom').getBoundingClientRect().top;
   const tipRoom = W < 720 || cramped ? 6 : 64;
@@ -6966,10 +6970,29 @@ function updateUI() {
 
 // ---------------------------------------------------------------- modals
 function openModal(html, wide = false) {
-  const m = $('#modal'); m.innerHTML = `<div class="sheet${wide ? ' wide' : ''}" role="dialog" aria-modal="true">${html}</div>`; m.hidden = false; modalOpen = true;
+  const m = $('#modal'); m.innerHTML = `<div class="sheet${wide ? ' wide' : ''}" role="dialog" aria-modal="true">${html}</div>`; m.hidden = false; modalOpen = true; onTitle = false; levelsBtn();
   const f = m.querySelector('button'); if (f) f.focus({ preventScroll: true });
 }
-function closeModal() { $('#modal').hidden = true; modalOpen = false; }
+function closeModal() { $('#modal').hidden = true; modalOpen = false; onTitle = false; levelsBtn(); }
+// a way back to level select from anywhere in the game, except level select itself
+let onTitle = false;
+function levelsBtn() {
+  const b = $('#to-levels'); if (!b) return;
+  b.hidden = onTitle;
+  // while playing it sits in the corner of the goals card; over menus and the rocket flight, in the screen corner
+  const g = $('#goals'), free = !modalOpen && !$('#ui').hidden && g && g.offsetParent;
+  if (free && !b.hidden) {
+    const r = g.getBoundingClientRect();
+    b.style.top = (r.top + 10) + 'px'; b.style.left = Math.max(8, r.right - b.offsetWidth - 10) + 'px'; b.style.right = 'auto';
+  } else { b.style.top = ''; b.style.left = ''; b.style.right = ''; }
+}
+addEventListener('resize', levelsBtn);
+$('#to-levels').addEventListener('click', () => {
+  if (A) { A = null; $('#ui').hidden = false; layout(true); } // leave the rocket flight; the game is saved from before take-off
+  if (S && S.launchT) S.launchT = 0;
+  if (S && S.rocket && !S.escaped) S.rocket.launched = false;
+  showTitle();
+});
 
 function showTitle() {
   hush();
@@ -7028,6 +7051,7 @@ function showTitle() {
   if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">Zorp-tech upgrade: ${PERKS[PERK].name}</p>`);
   if (MISSION.cores.length || MISSION.allies.length) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note"><b style="color:#ff9b9b">Mission: Free Earth</b> · Power cores: ${MISSION.cores.length} · Allies: ${MISSION.allies.length}</p>`);
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
+  onTitle = true; levelsBtn();
   $('#modal').querySelectorAll('.lvl[data-l]').forEach(b => b.addEventListener('click', () => {
     audioInit();
     const li = +b.dataset.l, go = () => {
