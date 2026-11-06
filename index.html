@@ -140,6 +140,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
+.lvl.void .n { background: #1a1428; color: #c9a7ff; box-shadow: 0 0 0 2px #ffb35c inset; } .lvl.void .go { color: #c9a7ff; }
 .lvl.titan .n { background: #d08a40; } .lvl.titan .go { color: #f0b060; }
 .lvl.titan2 .n { background: #9a7a5e; } .lvl.titan2 .go { color: #d8b48a; }
 .lvl.under .n { background: #8f68aa; font-size: 16px; } .lvl.under .go { color: #b79bff; }
@@ -376,7 +377,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 36;
+const BUILD = 37;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2348,6 +2349,57 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'The Unknown Planet', num: '31½',
+  seed: 233, n: 11, offworld: true, sky: 'void', sun: 0.6, knights: true, wizards: true, voidLevel: true, shadowKing: true,
+  map: { ice: 0, mountains: [[1, 1, 0.7], [9, 9, 0.5]], craters: [[3, 3], [8, 3], [2, 7], [8, 7]], ore: [[5, 2, 1.2], [1, 5, 1.0]], ruins: [],
+         frost: [[6, 5], [4, 5], [9, 1]] },
+  start: { metal: 240, energy: 70, water: 60, food: 120 },
+  planet: { temp: -80, press: 30, o2: 2 },
+  tools: ['solar', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'castle', 'police', 'wizhut', 'church', 'graveyard', 'ccrafter', 'recycle'],
+  prebuilt: [['habitat', 5, 9], ['habitat', 6, 9], ['solar', 4, 9], ['solar', 7, 9], ['drill', 6, 5], ['castle', 5, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 20, mix: { shadow: 1 } },
+  pal: {
+    plain: ['#5a4e72', '#463c5c', '#342c46'], ore: ['#8a6ab8', '#6a5094', '#503c74'], ice: ['#b8c4e8', '#8e9cc8', '#6a78a4'], crater: ['#3a3050', '#2c2440', '#201a30'],
+    rock: ['#4a4060', '#383050', '#28203c'],
+    sides: ['#3a3050', '#2c2440', '#201a30', '#150f22'],
+  },
+  deco: { pebble: '#8a7aaa', rim: '#6a5e88', pit: '#1a1428', pit2: '#241c36', cone: ['#6a5e88', '#4a4060', '#5a4e72'] },
+  tileInfo: {
+    plain: ['Dark ground', 'Strange, soft, purple-black ground. Nobody has ever stood here before. Flat and buildable.'],
+    ore: ['Purple ore', 'Purple crystals poking out of the dark. Mines and ore drills go here.'],
+    ice: ['Blue ice', 'Ice with a faint blue glow. Ice drills go here.'],
+    crater: ['Dark pit', 'A deep pit. Black aliens climb out of these.'],
+    rock: ['Black cliff', 'A cliff of glassy black rock. Nothing can be built here.'],
+  },
+  goals: [
+    { text: 'Build 4 solar arrays', get: () => count('solar'), target: 4,
+      who: 'eng', hint: 'The only light here comes from the glowing ring of gas around the black hole. Solar arrays still work. Four of them.' },
+    { text: 'Build a wizard hut', get: () => count('wizhut'), target: 1,
+      who: 'cmd', hint: 'Black aliens! Every one takes five hits. Taps, zappers, wizards and knights all work on them. Build a wizard hut.' },
+    { text: 'Train 3 knights and police', get: () => knightCount() + copCount(), target: 3,
+      who: 'kip', hint: 'The castle can train knights to guard us. Three of them. Each one eats five food first.' },
+    { text: 'Defeat 12 black aliens', get: () => S.shadowsBeaten || 0, target: 12,
+      who: 'kip', hint: 'Twelve black aliens. When you beat one it vanishes into thin air, and it does not come back.' },
+    { text: 'Defeat the Shadow King', get: () => S.shadowKingDefeated ? 1 : 0, target: 1, flag: true, shadowKing: true,
+      who: 'kip', hint: 'The Shadow King! The escape crystal is glowing inside its body. Beat it to get the crystal out!' },
+    { text: 'Grab the escape crystal', get: () => S.escapeCrystal ? 1 : 0, target: 1, flag: true,
+      who: 'cmd', hint: 'The crystal fell out! Tap it to pick it up. It can open a portal home.' },
+  ],
+  intro: [['cmd', 'Where are we? The black hole pulled us in, and spat us out next to a planet that is not on any map.'], ['kip', 'My star charts say we are nowhere. I have never been nowhere before. It is very dark.'], ['bot', 'Something is moving out there in the dark. Lots of somethings.']],
+  outro: [['cmd', 'The portal is open! Everyone aboard. Let us get back to the solar system.'], ['kip', 'Goodbye, unknown planet. I will not miss you. Well, maybe a little.']],
+  brief: {
+    eyebrow: 'Bonus level · The black hole',
+    title: 'The Unknown Planet',
+    body: ['The black hole pulled the rocket in, and spat it out next to a <b>planet nobody has ever seen</b>. It is dark here, lit only by the glowing disc around the black hole.', '<b>Black aliens</b> take 5 hits, and a beaten one <b>vanishes for good</b>. To get home you need the <b>escape crystal</b>, and it is inside the biggest alien of all, the <b>Shadow King</b>. Beat it, grab the crystal, and jump through the portal.'],
+    fact: '<b>Black holes:</b> a black hole’s gravity is so strong that nothing can escape it, not even light. That is why it looks completely black.',
+  },
+  done: {
+    title: 'Escaped!',
+    body: 'The escape crystal opened a portal home. You have a new power core for the mission to free Earth.',
+    fact: '<b>Spaghettification:</b> fall into a small black hole feet first, and your feet would be pulled much harder than your head, stretching you out like a noodle. Scientists really call it that.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2455,7 +2507,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, v11: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -2603,6 +2655,7 @@ function tick(dt) {
   if (L.tornado || tornados.length) updateTornados(dt, L);
   if (L.storm) maybeStorm(L);
   if (L.golem) maybeGolem(L);
+  if (L.shadowKing) maybeShadowKing(L);
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
@@ -3226,6 +3279,7 @@ const WORLDS = {
   saturn3: { level: 27, name: 'Saturn: The Hexagon', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn2', blurb: 'A giant six-sided storm spins at the north pole.' },
   saturn4: { level: 28, name: 'Saturn: Ring Shadow', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn3', blurb: 'In the shadow of the rings, the tree aliens grow thick.' },
   saturn5: { level: 29, name: 'Saturn’s Rings', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn4', blurb: 'Out on the icy rings, where the Elder Tree grows.' },
+  blackhole: { get level() { return LEVELS.findIndex(L => L.voidLevel); }, name: 'The Black Hole', icon: 'blackhole', sys: 'blackhole', fuel: 300, needs: ['engines', 'shield'], after: 'titan2', blurb: 'Bonus level: a black hole has opened past Saturn. Nobody knows where it leads.' },
   titan:   { level: 30, name: 'Titan', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'saturn5', blurb: 'Saturn’s biggest moon: thick orange air, methane rain, and rock monsters.' },
   titan2:  { level: 31, name: 'Titan: The Rock Giant', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'titan', blurb: 'Something huge is rumbling under Titan’s ice.' },
   chief:  { level: 11, name: 'The Five-Head Chief', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'moon', blurb: 'Back to the Moon, where the boss of the five-headed aliens is coming.' },
@@ -3235,7 +3289,7 @@ const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2', 32: 'blackhole' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -3296,10 +3350,12 @@ function showStarMap() {
     picks.push([k, WORLDS[k], keys.length > 1 ? g : null, false]);
   }
   const cards = picks.map(([k, w, grp, locked]) => {
-    const stay = !locked && sameMoon(k), fuel = tripFuel(k), needs = tripNeeds(k), missing = needs.filter(u => !RKT[u]);
+    const portal = !locked && here === 'blackhole'; // the escape crystal opens a portal to anywhere
+    const stay = portal || (!locked && sameMoon(k)), fuel = tripFuel(k), needs = tripNeeds(k), missing = needs.filter(u => !RKT[u]);
     const chosen = R_.dest === k;
-    const req = stay ? 'Same moon: no flight needed' : `${fuel} fuel` + (needs.length ? ' · needs ' + needs.map(u => (RKT[u] ? '✔ ' : '✗ ') + UPGRADES[u].name).join(', ') : '');
+    const req = portal ? 'The escape crystal opens a portal: no fuel needed' : stay ? 'Same moon: no flight needed' : `${fuel} fuel` + (needs.length ? ' · needs ' + needs.map(u => (RKT[u] ? '✔ ' : '✗ ') + UPGRADES[u].name).join(', ') : '');
     const action = locked ? `<span class="tag">Unlocks after ${WORLDS[w.after].name}</span>`
+      : portal ? `<button class="btn" data-go="${k}">Jump through the portal</button>`
       : stay ? `<button class="btn" data-go="${k}">Stay on ${BODY_NAME[w.body]}</button>`
       : chosen ? `<span class="tag">Course set · ${Math.floor(R_.fuel)} / ${fuel} fuel</span>`
       : `<button class="btn" data-dest="${k}" ${missing.length ? 'disabled' : ''}>${missing.length ? 'Needs upgrades' : 'Set course'}</button>`;
@@ -3354,7 +3410,7 @@ function showArrival(k) {
     <span class="eyebrow" style="color:var(--leaf)">${mars ? 'Level 6 complete · Mars orbit' : 'In flight'}</span>
     <h2>Arriving at ${w.name}</h2>
     <div class="dest"><div class="world"><canvas width="144" height="144" data-p="${w.icon}"></canvas><b>${w.name}</b><small>${w.blurb}</small>
-      <button class="btn" id="land">Land on ${w.name}</button></div></div>
+      <button class="btn" id="land">${k === 'blackhole' ? 'Fly into the black hole' : 'Land on ' + w.name}</button></div></div>
     <div class="row">${S.level === 5 ? '<button class="btn alt" id="under">Or go underground: Level 6½</button>' : ''}<button class="btn alt" id="dest-menu">Level select</button></div>`, true);
   $('#modal').querySelectorAll('canvas[data-p]').forEach(c => planetIcon(c, c.dataset.p));
   $('#land').addEventListener('click', () => startLevel(w.level));
@@ -3447,7 +3503,7 @@ function updateBoss(dt) {
     }
     return;
   }
-  if (b.kind === 'king' || b.kind === 'elder') { kingStep(b, dt); return; }
+  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'shadow') { kingStep(b, dt); return; }
   let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
   if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
@@ -3501,6 +3557,7 @@ function hurtBoss(dmg, knight = false) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
     if (b.kind === 'lizard') { toast('The Lizard King dived into the lava!', 'bad'); say('kip', 'He dived into the lava! He will climb out somewhere else.', 'lk-burrow'); }
+    else if (b.kind === 'shadow') { toast('The Shadow King melted into the darkness!', 'bad'); say('kip', 'It melted into the shadows! It will come out somewhere else, and it looks angry.', 'sk-burrow'); }
     else if (b.kind === 'elder') { toast('The Elder Tree sank its roots into the ice!', 'bad'); say('kip', 'It pulled itself down into the ice by its roots! It will grow back up somewhere else.', 'elder-burrow'); }
     else if (b.kind === 'king') { toast('The King smashed down through the ice!', 'bad'); say('kip', 'He dived under the ice! He will burst out somewhere else, and now he is really cross.', 'king-burrow'); }
     else if (b.kind === 'cousin') { toast('Queen Skyla flew off into the clouds!', 'bad'); say('kip', 'She flew away, but she will be back, and angrier.', 'skyla2'); }
@@ -3508,7 +3565,7 @@ function hurtBoss(dmg, knight = false) {
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else if (b.kind === 'shadow') { S.shadowKingDefeated = true; S.voidCrystal = { x: b.x, y: b.y, t: 0 }; } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
@@ -3519,6 +3576,9 @@ function hurtBoss(dmg, knight = false) {
       say('kip', 'The Lizard King is beaten! And look, the lizard people are not running away. They are bowing.', 'lkdown');
       say('cmd', 'He was forcing them to fight. Now they are free, and they want to help us free Earth.', 'lkally');
       gainCore('venus4', 'the Lizard King’s Crown Core'); gainAlly('lizards', 'the Lizard People of Venus');
+    } else if (b.kind === 'shadow') {
+      toast('The Shadow King vanished, and dropped the escape crystal! +25 crystals', 'good');
+      say('kip', 'The Shadow King is gone, and the escape crystal fell out! Tap it to pick it up!', 'skdown');
     } else if (b.kind === 'golem') {
       toast('The Rock Giant is beaten! +25 crystals', 'good');
       say('kip', 'The Rock Giant crumbled! And the rock monsters are rolling over to us. I think they want their tummies scratched.', 'golemdown');
@@ -3576,6 +3636,11 @@ function bossAt(mx, my) {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 55 * k) * sc;
     if (Math.abs(mx - bx) < 32 * k * sc && Math.abs(my - by) < 55 * k * sc) { hurtBoss(1); sfx('clang'); say('eng', 'Aim for the glowing head! That is where it really counts.', 'chief-aim'); return true; }
     return false;
+  }
+  if (b.kind === 'shadow') {
+    const k = QS * 2.6, bx = view.x + w.x * sc, by = view.y + (w.y - 13 * k) * sc;
+    if (Math.abs(mx - bx) > 9 * k * sc || Math.abs(my - by) > 14 * k * sc) return false;
+    hurtBoss(2); sfx('bonk'); burst(w.x, w.y - 13 * k, 8, ['#c9a7ff', '#ffffff']); return true;
   }
   if (b.kind === 'golem') {
     if (b.state === 'emerge') return false;
@@ -3649,6 +3714,23 @@ function drawBoss(g) {
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
       g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center';
       g.fillText('LIZARD KING' + (b.flying ? ' · FLYING' : ''), w.x, top - 6);
+    }
+    return;
+  }
+  if (b.kind === 'shadow') {
+    const kk = k * 2.6;
+    g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+    ell(g, 0, 2, 9 * kk, 3.4 * kk, 'rgba(10,0,20,0.4)');
+    if (b.hit > 0) g.translate((Math.random() - 0.5) * 3, 0);
+    g.scale(kk * (b.face || 1), kk);
+    drawShadowBody(g, b.state === 'walk' ? Math.sin(b.t * 4) * 1.5 : 0, b.hit > 0, true, b.enraged);
+    g.fillStyle = '#c9a7ff'; for (const [x, y] of [[-2.5, -22.5], [1, -23.5], [4.5, -22.5]]) poly(g, [[x - 1, y + 1], [x, y - 2.4], [x + 1, y + 1]]); // a dark crown
+    g.restore();
+    if (b.state !== 'dead') {
+      const top = w.y - 32 * kk;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#c9a7ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE SHADOW KING', w.x, top - 6);
     }
     return;
   }
@@ -3738,6 +3820,46 @@ function maybeElder(L) {
   if (!L.elder || S.boss || S.elderDefeated) return;
   const ci = L.goals.findIndex(g => g.elder);
   if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnElder();
+}
+function maybeShadowKing(L) {
+  if (!L.shadowKing || S.boss || S.shadowKingDefeated) return;
+  const si = L.goals.findIndex(g => g.shadowKing);
+  if (L.goals.every((g, i) => i >= si || S.goalsDone[i])) spawnShadowKing();
+}
+function spawnShadowKing() {
+  const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'shadow', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 320, maxhp: 320, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 10, atk: 2, enraged: false, hs: crater.h };
+  shake = RM ? 0 : 14; sfx('boom'); sfx('roar');
+  toast('THE SHADOW KING has risen out of the dark!', 'bad');
+  say('kip', 'That is the Shadow King! Look, the escape crystal is glowing inside its body. Beat it to get the crystal out!', 'sk1');
+  say('cmd', 'Taps, zappers, wizards and knights. Hit it with everything we have!', 'sk2');
+}
+// the escape crystal the Shadow King drops: tap it to pick it up
+function crystalAt(mx, my) {
+  const v = S.voidCrystal;
+  if (!v || (S.view && S.view !== 'surface')) return false;
+  const t = tileAt(clamp(Math.floor(v.x), 0, S.n - 1), clamp(Math.floor(v.y), 0, S.n - 1));
+  const x = view.x + (v.x - v.y) * 32 * view.s, y = view.y + ((v.x + v.y) * 16 - t.h * HZ - 22) * view.s;
+  if (Math.hypot(mx - x, my - y) > Math.max(28, 22 * view.s)) return false;
+  S.voidCrystal = null; S.escapeCrystal = true; dirty = true;
+  const w = { x: (v.x - v.y) * 32, y: (v.x + v.y) * 16 - t.h * HZ };
+  burst(w.x, w.y - 22, 40, ['#7ff7ff', '#ffffff', '#c9a7ff'], 1.8);
+  fx.push({ kind: 'ring', x: w.x, y: w.y, r: 8, life: 1, max: 1, color: '#7ff7ff', big: true });
+  sfx('relic');
+  gainCore('void', 'the Void Crystal Core');
+  say('cmd', 'We have the escape crystal! It is buzzing with power. It can open a portal back to the solar system.', 'escape-crystal');
+  return true;
+}
+function drawVoidCrystal(g) {
+  const v = S.voidCrystal; if (!v) return;
+  v.t = (v.t || 0) + 1 / 60;
+  const t = tileAt(clamp(Math.floor(v.x), 0, S.n - 1), clamp(Math.floor(v.y), 0, S.n - 1));
+  const x = (v.x - v.y) * 32, y = (v.x + v.y) * 16 - t.h * HZ - 22 + Math.sin(RT * 3) * 3, pu = 1 + 0.15 * Math.sin(RT * 6);
+  ell(g, x, y + 22, 10, 4, 'rgba(127,247,255,0.35)');
+  ell(g, x, y, 16 * pu, 16 * pu, 'rgba(127,247,255,0.25)');
+  g.fillStyle = '#7ff7ff'; poly(g, [[x, y - 13], [x + 7, y], [x, y + 13], [x - 7, y]]);
+  g.fillStyle = '#e6feff'; poly(g, [[x, y - 13], [x + 7, y], [x, y]]);
+  g.fillStyle = '#ffffff'; g.font = '600 13px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('Tap me!', x, y - 22);
 }
 function maybeGolem(L) {
   if (!L.golem || S.boss || S.golemDefeated) return;
@@ -3838,7 +3960,7 @@ function spawnKing() {
 function kingStep(b, dt) {
   b.spawnT -= dt;
   if (b.spawnT <= 0) {
-    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
+    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'shadow' ? 'shadow' : b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
     b.spawnT = b.enraged ? 9 : 13;
   }
   b.slam = Math.max(0, (b.slam || 0) - dt);
@@ -3868,7 +3990,7 @@ function kingStep(b, dt) {
     b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4);
     b.chew = (b.chew || 0) + dt * (near.length ? 0.5 : 1);
     if (b.chew > 12) {
-      toast(`The Shell-beast King flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      toast(`${b.kind === 'shadow' ? 'The Shadow King' : b.kind === 'elder' ? 'The Elder Tree' : 'The Shell-beast King'} flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
       const w = center(tgt); burst(w.x, w.y - 10, 26, ['#b8afd8', '#ffd166', '#ffffff'], 1.4);
       tgt.b = null; b.chew = 0; sfx('boom'); shake = RM ? 0 : 10;
     }
@@ -4641,6 +4763,11 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'blackhole') {
+    g.save(); g.translate(x, y); g.rotate(-0.25);
+    for (const [rr, c, w] of [[1.7, 'rgba(255,170,80,0.8)', 4], [1.45, 'rgba(255,220,150,0.8)', 2.5], [1.25, 'rgba(200,120,255,0.6)', 2]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, r * rr, r * rr * 0.28, 0, 0, Math.PI * 2); g.stroke(); }
+    g.restore();
+    ell(g, x, y, r * 0.62, r * 0.62, 'rgba(255,190,110,0.45)'); ell(g, x, y, r * 0.5, r * 0.5, '#000000');
   } else if (kind === 'titan') {
     const tg = g.createRadialGradient(x - 8, y - 8, 4, x, y, r);
     tg.addColorStop(0, '#f0b060'); tg.addColorStop(1, '#a8601e');
@@ -4718,6 +4845,8 @@ const KINDS = {
   tree:     { hp: 14, spd: 0.6, size: 1.8, steal: 1.5, immune: true, tree: true },
   // Titan's rock monsters: fifteen hits, knights just bounce off, and hurt ones hide in holes to heal
   rock:     { hp: 15, spd: 0.55, size: 1.6, steal: 1.4, rock: true, noKnight: true },
+  // the black aliens of the unknown planet: five hits, and a beaten one vanishes into thin air
+  shadow:   { hp: 5, spd: 0.9, size: 1.4, steal: 1.3, shadow: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -4725,6 +4854,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  shadow: ['kip', 'A black alien! It takes five hits. Taps, zappers, wizards and knights all work on it.'],
   rock: ['eng', 'Rock monsters! They take fifteen hits. Zappers, wizards and taps can crack them. When they get hurt, they dive into holes to hide.'],
   tree: ['eng', 'Tree aliens! Their bark is so thick that zaps and taps bounce off. Only knights and police can chop them down.'],
   burrower: ['kip', 'Tunnel critters! They are tougher down here. Some take two bonks, some take five. Count the little red dots over their heads.'],
@@ -4756,7 +4886,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -5037,7 +5167,10 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].rock) {
+  if (KINDS[c.kind || 'basic'].shadow) {
+    S.shadowsBeaten = (S.shadowsBeaten || 0) + 1;
+    say('kip', 'Poof! It vanished into thin air. That one is gone for good.', 'shadow-down');
+  } else if (KINDS[c.kind || 'basic'].rock) {
     S.rocksBeaten = (S.rocksBeaten || 0) + 1;
     say('kip', 'Crack! The rock monster fell into a pile of pebbles. Pebbles with a grumpy face.', 'rock-down');
     S.crystals += 2;
@@ -6401,6 +6534,44 @@ function drawRockBody(g, col, step, hit, bonked, angry) {
   ell(g, 2.1, -12, 0.6, 0.6, '#3a1a08'); ell(g, 5.9, -11.6, 0.6, 0.6, '#3a1a08');
   g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); g.moveTo(1, -8); g.lineTo(6.5, -8.3); g.stroke();
 }
+// a black alien: a dark wispy body with a faint purple glow and bright eyes
+function drawShadowBody(g, step, hit, crystal, angry) {
+  const body = hit ? '#ffffff' : '#120e1c', glow = angry ? 'rgba(255,120,160,0.6)' : 'rgba(180,140,255,0.55)';
+  ell(g, 0, -9, 9, 10, 'rgba(120,80,200,0.12)');
+  g.fillStyle = body;
+  g.beginPath(); g.moveTo(-6, -10);
+  for (let i = 0; i <= 4; i++) { const x = -6 + i * 3; g.lineTo(x + 1.5, -1 + (i % 2 ? step : -step) * 0.6); g.lineTo(x + 3, -3); }
+  g.lineTo(6, -10); g.closePath(); g.fill();
+  ell(g, 0, -10, 6.5, 6, body);
+  ell(g, 1, -18, 5.4, 4.8, body);
+  g.strokeStyle = glow; g.lineWidth = 0.8;
+  g.beginPath(); g.ellipse(0, -10, 6.5, 6, 0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.ellipse(1, -18, 5.4, 4.8, 0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.moveTo(-1, -22); g.lineTo(-3, -27); g.moveTo(3, -22); g.lineTo(5, -27); g.stroke();
+  ell(g, -3, -27, 1, 1, glow); ell(g, 5, -27, 1, 1, glow);
+  const eye = angry ? '#ff9bb8' : '#efe6ff';
+  ell(g, 2.6, -18.5, 2.4, 1.6, 'rgba(201,167,255,0.35)'); ell(g, 5.2, -18, 2, 1.4, 'rgba(201,167,255,0.35)');
+  ell(g, 2.6, -18.5, 1.4, 0.9, eye); ell(g, 5.2, -18, 1.1, 0.8, eye);
+  if (crystal) { // the escape crystal, glowing inside its chest
+    const pu = 0.8 + 0.2 * Math.sin(RT * 5);
+    ell(g, 0, -10, 5 * pu, 5 * pu, 'rgba(127,247,255,0.35)');
+    g.fillStyle = '#7ff7ff'; poly(g, [[0, -14.5], [2.6, -10], [0, -5.5], [-2.6, -10]]);
+    g.fillStyle = '#e6feff'; poly(g, [[0, -14.5], [2.6, -10], [0, -10]]);
+  }
+}
+function drawShadow(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  if (c.state === 'bonked') { // vanishing into thin air
+    for (let i = 0; i < 7; i++) { const a = i * 0.9 + c.seed, r = c.t * 16; ell(g, Math.cos(a) * r * 0.6, -10 * k - c.t * 18 + Math.sin(a) * r * 0.3, (3 + c.t * 5) * k * 0.6, (3 + c.t * 5) * k * 0.5, 'rgba(70,50,110,0.45)'); }
+    g.restore(); return;
+  }
+  ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(10,0,20,0.35)');
+  if (c.hp < c.maxhp) for (let i = 0; i < c.maxhp; i++) ell(g, (i - (c.maxhp - 1) / 2) * 4.5, -32 * k, 1.7, 1.7, i < c.hp ? '#c9a7ff' : 'rgba(255,255,255,0.25)');
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  drawShadowBody(g, walking ? Math.sin(c.t * 10 + c.seed) * 1.5 : 0, c.hit > 0, false, false);
+  g.restore();
+}
 function drawRock(g, c, p, k, alpha, walking) {
   g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 9 * k, 3.4 * k, 'rgba(40,20,10,0.3)');
@@ -6548,7 +6719,7 @@ function updateKnights(dt) {
     }
   }
   knights = knights.filter(k => k.home.b === (k.cop ? 'police' : 'castle'));
-  const king = S.boss && (S.boss.kind === 'king' || S.boss.kind === 'elder' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  const king = S.boss && (S.boss.kind === 'king' || S.boss.kind === 'elder' || S.boss.kind === 'shadow' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
   for (const k of knights) {
     k.t += dt; k.cd -= dt; k.swing = Math.max(0, k.swing - dt); k.hit = Math.max(0, k.hit - dt);
     const hx = k.home.gx + 0.5, hy = k.home.gy + 0.5;
@@ -6732,6 +6903,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.shadow) { drawShadow(g, c, p, k, alpha, walking); return; }
   if (K.rock) { drawRock(g, c, p, k, alpha, walking || c.state === 'tohole'); return; }
   if (K.tree) { drawTree(g, c, p, k, alpha, walking); return; }
   if (K.rhino) { drawRhino(g, c, p, k, alpha, walking); return; }
@@ -6939,7 +7111,7 @@ function cloudShape(g, x, y, s, col) {
   ell(g, x + 24 * s, y - 4 * s, 14 * s, 10 * s, col);
 }
 function drawClouds(g) {
-  if (LEVELS[S.level].sky === 'cave' || LEVELS[S.level].sky === 'rings') return; // no clouds underground or out in space
+  if (['cave', 'rings', 'void'].includes(LEVELS[S.level].sky)) return; // no clouds underground, out in space or by the black hole
   const a = clamp((S.planet.press - 3) / 9, 0, 1) * 0.85;
   if (a <= 0.01) return;
   for (const c of clouds) {
@@ -7083,6 +7255,22 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'void') { // pitch black, a few strange stars, and the black hole with its glowing disc
+    g.fillStyle = '#05030a'; g.fillRect(0, 0, W, H);
+    for (const st of stars) ell(g, st.x * W, st.y * H, st.z * 0.8, st.z * 0.8, `rgba(220,200,255,${st.a * 0.6})`);
+    const bx = W * 0.74, by = H * 0.26, br = Math.min(W, H) * 0.11;
+    g.save(); g.translate(bx, by); g.rotate(-0.25);
+    for (let i = 0; i < 4; i++) {
+      g.strokeStyle = ['rgba(255,170,80,0.55)', 'rgba(255,120,60,0.45)', 'rgba(255,220,150,0.5)', 'rgba(200,120,255,0.35)'][i];
+      g.lineWidth = 10 - i * 2; g.beginPath(); g.ellipse(0, 0, br * (2.4 - i * 0.25), br * (0.55 - i * 0.05), RT * 0.05 * (i % 2 ? -1 : 1), 0, Math.PI * 2); g.stroke();
+    }
+    g.restore();
+    const hg = g.createRadialGradient(bx, by, br * 0.8, bx, by, br * 1.6);
+    hg.addColorStop(0, 'rgba(255,190,110,0.6)'); hg.addColorStop(1, 'rgba(255,190,110,0)');
+    g.fillStyle = hg; g.fillRect(bx - br * 2, by - br * 2, br * 4, br * 4);
+    ell(g, bx, by, br, br, '#000000');
+    return;
+  }
   if (sk === 'titan') { // thick orange haze, Saturn faint behind it, and slow methane drizzle
     const tg = g.createLinearGradient(0, 0, 0, H);
     tg.addColorStop(0, '#3a2614'); tg.addColorStop(0.55, '#8a5424'); tg.addColorStop(1, '#c47a34');
@@ -7198,6 +7386,7 @@ function render() {
     const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.wiz ? drawWizard : c.cop ? drawCop : c.home ? drawKnight : drawCritter)(ctx, c);
   }
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
+  if (surf && S.voidCrystal) drawVoidCrystal(ctx);
   if (surf && tornados.length) drawTornados(ctx);
   if (hover && !tool) {
     const c = center(hover);
@@ -7443,6 +7632,7 @@ function showTitle() {
       <button class="lvl sat2" data-l="29"><span class="n">29</span><span><b>Saturn’s Rings</b><small>Out on the icy rings, where the Elder Tree grows.</small></span><span class="go">Play</span></button>
       <button class="lvl titan" data-l="30"><span class="n">30</span><span><b>Titan: Methane Shores</b><small>Orange air, methane rain, and rock monsters that hide in holes.</small></span><span class="go">Play</span></button>
       <button class="lvl titan2" data-l="31"><span class="n">31</span><span><b>Titan: The Rock Giant</b><small>Tunnels, underground zappers, and the Rock Giant.</small></span><span class="go">Play</span></button>
+      <button class="lvl void" data-l="32"><span class="n">31½</span><span><b>The Unknown Planet</b><small>Bonus: through the black hole. Black aliens, and the Shadow King.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -7519,6 +7709,19 @@ function backFromUnder() {
   toast('The underground city sent up 300 metal and 20 crystals!', 'good');
   say('cmd', 'Welcome back up, team. The tunnel city sent us a big load of supplies.', 'under-back');
 }
+function showVoidDone() {
+  const L = LEVELS[S.level], d = L.done;
+  sfx('win');
+  for (const [w, txt] of L.outro) say(w, txt, null, true);
+  openModal(`
+    <span class="eyebrow" style="color:var(--leaf)">Bonus level complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <h2>${d.title}</h2>
+    <p>${d.body}</p>
+    <p class="fact">${d.fact}</p>
+    <div class="row"><button class="btn" id="portal">Escape through the portal</button><button class="btn alt" id="stay">Keep playing here</button></div>`);
+  $('#portal').addEventListener('click', showStarMap);
+  $('#stay').addEventListener('click', closeModal);
+}
 function showUnderDone() {
   const L = LEVELS[S.level], d = L.done;
   sfx('win');
@@ -7536,6 +7739,7 @@ function showUnderDone() {
 function showComplete() {
   if (LEVELS[S.level].bonus) return showGlorpDone();
   if (LEVELS[S.level].under) return showUnderDone();
+  if (LEVELS[S.level].voidLevel) return showVoidDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
   // Europa part 1 leads straight on to part 2: same moon, no rocket needed
@@ -7642,7 +7846,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 064185af 06a2ace1 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 095e8697 0a01a313 0a273192 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1aebaf1f 1bc946da 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 22586686 22c96318 22dc1977 231440de 231d8460 2341f3c5 235ed52f 23c80e45 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2b732c7f 2c8f8b73 2ccc105c 2cd98069 2d4236e0 2e30c278 2e5c16db 2f8a9231 2f8ab1a6 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 34975786 349e917d 34b3668a 34f107c0 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4b62a538 4b983c1d 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 5681770d 56932f6a 56eebfbb 570313a4 57156cc3 57822802 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6d8a77e3 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71c2f517 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 893c6180 89433fbb 896dfa6a 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a403ebc2 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b4b9f647 b5ef7b7f b6750665 b6885fe4 b6a1a824 b762f60b b7bacc46 b8a67fac b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c08db08b c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c325df07 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c672ecc1 c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 dae95449 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e4acaf8a e4fb12b8 e5392f66 e627a7aa e6389f23 e68ab45f e68aec3f e6a7a5c5 e7264fe6 e77d6a46 e7f5c545 e8dc2b4c e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f3a2e59e f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5e28285 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 064185af 06a2ace1 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 091f3f5c 095e8697 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1aebaf1f 1bc946da 1bca980b 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 22586686 22c96318 22dc1977 231440de 231d8460 2341f3c5 235ed52f 23c80e45 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2b732c7f 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d4236e0 2e30c278 2e5c16db 2f8a9231 2f8ab1a6 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 34975786 349e917d 34b3668a 34f107c0 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37845349 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 5681770d 56932f6a 56eebfbb 570313a4 57156cc3 57822802 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5ddbade0 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6d8a77e3 6dbb267c 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71c2f517 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 893c6180 89433fbb 896dfa6a 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94bfff3f 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a403ebc2 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b4b9f647 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b762f60b b7bacc46 b864510d b8a67fac b8db967a b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c08db08b c0a9565a c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c325df07 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c672ecc1 c6c6a77b c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 dae95449 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e607c25b e627a7aa e6389f23 e68ab45f e68aec3f e6a7a5c5 e7264fe6 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f3a2e59e f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5c504f1 f5e28285 f5f52596 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -7921,7 +8125,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v10) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : 30)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = true; }
+    if (d && d.S && !d.S.v11) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : !d.S.v10 ? 30 : 32)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = d.S.v11 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;
@@ -8283,6 +8487,7 @@ cv.addEventListener('pointerdown', e => {
   if (!S || modalOpen || A) return;
   if (e.button === 2) { selectTool(null); return; }
   if (saucerAt(e.clientX, e.clientY)) { showTrade(); return; }
+  if (crystalAt(e.clientX, e.clientY)) return;
   const crit = critterAt(e.clientX, e.clientY);
   if (crit) { bonk(crit); return; }
   if (bossAt(e.clientX, e.clientY)) return;

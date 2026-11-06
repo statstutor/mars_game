@@ -123,6 +123,12 @@ screen, saved on the device), and one day come home to free Earth.
     climbs out. Zappers, wizards and taps hurt it. Each time its health drops past ¾, ½ and ¼,
     it digs into the nearest open hole to heal (+60). Filled-in holes stop that, and a tunnelled
     hole chases it out with no healing. Beating it wins a power core and the Rock Folk as allies.
+31½. **The Unknown Planet** (bonus; the **black hole** appears on the star map after the Rock
+    Giant): the black hole spits the rocket out next to a dark planet nobody has seen. **Black
+    aliens** take 5 hits and vanish for good when beaten. The **escape crystal** glows inside the
+    **Shadow King**, a giant black alien that marches on your buildings and melts into the dark
+    to reappear at half health. Beat it, tap the crystal it drops (a power core), then jump
+    through the portal to any unlocked world on the star map, with no fuel needed.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
