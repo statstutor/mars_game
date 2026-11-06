@@ -377,7 +377,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 37;
+const BUILD = 38;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -582,6 +582,8 @@ const TECHS = [
 ];
 const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
 const lvlNum = i => LEVELS[i].num || i + 1;
+// how a level is named on screen: bonus levels (Glorp, the black hole) say so instead of a number
+const lvlName = i => LEVELS[i].bonus || LEVELS[i].voidLevel ? 'Bonus level' : 'Level ' + lvlNum(i);
 // buildings shown in the toolbar: the level's own list plus whatever research has unlocked
 function levelTools() {
   const L = LEVELS[S.level], tools = L.tools.filter(n => n !== 'recycle');
@@ -2349,7 +2351,7 @@ LEVELS.push({
   },
 });
 LEVELS.push({
-  name: 'The Unknown Planet', num: '31½',
+  name: 'The Unknown Planet',
   seed: 233, n: 11, offworld: true, sky: 'void', sun: 0.6, knights: true, wizards: true, voidLevel: true, shadowKing: true,
   map: { ice: 0, mountains: [[1, 1, 0.7], [9, 9, 0.5]], craters: [[3, 3], [8, 3], [2, 7], [8, 7]], ore: [[5, 2, 1.2], [1, 5, 1.0]], ruins: [],
          frost: [[6, 5], [4, 5], [9, 1]] },
@@ -7509,7 +7511,7 @@ function updateUI() {
   let when = '';
   if (L.dayNight) { const ph = S.clock % (DAY + NIGHT); when = S.night ? ` · Night (${Math.ceil(DAY + NIGHT - ph)}s)` : ` · Day (${Math.ceil(DAY - ph)}s)`; }
   if (S.storm > 0) when += ' · Dust storm';
-  $('#lvl-eyebrow').textContent = `${L.bonus ? 'Bonus level' : 'Level ' + lvlNum(S.level)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
+  $('#lvl-eyebrow').textContent = `${lvlName(S.level)} · Sol ${Math.floor(S.time / 10) + 1}${when}`;
   { const j = L.goals.findIndex((_, k) => !S.goalsDone[k]), g = L.goals[j];
     $('#goal-next').innerHTML = g ? `Next: ${g.text}<span class="pv">${$('#goal-' + j + ' .pv') ? $('#goal-' + j + ' .pv').textContent : ''}</span>` : 'All goals done!'; }
   $('#v-energy').textContent = `${Math.floor(S.energy)} / ${ECAP}`;
@@ -7599,7 +7601,7 @@ function showTitle() {
       <div><b>Defend</b>Tap critters, feed your colonists.</div>
     </div>
     <div class="levels">
-      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${LEVELS[cont.S.level].bonus ? 'Bonus' : 'Level ' + lvlNum(cont.S.level)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
+      ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${lvlName(cont.S.level)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
       <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
       <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes, lichen and strange ruins.</small></span><span class="go">Play</span></button>
       <button class="lvl three" data-l="2"><span class="n">3</span><span><b>Boomtown</b><small>Settlers, restaurants, night raids and alien visitors.</small></span><span class="go">Play</span></button>
@@ -7632,7 +7634,7 @@ function showTitle() {
       <button class="lvl sat2" data-l="29"><span class="n">29</span><span><b>Saturn’s Rings</b><small>Out on the icy rings, where the Elder Tree grows.</small></span><span class="go">Play</span></button>
       <button class="lvl titan" data-l="30"><span class="n">30</span><span><b>Titan: Methane Shores</b><small>Orange air, methane rain, and rock monsters that hide in holes.</small></span><span class="go">Play</span></button>
       <button class="lvl titan2" data-l="31"><span class="n">31</span><span><b>Titan: The Rock Giant</b><small>Tunnels, underground zappers, and the Rock Giant.</small></span><span class="go">Play</span></button>
-      <button class="lvl void" data-l="32"><span class="n">31½</span><span><b>The Unknown Planet</b><small>Bonus: through the black hole. Black aliens, and the Shadow King.</small></span><span class="go">Play</span></button>
+      <button class="lvl void" data-l="32"><span class="n">★</span><span><b>Bonus: The Unknown Planet</b><small>Through the black hole. Black aliens, and the Shadow King.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -7658,8 +7660,8 @@ function showTitle() {
     if (cont && li !== GLORP && !cont.S.won) {
       const C = LEVELS[cont.S.level];
       openModal(`<span class="eyebrow">Start a new level?</span><h2>Replace your saved game?</h2>
-        <p>Your saved game on <b>${C.bonus ? 'Bonus' : 'Level ' + lvlNum(cont.S.level)}: ${C.name}</b> will be replaced by a fresh start on <b>Level ${lvlNum(li)}: ${LEVELS[li].name}</b>.</p>
-        <div class="row"><button class="btn" id="ok-new">Start Level ${lvlNum(li)}</button><button class="btn alt" id="no-new">Go back</button></div>`);
+        <p>Your saved game on <b>${lvlName(cont.S.level)}: ${C.name}</b> will be replaced by a fresh start on <b>${lvlName(li)}: ${LEVELS[li].name}</b>.</p>
+        <div class="row"><button class="btn" id="ok-new">Start ${lvlName(li)}</button><button class="btn alt" id="no-new">Go back</button></div>`);
       $('#ok-new').addEventListener('click', go);
       $('#no-new').addEventListener('click', showTitle);
       return;
@@ -7727,7 +7729,7 @@ function showUnderDone() {
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
-    <span class="eyebrow" style="color:var(--leaf)">Level ${lvlNum(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <span class="eyebrow" style="color:var(--leaf)">${lvlName(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
     <h2>${d.title}</h2>
     <p>${d.body}</p>
     <p class="fact">${d.fact}</p>
@@ -7747,7 +7749,7 @@ function showComplete() {
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
-    <span class="eyebrow" style="color:var(--leaf)">Level ${lvlNum(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
+    <span class="eyebrow" style="color:var(--leaf)">${lvlName(S.level)} complete · ${Math.floor(S.time / 10) + 1} sols</span>
     <h2>${d.title}</h2>
     <p>${d.body}</p>
     <p class="fact">${d.fact}</p>
