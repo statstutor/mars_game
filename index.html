@@ -377,7 +377,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 38;
+const BUILD = 39;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -7745,7 +7745,10 @@ function showComplete() {
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
   // Europa part 1 leads straight on to part 2: same moon, no rocket needed
-  const nx = LEVELS[S.level + 1], next = !!nx && !nx.bonus && (!nx.offworld || sameBody(LEVEL_WORLD[S.level], LEVEL_WORLD[S.level + 1]));
+  // the next level follows straight on only on Mars, or on the same moon or planet (Europa 1 to 2).
+  // Anywhere else in space, you build a launch pad and pick the next world on the star map.
+  const nx = LEVELS[S.level + 1];
+  const next = !!nx && !nx.bonus && !nx.under && !nx.voidLevel && (L.offworld ? sameBody(LEVEL_WORLD[S.level], LEVEL_WORLD[S.level + 1]) : !nx.offworld);
   sfx('win');
   for (const [w, txt] of L.outro) say(w, txt, null, true);
   openModal(`
@@ -7755,7 +7758,7 @@ function showComplete() {
     <p class="fact">${d.fact}</p>
     ${L.offworld ? `<p class="small-note">${next ? 'Or fly somewhere else instead:' : 'Ready for another world?'} Build a <b>launch pad</b> and a <b>fuel plant</b>, then click the pad to open the star map.</p>` : ''}
     <div class="row">
-      ${next ? `<button class="btn" id="next">Level ${S.level + 2}: ${LEVELS[S.level + 1].name}</button>`
+      ${next ? `<button class="btn" id="next">${lvlName(S.level + 1)}: ${LEVELS[S.level + 1].name}</button>`
         : L.offworld ? `<button class="btn" id="fly">${S.tiles.some(t => t.b === 'pad') ? 'Open the star map' : 'Keep playing and build a launch pad'}</button>`
         : '<button class="btn" id="stay2">Keep playing</button>'}
       ${next ? '<button class="btn alt" id="stay">Keep playing</button>' : ''}
