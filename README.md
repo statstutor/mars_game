@@ -129,6 +129,16 @@ screen, saved on the device), and one day come home to free Earth.
     **Shadow King**, a giant black alien that marches on your buildings and melts into the dark
     to reappear at half health. Beat it, tap the crystal it drops (a power core), then jump
     through the portal to any unlocked world on the star map, with no fuel needed.
+32. **Uranus: The Big Chill**, 33. **Sideways World**, 34. **Diamond Rain** (on the star map after
+    the Rock Giant): the coldest planet. Surface buildings **freeze** and work at 40% speed unless
+    they sit on or next to a **giant oven**, which warms its own tile and the 8 around it. There is
+    hardly any ore on the surface: a **mine shaft** opens warm caves full of ore underground, where
+    mines and ore drills work (and nothing freezes). **Water aliens** take 17 hits; taps, knights
+    and drones splash through them, only zappers and wizards work, and each one beaten leaves 5
+    water. In Diamond Rain, diamonds fall now and then for 3 crystals. A power core in each level.
+35. **Uranus: The Great Wave**: a giant water alien rises out of the slush. Only zappers and
+    wizards hurt it, and every 40 damage splashes off a new water alien. Beating it wins a power
+    core and the Water Folk as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are

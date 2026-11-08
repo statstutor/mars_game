@@ -140,6 +140,8 @@ body.cramped #tip.idle { display: none; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
+.lvl.ura .n { background: #8fd0d8; color: #16304a; } .lvl.ura .go { color: #bdf3ff; }
+.lvl.ura2 .n { background: #3f8fd8; } .lvl.ura2 .go { color: #7fd8ff; }
 .lvl.void .n { background: #1a1428; color: #c9a7ff; box-shadow: 0 0 0 2px #ffb35c inset; } .lvl.void .go { color: #c9a7ff; }
 .lvl.titan .n { background: #d08a40; } .lvl.titan .go { color: #f0b060; }
 .lvl.titan2 .n { background: #9a7a5e; } .lvl.titan2 .go { color: #d8b48a; }
@@ -377,7 +379,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 39;
+const BUILD = 40;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -461,6 +463,10 @@ const B = {
              desc: 'Grass, a pond and two slightly confused trees for 12 colonists. +6 happiness.' },
   zapper:  { name: 'Zapper', cost: { metal: 35 }, on: ['plain', 'ore'], onText: 'Zappers need flat ground.', energy: -1,
              desc: 'Automatically zaps critters within 2 tiles. Uses 1 energy/s.' },
+  oven:    { name: 'Giant Oven', cost: { metal: 30 }, on: ['plain', 'ore', 'ice'], onText: 'Giant ovens need flat ground or ice.', energy: -2,
+             desc: 'A huge, cosy oven. It warms its own tile and the 8 tiles around it, so buildings there don’t freeze. On Uranus, frozen buildings work at 40% speed. Uses 2 energy/s.' },
+  shaft:   { name: 'Mine Shaft', cost: { metal: 30 }, on: ['plain', 'ore', 'ice'], onText: 'Mine shafts need flat ground or ice.', energy: -1,
+             desc: 'Digs down through the ice to warm caves full of purple ore. The first one opens the underground, where mines and ore drills work. Uses 1 energy/s.' },
   tunnel:  { name: 'Tunnel', cost: { metal: 40 }, on: ['hole'], onText: 'Tunnels go into the rock monsters’ holes.', energy: -1,
              desc: 'Opens a rock monster hole into a tunnel. It opens the underground to build in, and rock monsters hiding in it can be zapped and tapped from underground. Uses 1 energy/s.' },
   dig:     { name: 'Dig Site', cost: { metal: 20 }, on: ['ruin', 'hole'], onText: 'Dig sites go on glowing alien ruins (or rock monster holes, on Titan).', energy: -1,
@@ -554,9 +560,9 @@ const nestsLeft = () => ALL().filter(t => t.type === 'nest').length;
 const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 // which layers each building may go on (default: all three)
 const WHERE = {
-  solar: ['surface', 'sky'], mine: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
+  solar: ['surface', 'sky'], mine: ['surface', 'under'], oven: ['surface'], shaft: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], tunnel: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
-  cmine: ['under'], ccrafter: ['surface'], oredrill: ['surface'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
+  cmine: ['under'], ccrafter: ['surface'], oredrill: ['surface', 'under'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
 
@@ -2402,6 +2408,172 @@ LEVELS.push({
   },
 });
 LEVELS.push({
+  name: 'Uranus: The Big Chill', num: 32,
+  seed: 239, n: 11, offworld: true, sky: 'uranus', sun: 0.25, wizards: true, uranus: true, traderEvery: 6, core: ['uranus1', 'the Frost Core'],
+  map: { ice: 2.5, mountains: [[1, 9, 0.6]], craters: [[3, 4], [8, 7], [6, 9]], ore: [[9, 9, 0.6]], ruins: [[9, 3]], frost: [[6, 3], [2, 6]] },
+  start: { metal: 230, energy: 60, water: 60, food: 100 },
+  planet: { temp: -197, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'oven', 'drill', 'mine', 'oredrill', 'shaft', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['oven', 5, 6], ['habitat', 5, 7], ['turbine', 6, 6], ['drill', 4, 6], ['solar', 6, 7]],
+  critters: { every: [14, 20], max: 6, speed: 0.7, after: () => S.time > 35, mix: { water: 3, basic: 2, zippy: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#cdeef0', '#a8d0d8', '#86b0bc'], ore: ['#b8a8e0', '#9488c0', '#7468a0'], ice: ['#f4fdff', '#cfeef4', '#a8d4e0'], crater: ['#5fa8c0', '#4a8ca4', '#386e86'],
+    rock: ['#e6f8fc', '#bcdce6', '#98bcc8'], ruin: ['#a8c8d0', '#88a8b4', '#6a8a98'],
+    sides: ['#86b0bc', '#6a94a2', '#4f7886', '#3a5e6c'],
+  },
+  deco: { pebble: '#ffffff', rim: '#bde6ee', pit: '#3a7f9a', pit2: '#4a90aa', cone: ['#ffffff', '#cfeef4', '#e6f8fc'] },
+  tileInfo: {
+    plain: ['Icy slush', 'Frozen slush of water, ammonia and methane. Flat and buildable, but anything built here freezes without a giant oven nearby.'],
+    ore: ['Purple ore', 'A thin streak of ore. Uranus keeps most of its metal deep underground: dig a mine shaft to find it.'],
+    ice: ['Water ice', 'Rock-hard water ice. Ice drills go here.'],
+    crater: ['Slush pool', 'A pool of icy slush. Water aliens climb out of these.'],
+    rock: ['Ice spire', 'A tall spike of ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, frozen into the ice. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 2 giant ovens', get: () => count('oven'), target: 2,
+      who: 'eng', hint: 'Uranus is the coldest planet in the solar system. Anything built away from a giant oven freezes and works at less than half speed. Two ovens!' },
+    { text: 'Dig a mine shaft', get: () => count('shaft'), target: 1,
+      who: 'kip', hint: 'There is hardly any purple ore up here. Dig a mine shaft down to the caves underneath. My scanners say they are full of ore.' },
+    { text: 'Build 2 mines underground', get: () => (S.under || []).filter(t => t.b === 'mine' || t.b === 'oredrill').length, target: 2,
+      who: 'eng', hint: 'Switch to the underground view and build two mines on the purple ore. It is warm down there, so nothing freezes.' },
+    { text: 'Build a wizard hut', get: () => count('wizhut'), target: 1,
+      who: 'cmd', hint: 'Water aliens! Taps and knights splash right through them. Only zappers and wizards can beat them. Build a wizard hut, next to an oven.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'A humming stone, frozen into the ice. Build a dig site on it. Another power core!' },
+    { text: 'Defeat 6 water aliens', get: () => S.waterBeaten || 0, target: 6,
+      who: 'eng', hint: 'Each water alien takes seventeen hits. Keep the zappers warm, or they zap slowly.' },
+  ],
+  intro: [['cmd', 'Uranus. Minus two hundred degrees. Everybody keep your gloves on.'], ['eng', 'Even our machines are shivering. Anything we build will freeze, unless it sits next to a giant oven.'], ['kip', 'That puddle just waved at me.']],
+  outro: [['cmd', 'A power core from Uranus, and the ovens are keeping everyone toasty.']],
+  brief: { eyebrow: 'Level 32 · Uranus', title: 'Uranus: The Big Chill', body: ['The mission reaches <b>Uranus</b>, the coldest planet in the solar system. Buildings <b>freeze</b> and work at 40% speed, unless they sit on or next to a <b>giant oven</b>.', 'There is hardly any metal on the surface. Dig a <b>mine shaft</b> to reach warm caves full of ore. <b>Water aliens</b> take 17 hits, and only <b>zappers and wizards</b> can beat them.'], fact: '<b>Coldest planet:</b> Uranus has the coldest air ever measured on a planet, about −224 °C. That is even colder than Neptune, which is farther from the Sun.' },
+  done: { title: 'Warming up', body: 'Ovens glowing, mines humming underground, and a power core from Uranus.', fact: '<b>Ice giant:</b> Uranus is mostly made of icy water, ammonia and methane around a small rocky core. The methane makes it look blue-green.' },
+});
+LEVELS.push({
+  name: 'Uranus: Sideways World', num: 33,
+  seed: 241, n: 12, offworld: true, sky: 'uranus', sun: 0.25, wizards: true, uranus: true, traderEvery: 6, core: ['uranus2', 'the Spin Core'],
+  map: { ice: 3, mountains: [[10, 1, 0.6], [1, 10, 0.6]], craters: [[3, 3], [8, 4], [4, 8], [9, 9]], ore: [[11, 6, 0.6]], ruins: [[10, 3]], frost: [[6, 2], [5, 9]] },
+  start: { metal: 240, energy: 70, water: 70, food: 110 },
+  planet: { temp: -197, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'oven', 'drill', 'mine', 'oredrill', 'shaft', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['oven', 6, 7], ['habitat', 6, 8], ['habitat', 7, 8], ['turbine', 7, 6], ['drill', 5, 6], ['zapper', 5, 8]],
+  critters: { every: [13, 18], max: 7, speed: 0.75, after: () => S.time > 30, mix: { water: 4, zippy: 1, basic: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#cdeef0', '#a8d0d8', '#86b0bc'], ore: ['#b8a8e0', '#9488c0', '#7468a0'], ice: ['#f4fdff', '#cfeef4', '#a8d4e0'], crater: ['#5fa8c0', '#4a8ca4', '#386e86'],
+    rock: ['#e6f8fc', '#bcdce6', '#98bcc8'], ruin: ['#a8c8d0', '#88a8b4', '#6a8a98'],
+    sides: ['#86b0bc', '#6a94a2', '#4f7886', '#3a5e6c'],
+  },
+  deco: { pebble: '#ffffff', rim: '#bde6ee', pit: '#3a7f9a', pit2: '#4a90aa', cone: ['#ffffff', '#cfeef4', '#e6f8fc'] },
+  tileInfo: {
+    plain: ['Icy slush', 'Frozen slush of water, ammonia and methane. Flat and buildable, but anything built here freezes without a giant oven nearby.'],
+    ore: ['Purple ore', 'A thin streak of ore. Uranus keeps most of its metal deep underground: dig a mine shaft to find it.'],
+    ice: ['Water ice', 'Rock-hard water ice. Ice drills go here.'],
+    crater: ['Slush pool', 'A pool of icy slush. Water aliens climb out of these.'],
+    rock: ['Ice spire', 'A tall spike of ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, frozen into the ice. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 4 giant ovens', get: () => count('oven'), target: 4,
+      who: 'eng', hint: 'Four giant ovens. Put the farms and zappers right next to them.' },
+    { text: 'Build 4 mines underground', get: () => (S.under || []).filter(t => t.b === 'mine' || t.b === 'oredrill').length, target: 4,
+      who: 'eng', hint: 'Four mines or ore drills underground. We need lots of metal for all these ovens.' },
+    { text: 'Build 3 zappers', get: () => count('zapper'), target: 3,
+      who: 'cmd', hint: 'Three zappers, all next to ovens. A frozen zapper zaps much too slowly.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'A humming stone, frozen into the ice. Build a dig site on it. Another power core!' },
+    { text: 'Defeat 10 water aliens', get: () => S.waterBeaten || 0, target: 10,
+      who: 'eng', hint: 'Ten water aliens. Wizards zap two at a time.' },
+  ],
+  intro: [['bot', 'Uranus spins on its side, like a rolling ball. Each pole gets 42 years of sunshine, then 42 years of darkness.'], ['kip', 'I have been tipped on my side before. It was not as dramatic.']],
+  outro: [['cmd', 'Two power cores from Uranus. The water aliens keep coming, though.']],
+  brief: { eyebrow: 'Level 33 · Uranus', title: 'Uranus: Sideways World', body: ['More <b>water aliens</b> pour out of the slush pools. Keep your zappers and wizard huts next to <b>giant ovens</b>, so they work at full speed.', 'Dig <b>mine shafts</b> for metal, and find the next <b>power core</b> frozen into the ice.'], fact: '<b>Knocked over:</b> Uranus is tipped over so far that it spins on its side. Scientists think something the size of Earth crashed into it long ago.' },
+  done: { title: 'Sideways and steady', body: 'Four ovens, a busy mine and another power core from Uranus.', fact: '<b>Long seasons:</b> one year on Uranus lasts 84 Earth years, so each season lasts about 21 years.' },
+});
+LEVELS.push({
+  name: 'Uranus: Diamond Rain', num: 34,
+  seed: 251, n: 12, offworld: true, sky: 'uranus', sun: 0.25, wizards: true, uranus: true, traderEvery: 6, diamonds: true, core: ['uranus3', 'the Diamond Core'],
+  map: { ice: 2.5, mountains: [[10, 10, 0.6]], craters: [[2, 4], [7, 2], [9, 7], [4, 9]], ore: [[1, 10, 0.6]], ruins: [[11, 4]], frost: [[6, 5], [3, 7]] },
+  start: { metal: 250, energy: 70, water: 70, food: 120 },
+  planet: { temp: -197, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'oven', 'drill', 'mine', 'oredrill', 'shaft', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['oven', 6, 7], ['oven', 6, 9], ['habitat', 6, 8], ['habitat', 7, 8], ['turbine', 7, 7], ['drill', 5, 7], ['wizhut', 5, 8]],
+  critters: { every: [12, 17], max: 7, speed: 0.8, after: () => S.time > 25, mix: { water: 4, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#cdeef0', '#a8d0d8', '#86b0bc'], ore: ['#b8a8e0', '#9488c0', '#7468a0'], ice: ['#f4fdff', '#cfeef4', '#a8d4e0'], crater: ['#5fa8c0', '#4a8ca4', '#386e86'],
+    rock: ['#e6f8fc', '#bcdce6', '#98bcc8'], ruin: ['#a8c8d0', '#88a8b4', '#6a8a98'],
+    sides: ['#86b0bc', '#6a94a2', '#4f7886', '#3a5e6c'],
+  },
+  deco: { pebble: '#ffffff', rim: '#bde6ee', pit: '#3a7f9a', pit2: '#4a90aa', cone: ['#ffffff', '#cfeef4', '#e6f8fc'] },
+  tileInfo: {
+    plain: ['Icy slush', 'Frozen slush of water, ammonia and methane. Flat and buildable, but anything built here freezes without a giant oven nearby.'],
+    ore: ['Purple ore', 'A thin streak of ore. Uranus keeps most of its metal deep underground: dig a mine shaft to find it.'],
+    ice: ['Water ice', 'Rock-hard water ice. Ice drills go here.'],
+    crater: ['Slush pool', 'A pool of icy slush. Water aliens climb out of these.'],
+    rock: ['Ice spire', 'A tall spike of ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, frozen into the ice. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 5 giant ovens', get: () => count('oven'), target: 5,
+      who: 'eng', hint: 'Five giant ovens. The colony is growing, and everything needs to stay warm.' },
+    { text: 'Build an ore drill underground', get: () => (S.under || []).filter(t => t.b === 'oredrill').length, target: 1,
+      who: 'eng', hint: 'An ore drill digs more metal than a mine. Dig a mine shaft, then build one underground on the purple ore.' },
+    { text: 'Build 2 wizard huts', get: () => count('wizhut'), target: 2,
+      who: 'cmd', hint: 'Two wizard huts. The water aliens are getting bolder.' },
+    { text: 'Dig up the strange stone', get: () => S.coreFound ? 1 : 0, target: 1,
+      who: 'kip', hint: 'A humming stone, frozen into the ice. Build a dig site on it. Another power core!' },
+    { text: 'Defeat 12 water aliens', get: () => S.waterBeaten || 0, target: 12,
+      who: 'eng', hint: 'Twelve water aliens. Then we will be ready for whatever is making that big splashing noise.' },
+  ],
+  intro: [['bot', 'Look up! It is raining diamonds. Deep inside Uranus, the squeeze is strong enough to turn carbon into diamonds.'], ['kip', 'I have caught three already. I am a very rich robot now.']],
+  outro: [['cmd', 'Three power cores from Uranus. And something huge is splashing about out there.']],
+  brief: { eyebrow: 'Level 34 · Uranus', title: 'Uranus: Diamond Rain', body: ['Now and then a <b>diamond</b> falls from the sky and gives you 3 crystals.', 'Build more <b>giant ovens</b>, an <b>ore drill</b> underground, and keep the <b>water aliens</b> back with zappers and wizards.'], fact: '<b>Diamond rain:</b> scientists think it really might rain diamonds deep inside Uranus and Neptune, where the pressure squeezes carbon into crystals.' },
+  done: { title: 'Shining bright', body: 'Diamonds in the bank and a third power core from Uranus.', fact: '<b>Faint rings:</b> Uranus has 13 known rings. They are thin and dark, and were only discovered in 1977.' },
+});
+LEVELS.push({
+  name: 'Uranus: The Great Wave', num: 35,
+  seed: 257, n: 12, offworld: true, sky: 'uranus', sun: 0.25, wizards: true, uranus: true, traderEvery: 6, tide: true,
+  map: { ice: 3, mountains: [[1, 1, 0.6], [10, 10, 0.6]], craters: [[3, 5], [8, 3], [6, 6], [4, 10], [10, 7]], ore: [[11, 1, 0.6]], ruins: [], frost: [[2, 8], [9, 5]] },
+  start: { metal: 280, energy: 80, water: 80, food: 140 },
+  planet: { temp: -197, press: 100, o2: 0 },
+  tools: ['solar', 'turbine', 'oven', 'drill', 'mine', 'oredrill', 'shaft', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'zapper', 'wizhut', 'church', 'graveyard', 'ccrafter', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['oven', 6, 9], ['oven', 4, 9], ['habitat', 5, 10], ['habitat', 6, 10], ['turbine', 5, 9], ['turbine', 7, 9], ['drill', 4, 8], ['wizhut', 5, 8], ['zapper', 7, 8]],
+  critters: { every: [11, 15], max: 8, speed: 0.85, after: () => S.time > 20, mix: { water: 5, zippy: 1, brute: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#cdeef0', '#a8d0d8', '#86b0bc'], ore: ['#b8a8e0', '#9488c0', '#7468a0'], ice: ['#f4fdff', '#cfeef4', '#a8d4e0'], crater: ['#5fa8c0', '#4a8ca4', '#386e86'],
+    rock: ['#e6f8fc', '#bcdce6', '#98bcc8'], ruin: ['#a8c8d0', '#88a8b4', '#6a8a98'],
+    sides: ['#86b0bc', '#6a94a2', '#4f7886', '#3a5e6c'],
+  },
+  deco: { pebble: '#ffffff', rim: '#bde6ee', pit: '#3a7f9a', pit2: '#4a90aa', cone: ['#ffffff', '#cfeef4', '#e6f8fc'] },
+  tileInfo: {
+    plain: ['Icy slush', 'Frozen slush of water, ammonia and methane. Flat and buildable, but anything built here freezes without a giant oven nearby.'],
+    ore: ['Purple ore', 'A thin streak of ore. Uranus keeps most of its metal deep underground: dig a mine shaft to find it.'],
+    ice: ['Water ice', 'Rock-hard water ice. Ice drills go here.'],
+    crater: ['Slush pool', 'A pool of icy slush. Water aliens climb out of these.'],
+    rock: ['Ice spire', 'A tall spike of ice. Nothing can be built here.'],
+    ruin: ['Strange stone', 'A carved stone, humming with energy, frozen into the ice. Build a dig site on it.'],
+  },
+  goals: [
+    { text: 'Build 6 giant ovens', get: () => count('oven'), target: 6,
+      who: 'eng', hint: 'Six giant ovens. Everything that fights has to stay warm for the big battle.' },
+    { text: 'Build 3 wizard huts', get: () => count('wizhut'), target: 3,
+      who: 'cmd', hint: 'Three wizard huts. Only zappers and wizards can hurt water aliens, and something enormous is coming.' },
+    { text: 'Build 5 mines underground', get: () => (S.under || []).filter(t => t.b === 'mine' || t.b === 'oredrill').length, target: 5,
+      who: 'eng', hint: 'Five mines or ore drills underground, so we never run out of metal for zappers.' },
+    { text: 'Defeat 12 water aliens', get: () => S.waterBeaten || 0, target: 12,
+      who: 'eng', hint: 'Twelve water aliens. Then whatever is making those waves will come out.' },
+    { text: 'Defeat the Great Wave', get: () => S.tideDefeated ? 1 : 0, target: 1, flag: true, tide: true,
+      who: 'kip', hint: 'The Great Wave! Only zappers and wizards can hurt it, and every big hit splashes off a new water alien. Keep everything warm!' },
+  ],
+  intro: [['cmd', 'Back on Uranus. The slush pools are bubbling, and the ground keeps shaking.'], ['kip', 'My sensors say something very large and very wet is coming. I have put on my raincoat.']],
+  outro: [['cmd', 'Four power cores from Uranus, and the Water Folk have joined the mission to free Earth.'], ['kip', 'A little water alien is following me around. I have named it Drip.']],
+  brief: { eyebrow: 'Level 35 · Uranus', title: 'Uranus: The Great Wave', body: ['Build up the colony, with plenty of <b>giant ovens</b>, <b>zappers</b> and <b>wizard huts</b>.', 'Then the <b>Great Wave</b> rises out of the slush: a giant water alien that only zappers and wizards can hurt. Every big hit <b>splashes off a new water alien</b>. Beat it for a power core and new allies.'], fact: '<b>Moons named after plays:</b> Uranus has 28 known moons, and most are named after characters from Shakespeare plays, like Miranda, Titania and Puck.' },
+  done: { title: 'The Great Wave is beaten', body: 'The Great Wave has calmed down, and the Water Folk of Uranus have joined the mission to free Earth.', fact: '<b>Only one visit:</b> just one spacecraft, Voyager 2, has ever flown past Uranus. It went by in 1986 and took the first close-up pictures.' },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2509,7 +2681,7 @@ function newState(li) {
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, v11: true, time: 0, won: false,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, v11: true, v12: true, time: 0, won: false,
     metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
@@ -2543,6 +2715,29 @@ function initStars() {
 }
 
 // ---------------------------------------------------------------- simulation
+// Uranus: every surface tile next to a giant oven (or under one) is warm; buildings anywhere else freeze
+const FROZEN = 0.4;
+function warmUp() {
+  const ovens = S.tiles.filter(t => t.b === 'oven');
+  for (const t of S.tiles) {
+    t.warm = ovens.some(o => Math.max(Math.abs(o.gx - t.gx), Math.abs(o.gy - t.gy)) <= 1);
+    const was = t.frozen;
+    t.frozen = !!t.b && !t.warm;
+    if (t.frozen && !was && t.b && t.born > RT - 1) say('eng', 'Brr! That building is too far from a giant oven, so it froze. Frozen buildings work at less than half speed. Build an oven next to it.', 'frozen1');
+  }
+}
+// Uranus: diamonds rain from the sky now and then
+function updateDiamonds(dt) {
+  S.diaT = (S.diaT ?? 25) - dt;
+  if (S.diaT > 0) return;
+  S.diaT = 30 + Math.random() * 20;
+  const t = S.tiles[Math.floor(Math.random() * S.tiles.length)], c = center(t);
+  burst(c.x, c.y - 10, 18, ['#ffffff', '#bdf3ff', '#7ff7ff'], 1.2);
+  fx.push({ kind: 'text', x: c.x, y: c.y - 30, text: '💎 +3', life: 1.4, max: 1.4, color: '#bdf3ff' });
+  S.crystals += 3; dirty = true; sfx('chime');
+  toast('A diamond fell from the sky! +3 crystals', 'good');
+  say('bot', 'It is raining diamonds! Deep inside Uranus, the squeeze is so strong it can turn carbon into diamonds.', 'diamond1');
+}
 function tick(dt) {
   S.time += dt;
   const L = LEVELS[S.level], bonus = S.bonus;
@@ -2552,12 +2747,13 @@ function tick(dt) {
   const skySun = (S.night ? 0.4 : 1) * 1.6;
   let prod = 0, cons = 0;
   const tiles = ALL();
+  if (L.uranus) warmUp();
   for (const t of tiles) {
     if (t.off > 0) t.off = Math.max(0, t.off - dt);
     if (!t.b || t.off > 0) continue;
-    const e = B[t.b].energy || 0;
-    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1) * (PERK === 'flower' ? 1.5 : 1);
-    else if (e > 0) prod += e; else cons -= e;
+    const e = B[t.b].energy || 0, fz = t.frozen ? FROZEN : 1;
+    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1) * (PERK === 'flower' ? 1.5 : 1) * fz;
+    else if (e > 0) prod += e * fz; else cons -= e;
   }
   updateWater();
   const avail = S.energy + prod * dt, need = cons * dt;
@@ -2571,7 +2767,7 @@ function tick(dt) {
   const cropBoost = hasTech('crops') ? 1.5 : 1;
   for (const t of tiles) {
     if (!t.b || t.off > 0) continue;
-    const d = B[t.b];
+    const d = B[t.b], eff = S.eff * (t.frozen ? FROZEN : 1); // frozen buildings on Uranus work slowly
     if (d.out) {
       const farm = FARMS.includes(t.b) ? (t.wet ? 2 : 1) * cropBoost : 1;
       metal += (d.out.metal || 0) * eff * work * (bonus.metal || 1) * (t.b === 'mine' && PERK === 'gloop' ? 1.5 : 1);
@@ -2658,9 +2854,11 @@ function tick(dt) {
   if (L.storm) maybeStorm(L);
   if (L.golem) maybeGolem(L);
   if (L.shadowKing) maybeShadowKing(L);
+  if (L.tide) maybeTide(L);
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
+  if (L.diamonds) updateDiamonds(dt);
   if (L.traders) updateTrader(dt);
   if (S.vellT > 0) S.vellT -= dt;
 
@@ -2870,17 +3068,27 @@ function makeUnder() {
   const put = (type, k, extra = {}) => { for (let i = 0; i < k; i++) { const f = floor(); if (!f.length) return; Object.assign(f[Math.floor(r() * f.length)], { type }, extra); } };
   put('crystal', Math.max(4, Math.floor(floor().length * 0.08)));
   put('magma', 3);
-  const far = LEVELS[S.level].titan ? [] : floor().sort((a, b) => Math.hypot(b.gx - n / 2, b.gy - n / 2) - Math.hypot(a.gx - n / 2, a.gy - n / 2)).slice(0, 2);
+  if (LEVELS[S.level].uranus) put('ore', Math.max(8, Math.floor(floor().length * 0.16))); // Uranus keeps its metal underground
+  const far = LEVELS[S.level].titan || LEVELS[S.level].uranus ? [] : floor().sort((a, b) => Math.hypot(b.gx - n / 2, b.gy - n / 2) - Math.hypot(a.gx - n / 2, a.gy - n / 2)).slice(0, 2);
   for (const t of far) { t.type = 'nest'; t.nhp = 14; }
   S.under = g;
 }
-function openTunnel(t) {
+function openTunnel(t, kind = 'tunnel') {
   const first = !S.under;
   if (first) makeUnder();
   const n = S.n || N, at = (x, y) => S.under[clamp(y, 0, n - 1) * n + clamp(x, 0, n - 1)];
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const u = at(t.gx + dx, t.gy + dy); if (u.type === 'wall') { u.type = 'cave'; u.h = 1; } }
   const u = at(t.gx, t.gy); u.type = 'cave'; u.h = 1; u.b = null; u.shaft = true;
+  if (kind === 'shaft') { // always some ore right next to a new mine shaft
+    const near = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dy]) => at(t.gx + dx, t.gy + dy)).filter(o => o !== u && !o.b);
+    if (near.length && !near.some(o => o.type === 'ore')) near[0].type = 'ore';
+  }
   updateLayerTabs();
+  if (kind === 'shaft') {
+    if (first) say('kip', 'The mine shaft broke through into warm caves, full of purple ore! Switch to the underground view and build mines down there. It is not even cold.', 'shaft1');
+    else say('eng', 'Another mine shaft dug. More ore down there for the mines.', 'shaft2');
+    return;
+  }
   if (first) say('kip', 'The tunnel broke through into caves under Titan! Switch to the underground view. Build zappers next to the tunnel, so anything hiding in it gets zapped.', 'tunnel1');
   else say('eng', 'Another tunnel open. Anything hiding in it can be hit from underground.', 'tunnel2');
 }
@@ -3281,17 +3489,21 @@ const WORLDS = {
   saturn3: { level: 27, name: 'Saturn: The Hexagon', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn2', blurb: 'A giant six-sided storm spins at the north pole.' },
   saturn4: { level: 28, name: 'Saturn: Ring Shadow', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn3', blurb: 'In the shadow of the rings, the tree aliens grow thick.' },
   saturn5: { level: 29, name: 'Saturn’s Rings', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn4', blurb: 'Out on the icy rings, where the Elder Tree grows.' },
+  uranus:  { level: 33, name: 'Uranus', icon: 'uranus', sys: 'uranus', body: 'uranus', fuel: 300, needs: ['engines', 'shield'], after: 'titan2', blurb: 'The coldest planet of all, spinning on its side. Bring giant ovens, and beware the water aliens.' },
+  uranus2: { level: 34, name: 'Uranus: Sideways World', icon: 'uranus', sys: 'uranus', body: 'uranus', fuel: 300, needs: ['engines', 'shield'], after: 'uranus', blurb: 'A world tipped on its side, with 42 years of daylight, then 42 years of night.' },
+  uranus3: { level: 35, name: 'Uranus: Diamond Rain', icon: 'uranus', sys: 'uranus', body: 'uranus', fuel: 300, needs: ['engines', 'shield'], after: 'uranus2', blurb: 'Diamonds fall from the sky here. Really!' },
+  uranus4: { level: 36, name: 'Uranus: The Great Wave', icon: 'uranus', sys: 'uranus', body: 'uranus', fuel: 300, needs: ['engines', 'shield'], after: 'uranus3', blurb: 'The biggest water alien of all is rising out of the slush.' },
   blackhole: { get level() { return LEVELS.findIndex(L => L.voidLevel); }, name: 'The Black Hole', icon: 'blackhole', sys: 'blackhole', fuel: 300, needs: ['engines', 'shield'], after: 'titan2', blurb: 'Bonus level: a black hole has opened past Saturn. Nobody knows where it leads.' },
   titan:   { level: 30, name: 'Titan', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'saturn5', blurb: 'Saturn’s biggest moon: thick orange air, methane rain, and rock monsters.' },
   titan2:  { level: 31, name: 'Titan: The Rock Giant', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'titan', blurb: 'Something huge is rumbling under Titan’s ice.' },
   chief:  { level: 11, name: 'The Five-Head Chief', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'moon', blurb: 'Back to the Moon, where the boss of the five-headed aliens is coming.' },
 };
-const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter', saturnclouds: 'Saturn', titan: 'Titan' };
+const BODY_NAME = { europa: 'Europa', luna: 'the Moon', venus: 'Venus', mercury: 'Mercury', jupiterclouds: 'Jupiter', saturnclouds: 'Saturn', titan: 'Titan', uranus: 'Uranus' };
 const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2', 32: 'blackhole' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2', 32: 'blackhole', 33: 'uranus', 34: 'uranus2', 35: 'uranus3', 36: 'uranus4' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -3505,7 +3717,7 @@ function updateBoss(dt) {
     }
     return;
   }
-  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'shadow') { kingStep(b, dt); return; }
+  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'shadow' || b.kind === 'tide') { kingStep(b, dt); return; }
   let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
   if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
@@ -3537,7 +3749,7 @@ function hurtBoss(dmg, knight = false) {
   dmg *= dmgMul();
   if (S.tiles.some(t => t.b === 'graveyard')) dmg *= 1.1; // the graveyard makes bosses 10% easier
   if ((b.kind === 'king' || b.kind === 'elder') && !knight) return;
-  if (b.kind === 'golem' && knight) return;
+  if ((b.kind === 'golem' || b.kind === 'tide') && knight) return;
   if (b.kind === 'chief') { chiefHit(b, dmg); return; }
   if (b.kind === 'robot') { robotHit(b, dmg); return; }
   if (b.kind === 'storm') {
@@ -3554,11 +3766,21 @@ function hurtBoss(dmg, knight = false) {
   if (b.kind === 'lizard' && b.flying && knight) return;
   b.hp -= dmg; b.hit = 0.2;
   const w = bossWorld();
+  if (b.kind === 'tide') { // every 40 damage, a water alien splits off
+    b.split = (b.split || 0) + dmg;
+    if (b.split >= 40 && b.hp > 0) {
+      b.split -= 40;
+      if (crits.filter(c => c.state !== 'bonked').length < 10) spawnCritter('water', tileAt(clamp(Math.floor(b.x), 0, S.n - 1), clamp(Math.floor(b.y), 0, S.n - 1)));
+      fx.push({ kind: 'text', x: w.x, y: w.y - 110, text: 'Split!', life: 1, max: 1, color: '#bdf3ff' });
+      say('kip', 'A piece of the Great Wave splashed off and became a new water alien! Keep the zappers going!', 'tide-split');
+    }
+  }
   fx.push({ kind: 'text', x: w.x + (Math.random() - 0.5) * 30, y: w.y - 70 * QS, text: '-' + dmg, life: 0.8, max: 0.8, color: dmg > 1 ? '#7ff7ff' : '#ffffff' });
   if (b.hp <= b.maxhp / 2 && !b.enraged && !b.burrowed) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
     if (b.kind === 'lizard') { toast('The Lizard King dived into the lava!', 'bad'); say('kip', 'He dived into the lava! He will climb out somewhere else.', 'lk-burrow'); }
+    else if (b.kind === 'tide') { toast('The Great Wave sank into a puddle!', 'bad'); say('kip', 'It drained away into the ground! It will splash up somewhere else.', 'tide-burrow'); }
     else if (b.kind === 'shadow') { toast('The Shadow King melted into the darkness!', 'bad'); say('kip', 'It melted into the shadows! It will come out somewhere else, and it looks angry.', 'sk-burrow'); }
     else if (b.kind === 'elder') { toast('The Elder Tree sank its roots into the ice!', 'bad'); say('kip', 'It pulled itself down into the ice by its roots! It will grow back up somewhere else.', 'elder-burrow'); }
     else if (b.kind === 'king') { toast('The King smashed down through the ice!', 'bad'); say('kip', 'He dived under the ice! He will burst out somewhere else, and now he is really cross.', 'king-burrow'); }
@@ -3567,7 +3789,7 @@ function hurtBoss(dmg, knight = false) {
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else if (b.kind === 'shadow') { S.shadowKingDefeated = true; S.voidCrystal = { x: b.x, y: b.y, t: 0 }; } else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else if (b.kind === 'tide') { S.tideDefeated = true; foundGold(); } else if (b.kind === 'shadow') { S.shadowKingDefeated = true; S.voidCrystal = { x: b.x, y: b.y, t: 0 }; } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
@@ -3578,6 +3800,11 @@ function hurtBoss(dmg, knight = false) {
       say('kip', 'The Lizard King is beaten! And look, the lizard people are not running away. They are bowing.', 'lkdown');
       say('cmd', 'He was forcing them to fight. Now they are free, and they want to help us free Earth.', 'lkally');
       gainCore('venus4', 'the Lizard King’s Crown Core'); gainAlly('lizards', 'the Lizard People of Venus');
+    } else if (b.kind === 'tide') {
+      toast('The Great Wave is beaten! +25 crystals', 'good');
+      say('kip', 'The Great Wave splashed down into a calm little pond. And the water aliens are bobbing up to say hello!', 'tidedown');
+      say('cmd', 'They only fought because the Great Wave made them. Now the Water Folk of Uranus want to help us free Earth.', 'tideally');
+      gainCore('uranus4', 'the Tide Core'); gainAlly('water', 'the Water Folk of Uranus');
     } else if (b.kind === 'shadow') {
       toast('The Shadow King vanished, and dropped the escape crystal! +25 crystals', 'good');
       say('kip', 'The Shadow King is gone, and the escape crystal fell out! Tap it to pick it up!', 'skdown');
@@ -3638,6 +3865,14 @@ function bossAt(mx, my) {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 55 * k) * sc;
     if (Math.abs(mx - bx) < 32 * k * sc && Math.abs(my - by) < 55 * k * sc) { hurtBoss(1); sfx('clang'); say('eng', 'Aim for the glowing head! That is where it really counts.', 'chief-aim'); return true; }
     return false;
+  }
+  if (b.kind === 'tide') {
+    const k = QS * 2.6, bx = view.x + w.x * sc, by = view.y + (w.y - 12 * k) * sc;
+    if (Math.abs(mx - bx) > 10 * k * sc || Math.abs(my - by) > 13 * k * sc) return false;
+    burst(w.x, w.y - 12 * k, 10, ['#bdf3ff', '#5cc8ff', '#ffffff']); sfx('pop');
+    fx.push({ kind: 'text', x: w.x, y: w.y - 90, text: 'Splash!', life: 0.8, max: 0.8, color: '#bdf3ff' });
+    say('eng', 'Taps splash right through the Great Wave! Only zappers and wizards can hurt it.', 'tide-tap');
+    return true;
   }
   if (b.kind === 'shadow') {
     const k = QS * 2.6, bx = view.x + w.x * sc, by = view.y + (w.y - 13 * k) * sc;
@@ -3716,6 +3951,22 @@ function drawBoss(g) {
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
       g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center';
       g.fillText('LIZARD KING' + (b.flying ? ' · FLYING' : ''), w.x, top - 6);
+    }
+    return;
+  }
+  if (b.kind === 'tide') {
+    const kk = k * 2.6;
+    g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+    ell(g, 0, 2, 10 * kk, 3.6 * kk, 'rgba(20,60,110,0.35)');
+    if (b.hit > 0) g.translate((Math.random() - 0.5) * 3, 0);
+    g.scale(kk * (b.face || 1), kk);
+    drawWaterBody(g, b.enraged ? '#3f8fd8' : '#5cc8ff', b.t, b.hit > 0, b.enraged, true);
+    g.restore();
+    if (b.state !== 'dead') {
+      const top = w.y - 30 * kk;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#5cc8ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE GREAT WAVE', w.x, top - 6);
     }
     return;
   }
@@ -3822,6 +4073,19 @@ function maybeElder(L) {
   if (!L.elder || S.boss || S.elderDefeated) return;
   const ci = L.goals.findIndex(g => g.elder);
   if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnElder();
+}
+function maybeTide(L) {
+  if (!L.tide || S.boss || S.tideDefeated) return;
+  const ti = L.goals.findIndex(g => g.tide);
+  if (L.goals.every((g, i) => i >= ti || S.goalsDone[i])) spawnTide();
+}
+function spawnTide() {
+  const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'tide', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 420, maxhp: 420, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 12, atk: 2, enraged: false, hs: crater.h };
+  shake = RM ? 0 : 14; sfx('boom'); sfx('roar');
+  toast('THE GREAT WAVE has risen out of the slush!', 'bad');
+  say('kip', 'That is the Great Wave, the biggest water alien of all! Only zappers and wizards can hurt it.', 'tide1');
+  say('eng', 'Every time it gets hit hard, a piece splashes off and becomes a new water alien. Keep the ovens burning and the zappers zapping!', 'tide2');
 }
 function maybeShadowKing(L) {
   if (!L.shadowKing || S.boss || S.shadowKingDefeated) return;
@@ -3962,7 +4226,7 @@ function spawnKing() {
 function kingStep(b, dt) {
   b.spawnT -= dt;
   if (b.spawnT <= 0) {
-    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'shadow' ? 'shadow' : b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
+    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'tide' ? 'water' : b.kind === 'shadow' ? 'shadow' : b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
     b.spawnT = b.enraged ? 9 : 13;
   }
   b.slam = Math.max(0, (b.slam || 0) - dt);
@@ -3992,7 +4256,7 @@ function kingStep(b, dt) {
     b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4);
     b.chew = (b.chew || 0) + dt * (near.length ? 0.5 : 1);
     if (b.chew > 12) {
-      toast(`${b.kind === 'shadow' ? 'The Shadow King' : b.kind === 'elder' ? 'The Elder Tree' : 'The Shell-beast King'} flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      toast(`${b.kind === 'tide' ? 'The Great Wave' : b.kind === 'shadow' ? 'The Shadow King' : b.kind === 'elder' ? 'The Elder Tree' : 'The Shell-beast King'} flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
       const w = center(tgt); burst(w.x, w.y - 10, 26, ['#b8afd8', '#ffd166', '#ffffff'], 1.4);
       tgt.b = null; b.chew = 0; sfx('boom'); shake = RM ? 0 : 10;
     }
@@ -4674,7 +4938,7 @@ function arcadeRender() {
   // Mars falling away below
   const mr = Math.max(80, Math.min(W, H) * (0.9 - Math.min(A.t, 30) / 45));
   const by_ = H + mr * 0.55 + A.t * 6;
-  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else if (A.cfg.from === 'saturn') drawJupiter(g, W / 2, by_, mr); else drawBigMars(g, W / 2, by_, mr);
+  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else if (A.cfg.from === 'saturn') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'uranus') drawUranus(g, W / 2, by_, mr); else drawBigMars(g, W / 2, by_, mr);
   const toSys = WORLDS[A.cfg.to].sys, grow = Math.min(70, (A.t - A.len * 0.5) * 4);
   if (A.cfg.from !== toSys && A.t > A.len * 0.5) (toSys === 'jupiter' ? drawJupiter : toSys === 'earth' ? drawEarth : toSys === 'venus' ? drawVenus : toSys === 'mercury' ? drawMercury : drawBigMars)(g, W * 0.75, 90, grow);
   const sx = shake ? (Math.random() - 0.5) * shake : 0;
@@ -4757,6 +5021,14 @@ addEventListener('keydown', e => { if (A) { A.keys[e.key] = true; if (e.key.star
 addEventListener('keyup', e => { if (A) A.keys[e.key] = false; });
 
 // ---------------------------------------------------------------- where next?
+function drawUranus(g, x, y, r) {
+  const ug = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+  ug.addColorStop(0, '#c8f4f4'); ug.addColorStop(1, '#5fb8c8');
+  g.fillStyle = ug; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  g.save(); g.translate(x, y); g.rotate(1.4);
+  g.strokeStyle = 'rgba(230,250,255,0.8)'; g.lineWidth = Math.max(1.5, r * 0.07); g.beginPath(); g.ellipse(0, 0, r * 1.5, r * 0.3, 0, 0, Math.PI * 2); g.stroke();
+  g.restore();
+}
 function planetIcon(cnv, kind) {
   const g = cnv.getContext('2d'); g.scale(2, 2);
   const x = 36, y = 36, r = 26;
@@ -4765,6 +5037,8 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'uranus') {
+    drawUranus(g, x, y, r);
   } else if (kind === 'blackhole') {
     g.save(); g.translate(x, y); g.rotate(-0.25);
     for (const [rr, c, w] of [[1.7, 'rgba(255,170,80,0.8)', 4], [1.45, 'rgba(255,220,150,0.8)', 2.5], [1.25, 'rgba(200,120,255,0.6)', 2]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, r * rr, r * rr * 0.28, 0, 0, Math.PI * 2); g.stroke(); }
@@ -4849,6 +5123,8 @@ const KINDS = {
   rock:     { hp: 15, spd: 0.55, size: 1.6, steal: 1.4, rock: true, noKnight: true },
   // the black aliens of the unknown planet: five hits, and a beaten one vanishes into thin air
   shadow:   { hp: 5, spd: 0.9, size: 1.4, steal: 1.3, shadow: true },
+  // Uranus's water aliens: seventeen hits; taps and knights splash right through, only zappers and wizards work
+  water:    { hp: 17, spd: 0.6, size: 1.6, steal: 1.4, water: true, noKnight: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -4856,6 +5132,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  water: ['eng', 'Water aliens! Taps and knights just splash right through them. Only zappers and wizards can beat them, and they take seventeen hits.'],
   shadow: ['kip', 'A black alien! It takes five hits. Taps, zappers, wizards and knights all work on it.'],
   rock: ['eng', 'Rock monsters! They take fifteen hits. Zappers, wizards and taps can crack them. When they get hurt, they dive into holes to hide.'],
   tree: ['eng', 'Tree aliens! Their bark is so thick that zaps and taps bounce off. Only knights and police can chop them down.'],
@@ -4888,7 +5165,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -5069,7 +5346,7 @@ function updateCritters(dt) {
   // zappers
   for (const t of S.tiles) {
     if ((t.b !== 'zapper' && t.b !== 'tesla') || t.off > 0) continue;
-    t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1);
+    t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1) * (t.frozen ? FROZEN : 1);
     if (t.cd > 0) continue;
     const tesla = t.b === 'tesla', arc = hasTech('arc');
     const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = tesla ? 3 : PERK === 'tesla' ? 2 : 1;
@@ -5108,9 +5385,9 @@ function updateCritters(dt) {
     t.cd = (t.cd || 0) - dt * S.eff;
     if (t.cd > 0) continue;
     const near = (x, y) => Math.hypot(x - (t.gx + 0.5), y - (t.gy + 0.5)) <= 4.2;
-    let target = crits.find(c => c.state !== 'bonked' && !zapProof(c) && near(c.x, c.y));
+    let target = crits.find(c => c.state !== 'bonked' && !zapProof(c) && !KINDS[c.kind || 'basic'].water && near(c.x, c.y));
     let nest = !target && S.tiles.find(o => o.type === 'nest' && near(o.gx + 0.5, o.gy + 0.5));
-    let boss = !target && !nest && S.boss && S.boss.kind !== 'king' && !(S.boss.kind === 'lizard' && !S.boss.flying) && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
+    let boss = !target && !nest && S.boss && S.boss.kind !== 'king' && S.boss.kind !== 'tide' && !(S.boss.kind === 'lizard' && !S.boss.flying) && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
     if (!target && !nest && !boss) continue;
     const a = center(t);
     const to = target ? (() => { const w = critWorld(target); return [w.x, w.y - 8]; })() : nest ? (() => { const c = center(nest); return [c.x, c.y - 4]; })() : [bossWorld().x, bossWorld().y - 30];
@@ -5122,9 +5399,18 @@ function updateCritters(dt) {
 }
 const dmgMul = () => S && S.tiles.some(t => t.b === 'church') ? 2 : 1;
 const zapProof = c => { const K = KINDS[c.kind || 'basic']; return K.immune || (K.lizard && !(c.fly > 0)); };
-function bonk(c, zapped = false, dmg = 1, knight = false) {
+function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
   if (c.state === 'bonked') return;
   if (knight && KINDS[c.kind || 'basic'].noKnight) return;
+  if (KINDS[c.kind || 'basic'].water && src !== 'wizard' && !(zapped && src !== 'drone')) { // taps splash right through
+    c.hit = 0.2;
+    const p = critWorld(c);
+    burst(p.x, p.y - 12, 8, ['#bdf3ff', '#5cc8ff', '#ffffff']);
+    fx.push({ kind: 'text', x: p.x, y: p.y - 30, text: 'Splash!', life: 0.8, max: 0.8, color: '#bdf3ff' });
+    sfx('pop');
+    say('eng', 'Taps just splash right through water aliens! Only zappers and wizards can beat them.', 'water-tap');
+    return;
+  }
   if (KINDS[c.kind || 'basic'].lizard) {
     if (knight && c.fly > 0) return; // knights can't reach a lizard in the air
     if (zapped && !(c.fly > 0)) {      // zaps bounce off their scales on the ground
@@ -5169,7 +5455,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false) {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].shadow) {
+  if (KINDS[c.kind || 'basic'].water) {
+    S.waterBeaten = (S.waterBeaten || 0) + 1; S.water += 5;
+    say('kip', 'Splosh! The water alien turned into a big puddle. Free water for us!', 'water-down');
+    S.crystals += 2;
+  } else if (KINDS[c.kind || 'basic'].shadow) {
     S.shadowsBeaten = (S.shadowsBeaten || 0) + 1;
     say('kip', 'Poof! It vanished into thin air. That one is gone for good.', 'shadow-down');
   } else if (KINDS[c.kind || 'basic'].rock) {
@@ -5391,7 +5681,7 @@ function place(name, t) {
   }
   t.b = name; t.born = RT;
   if (name === 'field') t.fhp = FIELD_HP;
-  if (name === 'tunnel') openTunnel(t);
+  if (name === 'tunnel' || name === 'shaft') openTunnel(t, name);
   if (name === 'tower' || FARMS.includes(name) || name === 'pipe') updateWater();
   fx.push({ kind: 'ring', x: c.x, y: c.y, r: 6, life: 0.6, max: 0.6, color: '#ffffff' });
   burst(c.x, c.y, 8, ['#ffd7b8', '#ffffff']);
@@ -5565,6 +5855,7 @@ function drawTile(g, t) {
   if (t.h === 2 && t.type !== 'ice') top = shade(top, 0.07);
   if (t.type === 'plain' || t.type === 'ore' || t.type === 'rock' || t.type === 'crater') top = shade(top, (t.v - 0.5) * 0.08);
   if (t.lichen > 0) top = mix(top, '#4cb878', t.lichen * 0.8);
+  if (t.warm && !t.layer && LEVELS[S.level].uranus) top = mix(top, '#ffb070', 0.28);
   const N_ = [c.x, c.y - 16], E = [c.x + 32, c.y], S_ = [c.x, c.y + 16], W = [c.x - 32, c.y];
   const left = t.type === 'ice' || t.type === 'wall' ? pal[1] : sides[0], right = t.type === 'ice' || t.type === 'wall' ? pal[2] : sides[1];
   if (sky) { // floating island: earthy sides that taper to a point underneath
@@ -6077,6 +6368,28 @@ const DRAW = {
     ell(g, 0, -37, 8, 8, `rgba(155,227,255,${a * 0.35})`);
     ell(g, 0, -37, 4.5, 4.5, '#bff4ff');
   },
+  oven(g, T, v) {
+    shadow(g, 20, 9);
+    isoBox(g, 0, 4, 16, 8, 6, '#b8644a', '#94503c', '#7a4030');
+    g.fillStyle = '#c4704f'; g.beginPath(); g.ellipse(0, -4, 15, 15, 0, Math.PI, 0); g.fill();
+    g.strokeStyle = '#94503c'; g.lineWidth = 1;
+    for (const y of [-8, -13]) { g.beginPath(); g.ellipse(0, -4, 15, Math.abs(y + 4) + 2, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    const fl = 0.75 + 0.25 * Math.sin(T * 9 + v * 6);
+    g.fillStyle = '#3a1a10'; g.beginPath(); g.ellipse(3, -2, 6, 6, 0, Math.PI, 0); g.fill();
+    ell(g, 3, -3.5, 4.4 * fl, 3.4 * fl, '#ff9a3c'); ell(g, 3, -3, 2.6 * fl, 2 * fl, '#ffe066');
+    isoBox(g, -8, -14, 2.6, 1.6, 9, '#7a4030', '#5e3024', '#4a261c');
+    for (let i = 0; i < 3; i++) { const k = ((T * 0.5 + i / 3 + v) % 1); ell(g, -8 + Math.sin(k * 6 + i) * 2, -26 - k * 18, 2.5 + k * 3, 2 + k * 2.5, `rgba(240,240,240,${0.5 * (1 - k)})`); }
+  },
+  shaft(g, T, v) {
+    shadow(g, 16, 7);
+    ell(g, 0, 2, 12, 6, '#1a1428');
+    g.strokeStyle = '#8a7a5a'; g.lineWidth = 2.4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-11, 2); g.lineTo(-3, -30); g.lineTo(5, 2); g.moveTo(-3, -30); g.lineTo(11, 2); g.moveTo(-8, -10); g.lineTo(6, -10); g.stroke();
+    const sp = T * 2 + v * 5;
+    g.strokeStyle = '#c9cee8'; g.lineWidth = 1.4; g.beginPath(); g.arc(-3, -30, 4, sp, sp + Math.PI * 1.6); g.stroke();
+    g.strokeStyle = '#9298bf'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-3, -26); g.lineTo(-3, -4 - Math.sin(T * 1.5 + v) * 4); g.stroke();
+    isoBox(g, -3, -2 - Math.sin(T * 1.5 + v) * 4, 3, 2, 3, '#f6c453', '#c99a30', '#a07a20');
+  },
   tunnel(g, T, v) {
     ell(g, 0, 2, 19, 8.5, '#2a1a10');
     isoBox(g, -13, 0, 3.5, 2, 18, '#9a8670', '#7a6a58', '#5e5044'); isoBox(g, 13, 0, 3.5, 2, 18, '#9a8670', '#7a6a58', '#5e5044');
@@ -6361,6 +6674,12 @@ function drawBuildingOn(g, t) {
   g.save(); g.scale(k, k);
   if ((S.eff < 0.5 && (B[t.b].energy || 0) < 0) || (t.off > 0 && Math.sin(RT * 18) > 0)) g.globalAlpha = 0.6;
   DRAW[t.b](g, RT, t.v, t);
+  if (t.frozen) { // frost and icicles on a frozen building
+    ell(g, 0, -10, 20, 12, 'rgba(210,240,255,0.35)');
+    g.fillStyle = 'rgba(235,250,255,0.9)';
+    for (const x of [-12, -6, 0, 6, 12]) poly(g, [[x - 2, -4], [x + 2, -4], [x, 3 + Math.abs(x) % 5]]);
+    g.fillStyle = '#ffffff'; g.font = '700 12px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('❄', 16, -26);
+  }
   g.restore();
   if (t.b === 'habitat') drawColonists(g, t, true);
   if (t.wet && (FARMS.includes(t.b) || t.b === 'lemonade')) {
@@ -6399,7 +6718,7 @@ const LIGHTS = {
   clinic: [[0, -27, 14, '#ff6b81'], [-9, -4, 9, '#9fd8ff']],
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
-  zapper: [[0, -37, 16, '#9be3ff']],
+  zapper: [[0, -37, 16, '#9be3ff']], oven: [[3, -3, 18, '#ff9a3c']], shaft: [[-3, -30, 6, '#ffd166']],
   condenser: [[0, -9, 10, '#5cc8ff']], oredrill: [[0, -36, 8, '#c9a7ff']], ccrafter: [[0, -18, 14, '#c9a7ff']], police: [[-6, -30, 8, '#ff6b81'], [6, -30, 8, '#5cc8ff']], graveyard: [[8, -22, 10, '#b8f0ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
   lemonade: [[0, -26, 10, '#ffe066']], lemon: [[0, -14, 12, '#fff3a0']],
   castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
@@ -6537,6 +6856,41 @@ function drawRockBody(g, col, step, hit, bonked, angry) {
   g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); g.moveTo(1, -8); g.lineTo(6.5, -8.3); g.stroke();
 }
 // a black alien: a dark wispy body with a faint purple glow and bright eyes
+// a water alien: a wobbly, see-through droplet with bubbles inside
+function drawWaterBody(g, col, t, hit, angry, crown) {
+  const w = Math.sin(t * 5) * 1.2, body = hit ? '#ffffff' : col;
+  g.save(); g.globalAlpha *= 0.82;
+  g.fillStyle = body;
+  g.beginPath(); g.moveTo(0, -24 + w * 0.5);
+  g.bezierCurveTo(7 + w, -16, 10, -6, 8 + w, -1);
+  g.quadraticCurveTo(4, 1.5 + w, 0, -0.5); g.quadraticCurveTo(-4, 1.5 - w, -8 - w, -1);
+  g.bezierCurveTo(-10, -6, -7 - w, -16, 0, -24 + w * 0.5); g.fill();
+  g.restore();
+  ell(g, -3, -15, 2.4, 4, 'rgba(255,255,255,0.45)');
+  for (const [x, y, r] of [[3, -6, 1.2], [-2, -4, 0.8], [5, -12, 0.9]]) ell(g, x, y - ((t * 6 + x) % 6), r, r, 'rgba(255,255,255,0.6)');
+  const eye = angry ? '#ff6b81' : '#0e2a4a';
+  ell(g, 1.5, -14, 1.6, 2, '#ffffff'); ell(g, 5, -13.5, 1.4, 1.8, '#ffffff');
+  ell(g, 2, -13.6, 0.8, 1, eye); ell(g, 5.3, -13.1, 0.7, 0.9, eye);
+  if (crown) { g.fillStyle = '#e6feff'; for (const [x, y] of [[-3, -25], [0, -26.5], [3, -25]]) poly(g, [[x - 1.1, y + 1.5], [x, y - 2.5], [x + 1.1, y + 1.5]]); }
+}
+function drawWater(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  if (c.state === 'bonked') { // a splash, then a puddle
+    ell(g, 0, 1, (6 + c.t * 10) * k, (2.4 + c.t * 4) * k, 'rgba(92,200,255,0.45)');
+    for (let i = 0; i < 6; i++) { const a = i * 1.05; ell(g, Math.cos(a) * c.t * 22, -4 - Math.sin(c.t * 4) * 10 + Math.sin(a) * 3, 1.5, 1.5, '#bdf3ff'); }
+    g.restore(); return;
+  }
+  ell(g, 0, 1, 8 * k, 3 * k, 'rgba(20,60,110,0.3)');
+  if (c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -30 * k, w, 4);
+    g.fillStyle = '#5cc8ff'; g.fillRect(-w / 2 + 1, -30 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  drawWaterBody(g, c.col, c.t + c.seed, c.hit > 0, false, false);
+  g.restore();
+}
 function drawShadowBody(g, step, hit, crystal, angry) {
   const body = hit ? '#ffffff' : '#120e1c', glow = angry ? 'rgba(255,120,160,0.6)' : 'rgba(180,140,255,0.55)';
   ell(g, 0, -9, 9, 10, 'rgba(120,80,200,0.12)');
@@ -6777,7 +7131,7 @@ function updateWizards(dt) {
     while (have < t.wz) wizards.push(newWizard(t, have++));
     if (t.wz >= WIZ_PER) continue;
     if (S.food < 5) { say('bot', 'The wizard hut needs food to train wizards. Each one eats five food first.', 'wiz-food'); continue; }
-    t.wtrain = (t.wtrain || 0) + dt / 14;
+    t.wtrain = (t.wtrain || 0) + dt / 14 * (t.frozen ? FROZEN : 1);
     if (t.wtrain >= 1) {
       t.wtrain = 0; t.wz++; S.food -= 5; dirty = true;
       wizards.push(newWizard(t, have));
@@ -6800,7 +7154,7 @@ function updateWizards(dt) {
       .sort((p, q) => (KINDS[q.kind || 'basic'].blob ? 1 : 0) - (KINDS[p.kind || 'basic'].blob ? 1 : 0) || dist(p) - dist(q)).slice(0, 2);
     const from = critWorld(w);
     if (prey.length) {
-      for (const c of prey) { const to = critWorld(c); fx.push({ kind: 'magic', x: from.x + 5, y: from.y - 30, x2: to.x, y2: to.y - 10, life: 0.4, max: 0.4 }); bonk(c, false, 1); }
+      for (const c of prey) { const to = critWorld(c); fx.push({ kind: 'magic', x: from.x + 5, y: from.y - 30, x2: to.x, y2: to.y - 10, life: 0.4, max: 0.4 }); bonk(c, false, 1, false, 'wizard'); }
       w.cd = 1.3; w.cast = 0.3; w.face = prey[0].x - w.x - (prey[0].y - w.y) > 0 ? 1 : -1;
     } else if (boss && boss.kind !== 'king' && Math.hypot(boss.x - w.x, boss.y - w.y) <= 4.2) {
       const bw = bossWorld(); fx.push({ kind: 'magic', x: from.x + 5, y: from.y - 30, x2: bw.x, y2: bw.y - 40, life: 0.4, max: 0.4 });
@@ -6905,6 +7259,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.water) { drawWater(g, c, p, k, alpha, walking); return; }
   if (K.shadow) { drawShadow(g, c, p, k, alpha, walking); return; }
   if (K.rock) { drawRock(g, c, p, k, alpha, walking || c.state === 'tohole'); return; }
   if (K.tree) { drawTree(g, c, p, k, alpha, walking); return; }
@@ -7257,6 +7612,18 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'uranus') { // pale cyan haze, a faint sideways ring, and a tiny far-away Sun
+    const ug = g.createLinearGradient(0, 0, 0, H);
+    ug.addColorStop(0, '#16304a'); ug.addColorStop(0.6, '#3f7f9a'); ug.addColorStop(1, '#8fd0d8');
+    g.fillStyle = ug; g.fillRect(0, 0, W, H);
+    for (const st of stars.slice(0, 60)) ell(g, st.x * W, st.y * H * 0.5, st.z * 0.7, st.z * 0.7, `rgba(255,255,255,${st.a * 0.35})`);
+    g.save(); g.translate(W * 0.8, H * 0.32); g.rotate(1.35);
+    for (const [r, a] of [[1, 0.3], [0.86, 0.2]]) { g.strokeStyle = `rgba(220,245,255,${a})`; g.lineWidth = 3; g.beginPath(); g.ellipse(0, 0, H * 0.55 * r, H * 0.08 * r, 0, 0, Math.PI * 2); g.stroke(); }
+    g.restore();
+    ell(g, W * 0.12, H * 0.14, 3, 3, '#fff8e0');
+    for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(200,240,250,${0.05 + i * 0.02})`; g.fillRect(0, H * (0.35 + i * 0.15), W, H * 0.08); }
+    return;
+  }
   if (sk === 'void') { // pitch black, a few strange stars, and the black hole with its glowing disc
     g.fillStyle = '#05030a'; g.fillRect(0, 0, W, H);
     for (const st of stars) ell(g, st.x * W, st.y * H, st.z * 0.8, st.z * 0.8, `rgba(220,200,255,${st.a * 0.6})`);
@@ -7483,6 +7850,8 @@ function showTip(preview) {
     const [n, txt] = (hover.rh && info.hole) || (hover.sealed && info.sealed) || info[hover.type] || TILE_INFO[hover.type];
     let b = '';
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
+    if (hover.frozen) b += ' <span style="color:var(--sky)">❄️ Frozen: working at 40% speed. Build a giant oven next to it.</span>';
+    else if (LEVELS[S.level].uranus && hover.warm && !hover.layer) b += ' <span style="color:#ffb35c">🔥 Warmed by a giant oven.</span>';
     if (hover.b === 'dig') b += ` <b>${Math.round((hover.prog || 0) * 100)}% dug.</b>`;
     if (hover.type === 'nest') b += ` <b>${Math.ceil(hover.nhp)} hits left.</b>`;
     if (FARMS.includes(hover.b)) b += hover.wet ? ' <span style="color:var(--sky)">Watered: double food.</span>' : ' <span class="muted">Not watered.</span>';
@@ -7635,6 +8004,10 @@ function showTitle() {
       <button class="lvl titan" data-l="30"><span class="n">30</span><span><b>Titan: Methane Shores</b><small>Orange air, methane rain, and rock monsters that hide in holes.</small></span><span class="go">Play</span></button>
       <button class="lvl titan2" data-l="31"><span class="n">31</span><span><b>Titan: The Rock Giant</b><small>Tunnels, underground zappers, and the Rock Giant.</small></span><span class="go">Play</span></button>
       <button class="lvl void" data-l="32"><span class="n">★</span><span><b>Bonus: The Unknown Planet</b><small>Through the black hole. Black aliens, and the Shadow King.</small></span><span class="go">Play</span></button>
+      <button class="lvl ura" data-l="33"><span class="n">32</span><span><b>Uranus: The Big Chill</b><small>The coldest planet: giant ovens, mine shafts and water aliens.</small></span><span class="go">Play</span></button>
+      <button class="lvl ura" data-l="34"><span class="n">33</span><span><b>Uranus: Sideways World</b><small>A planet that spins on its side, and more water aliens.</small></span><span class="go">Play</span></button>
+      <button class="lvl ura" data-l="35"><span class="n">34</span><span><b>Uranus: Diamond Rain</b><small>Diamonds fall from the sky. Really!</small></span><span class="go">Play</span></button>
+      <button class="lvl ura2" data-l="36"><span class="n">35</span><span><b>Uranus: The Great Wave</b><small>The biggest water alien of all rises out of the slush.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -7851,7 +8224,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 064185af 06a2ace1 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 091f3f5c 095e8697 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c594a15 0c5cf89e 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 17b76b15 17c35d32 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1aebaf1f 1bc946da 1bca980b 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 22586686 22c96318 22dc1977 231440de 231d8460 2341f3c5 235ed52f 23c80e45 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2b732c7f 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d4236e0 2e30c278 2e5c16db 2f8a9231 2f8ab1a6 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 34975786 349e917d 34b3668a 34f107c0 351fbd71 353c8fab 35a97171 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37845349 37c5f42b 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 50116eea 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 5681770d 56932f6a 56eebfbb 570313a4 57156cc3 57822802 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5ddbade0 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 611c5aca 61907eff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d793f09 6d8933a2 6d8a77e3 6dbb267c 6e02103b 6f4aacd7 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71c2f517 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 77454f28 776c07c6 7794c923 77a911a5 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3e6261 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 893c6180 89433fbb 896dfa6a 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94bfff3f 9530f060 95410ed1 9599dd43 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c5eeff9 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e563fed 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a403ebc2 a42066c4 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b4b9f647 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b762f60b b7bacc46 b864510d b8a67fac b8db967a b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c08db08b c0a9565a c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c325df07 c34f5141 c46528db c4677edd c47abf72 c4c50ccc c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c672ecc1 c6c6a77b c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 dae95449 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1f65969 e233cd11 e2a2fffd e2e7889c e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e607c25b e627a7aa e6389f23 e68ab45f e68aec3f e6a7a5c5 e7264fe6 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f3a2e59e f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5c504f1 f5e28285 f5f52596 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 0732c7bd 07e9d382 07f18a09 081fadbc 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1bc946da 1bca980b 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 2078c341 212448d4 2174fd19 2212d13e 224bb053 22586686 22c96318 22dc1977 231440de 231d8460 2341f3c5 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d4236e0 2e30c278 2e5c16db 2f8a9231 2f8ab1a6 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 34975786 349e917d 34b3668a 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36f30872 36f7cfab 3729f259 37845349 37c5f42b 382c6884 3836a2d0 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 47a01830 47f34f3d 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b8d10cb 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da65827 5ddbade0 5df8d089 5e2ae372 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 61907eff 61c004ff 61df2e03 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6ad137a8 6b4736a6 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f4aacd7 6f649d50 6f723cdd 6f8a37f9 6f9d6822 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71c2f517 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 776c07c6 7794c923 77a911a5 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d92f6c0 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b37e7352 b4185752 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b7025808 b762f60b b7bacc46 b864510d b8a67fac b8db967a b8f1f2bb b9472832 b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f bf202cf8 c007124e c08db08b c0a9565a c0aaecdc c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da768766 dae95449 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f3a2e59e f3d814bc f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fb25aaad fc5227f2 fc64efd2 fce6a935 fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -8130,7 +8503,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v11) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : !d.S.v10 ? 30 : 32)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = d.S.v11 = true; }
+    if (d && d.S && !d.S.v12) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : !d.S.v10 ? 30 : !d.S.v11 ? 32 : 33)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = d.S.v11 = d.S.v12 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;
