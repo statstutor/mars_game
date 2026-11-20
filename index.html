@@ -140,6 +140,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
+.lvl.plu .n { background: #e8d4bc; color: #4e3e30; } .lvl.plu .go { color: #f0dcc8; }
 .lvl.nep .n { background: #3f6fd8; } .lvl.nep .go { color: #9fc0ff; }
 .lvl.nep2 .n { background: #dff6ff; color: #1a2f78; } .lvl.nep2 .go { color: #dff6ff; }
 .lvl.ura .n { background: #8fd0d8; color: #16304a; } .lvl.ura .go { color: #bdf3ff; }
@@ -381,7 +382,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 43;
+const BUILD = 44;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -467,6 +468,10 @@ const B = {
              desc: 'Automatically zaps critters within 2 tiles. Uses 1 energy/s.' },
   oven:    { name: 'Giant Oven', cost: { metal: 30 }, on: ['plain', 'ore', 'ice'], onText: 'Giant ovens need flat ground or ice.', energy: -2,
              desc: 'A huge, cosy oven. It warms its own tile and the 8 tiles around it, so buildings there don’t freeze. On Uranus, frozen buildings work at 40% speed. Uses 2 energy/s.' },
+  fusion:  { name: 'Fusion Reactor', cost: { metal: 80, crystals: 4 }, on: ['plain', 'ore'], onText: 'Fusion reactors need flat ground.', energy: 12,
+             desc: 'A tiny star in a box: +12 energy/s, day and night, however far you are from the Sun.' },
+  detector: { name: 'Metal Detector', cost: { metal: 20 }, on: ['plain', 'ore', 'ice'], onText: 'Metal detectors need flat ground or ice.', max: 2,
+             desc: 'Beeps faster the closer it is to something buried. Drag it around the map to search. When it is right on top of the hidden power core, an X marks the spot: build a dig site there.' },
   icedig:  { name: 'Ice Digger', cost: { metal: 25 }, on: ['plain', 'ore', 'ice'], onText: 'Ice diggers dig into flat ground or ice.', energy: -1, out: { water: 1.2 },
              desc: 'Digs into any flat ground and melts it into water: +1.2 water/s while digging. After about 30 seconds it leaves a pond behind, which keeps giving water. Ice drills and fish farms work on ponds. Uses 1 energy/s.' },
   shaft:   { name: 'Mine Shaft', cost: { metal: 30 }, on: ['plain', 'ore', 'ice'], onText: 'Mine shafts need flat ground or ice.', energy: -1,
@@ -564,7 +569,7 @@ const nestsLeft = () => ALL().filter(t => t.type === 'nest').length;
 const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park'];
 // which layers each building may go on (default: all three)
 const WHERE = {
-  solar: ['surface', 'sky'], mine: ['surface', 'under'], oven: ['surface'], shaft: ['surface'], icedig: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
+  solar: ['surface', 'sky'], mine: ['surface', 'under'], oven: ['surface'], shaft: ['surface'], icedig: ['surface'], fusion: ['surface'], detector: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], tunnel: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
   cmine: ['under'], ccrafter: ['surface'], oredrill: ['surface', 'under'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
@@ -2754,6 +2759,59 @@ LEVELS.push({
   done: { title: 'The Ice Giant is beaten', body: 'The Ice Giant has stopped, and the Ice Folk of Neptune have joined the mission to free Earth.', fact: '<b>Ice giants:</b> Uranus and Neptune are called ice giants because they are mostly made of icy water, ammonia and methane, not gas like Jupiter and Saturn.' },
 });
 LEVELS.push({
+  name: 'Pluto: The Hidden Core', num: 40,
+  seed: 281, n: 12, offworld: true, sky: 'pluto', sun: 0.08, knights: true, wizards: true, hiddenCore: true, spiderQueen: true, traderEvery: 6,
+  map: { ice: 3, mountains: [[10, 1, 0.6], [1, 10, 0.6]], craters: [[3, 4], [8, 3], [4, 9], [9, 8], [6, 6]], ore: [[2, 7, 1.1], [10, 5, 1.0]], ruins: [], frost: [[5, 2], [7, 10], [11, 8]] },
+  start: { metal: 300, energy: 80, water: 70, food: 130, crystals: 8 },
+  planet: { temp: -230, press: 1, o2: 0 },
+  tools: ['solar', 'turbine', 'fusion', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'cafe', 'castle', 'police', 'wizhut', 'zapper', 'church', 'graveyard', 'ccrafter', 'detector', 'dig', 'fuel', 'pad', 'recycle'],
+  prebuilt: [['fusion', 6, 9], ['habitat', 5, 9], ['habitat', 7, 9], ['drill', 5, 10], ['greenhouse', 6, 10], ['police', 7, 7]],
+  critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 25, mix: { spider: 4, zippy: 1, basic: 1 } },
+  traders: true, traderFirst: 25,
+  pal: {
+    plain: ['#e8d4bc', '#c4a888', '#a48a6c'], ore: ['#c4a8d8', '#a088b8', '#806898'], ice: ['#fff4ea', '#e6d6c8', '#c8b4a4'], crater: ['#7a5a48', '#5e4436', '#483428'],
+    rock: ['#d8c0a8', '#b49c84', '#947e68'], ruin: ['#b8a090', '#988070', '#7a6454'],
+    sides: ['#a48a6c', '#866e54', '#6a5642', '#4e3e30'],
+  },
+  deco: { pebble: '#fff4ea', rim: '#c4a888', pit: '#483428', pit2: '#5e4436', cone: ['#fff4ea', '#e6d6c8', '#d8c0a8'] },
+  tileInfo: {
+    plain: ['Tholin plains', 'Pinkish-brown frost, coloured by gunk made when faint sunlight hits methane ice. Flat and buildable.'],
+    ore: ['Purple ore', 'Purple rock poking through the frost. Mines and ore drills go here.'],
+    ice: ['Nitrogen ice', 'Bright frozen nitrogen, from Pluto’s huge heart-shaped glacier. Ice drills go here.'],
+    crater: ['Spider nest', 'A dark hole full of webs. Spider aliens climb out of these.'],
+    rock: ['Ice mountain', 'A mountain of water ice, as hard as rock. Nothing can be built here.'],
+  },
+  goals: [
+    { text: 'Build 2 fusion reactors', get: () => count('fusion'), target: 2,
+      who: 'eng', hint: 'The Sun is so far away that solar arrays barely work. Fusion reactors make power the same way the Sun does. Storm turbines help too.' },
+    { text: 'Build a castle', get: () => count('castle'), target: 1,
+      who: 'cmd', hint: 'Spider aliens! Zaps and wizard magic bounce off them. Only knights, police and taps can beat them. Build a castle.' },
+    { text: 'Train 6 knights and police', get: () => knightCount() + copCount(), target: 6,
+      who: 'kip', hint: 'Six knights and police officers between them. Each one eats five food first.' },
+    { text: 'Build a metal detector', get: () => count('detector'), target: 1,
+      who: 'kip', hint: 'My scanners say a power core is buried somewhere on Pluto. Build a metal detector, then drag it around. It beeps faster as it gets closer!' },
+    { text: 'Find the hidden power core', get: () => S.hiddenFound ? 1 : 0, target: 1, flag: true,
+      who: 'kip', hint: 'Drag the metal detector around until it says HERE! Then drag it out of the way and build a dig site on the X.' },
+    { text: 'Defeat 12 spider aliens', get: () => S.spidersBeaten || 0, target: 12,
+      who: 'eng', hint: 'Each spider alien takes nineteen hits. Keep the knights and police close, and tap, tap, tap!' },
+    { text: 'Defeat the Spider Queen', get: () => S.spiderQueenDefeated ? 1 : 0, target: 1, flag: true, spiderQueen: true,
+      who: 'kip', hint: 'The Spider Queen! Only knights, police and taps can hurt her. She goes for the castles first!' },
+  ],
+  intro: [['cmd', 'Pluto. The little dwarf planet at the very edge of the solar system.'], ['eng', 'The Sun is just a bright star from here. Solar arrays will barely work, so it is fusion reactors and turbines.'], ['kip', 'My scanners are beeping. Something is buried here. Also, something with a lot of legs is watching us.']],
+  outro: [['cmd', 'Two power cores from Pluto, and the Spider Folk have joined the mission to free Earth.'], ['kip', 'A tiny spider alien made me a hat out of web. It is very sticky. I love it.']],
+  brief: {
+    eyebrow: 'Level 40 · Pluto',
+    title: 'Pluto: The Hidden Core',
+    body: ['At the edge of the solar system, the Sun is so faint that solar arrays barely work. Build <b>fusion reactors</b> and <b>storm turbines</b> for power.', '<b>Spider aliens</b> take 19 hits. Zaps and wizard magic bounce off, so use <b>knights, police and taps</b>. A power core is buried somewhere: build a <b>metal detector</b> and <b>drag it around</b>. It beeps faster as it gets closer, and an X marks the spot. Then beat the <b>Spider Queen</b>.'],
+    fact: '<b>A heart of ice:</b> when the New Horizons spacecraft flew past Pluto in 2015, it found a giant heart-shaped glacier of frozen nitrogen, bigger than the state of Texas.',
+  },
+  done: {
+    title: 'The Spider Queen is beaten',
+    body: 'The hidden power core is found, the Spider Queen is beaten, and the Spider Folk of Pluto have joined the mission to free Earth.',
+    fact: '<b>Dwarf planet:</b> Pluto was called the ninth planet for 76 years. In 2006 astronomers decided it was a dwarf planet, because it shares its orbit with lots of other icy worlds.',
+  },
+});
+LEVELS.push({
   name: 'Planet Glorp',
   seed: 83, n: 11, offworld: true, bonus: true,
   map: { ice: 0, mountains: [[9, 2, 1.2], [1, 9, 1.0]], craters: [[3, 3], [8, 7], [2, 7]], ore: [[7, 3, 1.4], [3, 8, 1.2]], ruins: [], wet: true },
@@ -2860,9 +2918,15 @@ function newState(li) {
     t.b = b; t.basin = false; t.lichen = 0;
   }
   const pop = L.prebuilt.filter(([b]) => b === 'habitat').length * 4;
+  let hiddenCore = null;
+  if (L.hiddenCore) {
+    const spots = tiles.filter(t => !t.b && (t.type === 'plain' || t.type === 'ore' || t.type === 'ice') && Math.hypot(t.gx - N / 2, t.gy - N / 2) >= 3);
+    hiddenCore = tiles.indexOf(spots[Math.floor(Math.random() * spots.length)]);
+  }
   return {
-    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, v11: true, v12: true, v13: true, time: 0, won: false,
-    metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: 0, pop,
+    hiddenCore,
+    level: li, v3: true, v4: true, v5: true, v6: true, v7: true, v8: true, v9: true, v10: true, v11: true, v12: true, v13: true, v14: true, time: 0, won: false,
+    metal: L.start.metal, energy: L.start.energy, water: L.start.water, food: L.start.food, crystals: L.start.crystals || 0, pop,
     fed: 100, hyd: 100, mood: 65, relics: 0, relicIds: [], bonks: 0, trades: 0, bought: [], bonus: {},
     clock: 0, night: false, nights: 0, wave: 0, waveT: 0, critT: 20, traderT: L.traderFirst || 40, trader: null, arriveT: 1, leaveT: 15, vellT: 0,
     planet: { ...L.planet }, cometCd: 0, eff: 1,
@@ -2905,6 +2969,30 @@ function warmUp() {
     t.frozen = !!t.b && !t.warm;
     if (t.frozen && !was && t.b && t.born > RT - 1) say('eng', 'Brr! That building is too far from a giant oven, so it froze. Frozen buildings work at less than half speed. Build an oven next to it.', 'frozen1');
   }
+}
+// Pluto: metal detectors beep faster the closer they are to the hidden power core
+function detectorDist(t) {
+  const h = S.tiles[S.hiddenCore];
+  return h ? Math.hypot(t.gx - h.gx, t.gy - h.gy) : Infinity;
+}
+function updateDetectors(dt) {
+  if (S.hiddenCore == null || S.hiddenFound) return;
+  const dets = S.tiles.filter(t => t.b === 'detector');
+  if (!dets.length) return;
+  const d = Math.min(...dets.map(detectorDist)), near = dets.find(t => detectorDist(t) === d);
+  if (d === 0 && !S.coreMarked) {
+    S.coreMarked = true; dirty = true;
+    const c = center(near);
+    burst(c.x, c.y - 10, 24, ['#ffd166', '#ffffff', '#7ff7ff'], 1.3); sfx('relic');
+    toast('BEEEEP! The power core is right here! An X marks the spot.', 'good');
+    say('kip', 'Beeeeep! It is right under the detector! Drag the detector out of the way, then build a dig site on the X.', 'det-found');
+  }
+  S.detT = (S.detT ?? 1) - dt;
+  if (S.detT > 0) return;
+  S.detT = d === 0 ? 0.25 : clamp(0.3 + d * 0.32, 0.3, 3);
+  const c = center(near), col = d === 0 ? '#ffd166' : d < 2 ? '#ff6b81' : d < 4 ? '#ffb35c' : '#7ff7ff';
+  fx.push({ kind: 'ring', x: c.x, y: c.y - 30, r: 4, life: 0.5, max: 0.5, color: col });
+  if (S.view === 'surface' || !S.view) sfx('tick');
 }
 // Uranus: diamonds rain from the sky now and then
 function updateDiamonds(dt) {
@@ -3041,10 +3129,12 @@ function tick(dt) {
   if (L.shadowKing) maybeShadowKing(L);
   if (L.tide) maybeTide(L);
   if (L.iceGiant) maybeIceGiant(L);
+  if (L.spiderQueen) maybeSpiderQueen(L);
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
   if (L.diamonds) updateDiamonds(dt);
+  if (L.hiddenCore) updateDetectors(dt);
   if (L.traders) updateTrader(dt);
   if (S.vellT > 0) S.vellT -= dt;
 
@@ -3675,6 +3765,7 @@ const WORLDS = {
   saturn3: { level: 27, name: 'Saturn: The Hexagon', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn2', blurb: 'A giant six-sided storm spins at the north pole.' },
   saturn4: { level: 28, name: 'Saturn: Ring Shadow', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn3', blurb: 'In the shadow of the rings, the tree aliens grow thick.' },
   saturn5: { level: 29, name: 'Saturn’s Rings', icon: 'saturn', sys: 'saturn', body: 'saturnclouds', fuel: 300, needs: ['engines', 'shield'], after: 'saturn4', blurb: 'Out on the icy rings, where the Elder Tree grows.' },
+  pluto:    { level: 41, name: 'Pluto', icon: 'pluto', sys: 'pluto', fuel: 300, needs: ['engines', 'shield'], blurb: 'The little dwarf planet at the edge of the solar system: spider aliens, a hidden power core, and a heart made of ice.' },
   neptune:  { level: 37, name: 'Neptune', icon: 'neptune', sys: 'neptune', body: 'neptune', fuel: 300, needs: ['engines', 'shield'], after: 'uranus4', blurb: 'The farthest planet: the fastest winds in the solar system, and ice aliens. Bring giant ovens.' },
   neptune2: { level: 38, name: 'Neptune: Supersonic Winds', icon: 'neptune', sys: 'neptune', body: 'neptune', fuel: 300, needs: ['engines', 'shield'], after: 'neptune', blurb: 'Winds faster than a jet plane, and storm turbines that love them.' },
   neptune3: { level: 39, name: 'Neptune: Triton’s Shadow', icon: 'neptune', sys: 'neptune', body: 'neptune', fuel: 300, needs: ['engines', 'shield'], after: 'neptune2', blurb: 'Under the big moon Triton, the ice aliens gather.' },
@@ -3693,7 +3784,7 @@ const UPGRADES = {
   engines: { name: 'Big Engines', cost: { metal: 150, crystals: 8 }, desc: 'Bigger engines for longer trips. Needed for Deimos and Europa.' },
   shield:  { name: 'Radiation Shield', cost: { metal: 150, crystals: 15 }, desc: 'Keeps the settlers safe in Jupiter’s radiation belts. Needed for Europa.' },
 };
-const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2', 32: 'blackhole', 33: 'uranus', 34: 'uranus2', 35: 'uranus3', 36: 'uranus4', 37: 'neptune', 38: 'neptune2', 39: 'neptune3', 40: 'neptune4' };
+const LEVEL_WORLD = { 6: 'phobos', 7: 'deimos', 8: 'europa', 9: 'king', 10: 'moon', 11: 'chief', 12: 'venus', 13: 'venus2', 14: 'venus3', 15: 'venus4', 16: 'mercury', 17: 'mercury2', 18: 'mercury3', 19: 'jupiter', 20: 'jupiter2', 21: 'jupiter3', 22: 'jupiter4', 23: 'jupiter5', 25: 'saturn', 26: 'saturn2', 27: 'saturn3', 28: 'saturn4', 29: 'saturn5', 30: 'titan', 31: 'titan2', 32: 'blackhole', 33: 'uranus', 34: 'uranus2', 35: 'uranus3', 36: 'uranus4', 37: 'neptune', 38: 'neptune2', 39: 'neptune3', 40: 'neptune4', 41: 'pluto' };
 let RKT = store.get('mmb-rocket', {}), WORLDS_DONE = store.get('mmb-worlds', {});
 const hereWorld = () => LEVEL_WORLD[S.level] || 'mars';
 const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
@@ -3701,7 +3792,7 @@ const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
 const sameBody = (a, b) => !!(WORLDS[a] && WORLDS[b] && WORLDS[a].body && WORLDS[a].body === WORLDS[b].body);
 const sameMoon = k => sameBody(k, hereWorld());
 // How far each planet is from the Sun, in AU (Earth = 1). The black hole is out past Neptune.
-const SYS_AU = { mercury: 0.39, venus: 0.72, earth: 1, mars: 1.52, jupiter: 5.2, saturn: 9.5, uranus: 19.2, neptune: 30, blackhole: 40 };
+const SYS_AU = { mercury: 0.39, venus: 0.72, earth: 1, mars: 1.52, jupiter: 5.2, saturn: 9.5, uranus: 19.2, neptune: 30, pluto: 39.5, blackhole: 40 };
 // Fuel for a trip between planets grows with how far apart they are: next-door planets (Neptune
 // to Uranus, Earth to Mars) cost about 170, the far side of the solar system (Mercury to Uranus) 500.
 // Trips between moons of the same planet keep each world's own, smaller number.
@@ -3927,7 +4018,7 @@ function updateBoss(dt) {
     }
     return;
   }
-  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'shadow' || b.kind === 'tide' || b.kind === 'icegiant') { kingStep(b, dt); return; }
+  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'shadow' || b.kind === 'tide' || b.kind === 'icegiant' || b.kind === 'spiderqueen') { kingStep(b, dt); return; }
   let pad = S.tiles.find(t => t.b === 'pad');
   b.spawnT -= dt;
   if (b.spawnT <= 0) { spawnCritter(b.kind === 'cousin' ? 'basic' : Math.random() < 0.5 ? 'armor' : 'zippy', tileAt(Math.floor(b.x), Math.floor(b.y))); b.spawnT = b.enraged ? 4.5 : 7; }
@@ -3990,6 +4081,7 @@ function hurtBoss(dmg, knight = false) {
     b.burrowed = true; b.state = 'burrow'; b.t = 0;
     burst(w.x, w.y - 10, 30, ['#8a5a3c', '#c4552d', '#ffd166'], 1.6);
     if (b.kind === 'lizard') { toast('The Lizard King dived into the lava!', 'bad'); say('kip', 'He dived into the lava! He will climb out somewhere else.', 'lk-burrow'); }
+    else if (b.kind === 'spiderqueen') { toast('The Spider Queen scuttled down a tunnel!', 'bad'); say('kip', 'She ran down a tunnel! She will pop out somewhere else, and she is not happy.', 'sq-burrow'); }
     else if (b.kind === 'icegiant') { toast('The Ice Giant crumbled into the snow!', 'bad'); say('kip', 'It fell apart into snow! It is building itself back up somewhere else, and it looks cross.', 'ig-burrow'); }
     else if (b.kind === 'tide') { toast('The Great Wave sank into a puddle!', 'bad'); say('kip', 'It drained away into the ground! It will splash up somewhere else.', 'tide-burrow'); }
     else if (b.kind === 'shadow') { toast('The Shadow King melted into the darkness!', 'bad'); say('kip', 'It melted into the shadows! It will come out somewhere else, and it looks angry.', 'sk-burrow'); }
@@ -4000,7 +4092,7 @@ function hurtBoss(dmg, knight = false) {
   }
   if (b.hp <= 0) {
     b.state = 'dead'; b.t = 0; S.crystals += 25; S.bonks += 10; dirty = true;
-    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else if (b.kind === 'tide') { S.tideDefeated = true; foundGold(); } else if (b.kind === 'icegiant') { S.iceGiantDefeated = true; foundGold(); } else if (b.kind === 'shadow') { S.shadowKingDefeated = true; S.voidCrystal = { x: b.x, y: b.y, t: 0 }; } else { S.queenDefeated = true; foundGold(); }
+    if (b.kind === 'cousin') S.crasherBeaten = true; else if (b.kind === 'lizard') { S.lizardKingDefeated = true; foundGold(); } else if (b.kind === 'king') { S.kingDefeated = true; foundGold(); } else if (b.kind === 'elder') { S.elderDefeated = true; foundGold(); } else if (b.kind === 'golem') { S.golemDefeated = true; foundGold(); } else if (b.kind === 'tide') { S.tideDefeated = true; foundGold(); } else if (b.kind === 'icegiant') { S.iceGiantDefeated = true; foundGold(); } else if (b.kind === 'spiderqueen') { S.spiderQueenDefeated = true; foundGold(); } else if (b.kind === 'shadow') { S.shadowKingDefeated = true; S.voidCrystal = { x: b.x, y: b.y, t: 0 }; } else { S.queenDefeated = true; foundGold(); }
     for (const c of crits) if (c.state !== 'bonked') { c.state = 'flee'; c.t = 0; }
     shake = RM ? 0 : 18; sfx('boom'); sfx('win');
     fx.push({ kind: 'flash', life: 0.5, max: 0.5 });
@@ -4011,6 +4103,11 @@ function hurtBoss(dmg, knight = false) {
       say('kip', 'The Lizard King is beaten! And look, the lizard people are not running away. They are bowing.', 'lkdown');
       say('cmd', 'He was forcing them to fight. Now they are free, and they want to help us free Earth.', 'lkally');
       gainCore('venus4', 'the Lizard King’s Crown Core'); gainAlly('lizards', 'the Lizard People of Venus');
+    } else if (b.kind === 'spiderqueen') {
+      toast('The Spider Queen is beaten! +25 crystals', 'good');
+      say('kip', 'The Spider Queen gave up! She is weaving us a thank-you web. It says HI, I think.', 'sqdown');
+      say('cmd', 'The queen was making them fight. Now the Spider Folk of Pluto want to help us free Earth.', 'sqally');
+      gainCore('pluto2', 'the Spider Queen’s Core'); gainAlly('spiders', 'the Spider Folk of Pluto');
     } else if (b.kind === 'icegiant') {
       toast('The Ice Giant is beaten! +25 crystals', 'good');
       say('kip', 'The Ice Giant has stopped! It sat down and turned into a very big, very friendly snowman.', 'igdown');
@@ -4049,7 +4146,7 @@ function zapBoss(t, range) {
   if (Math.hypot(b.x - (t.gx + 0.5), b.y - (t.gy + 0.5)) > range + 0.6) return false;
   const a = center(t), w = bossWorld();
   fx.push({ kind: 'zap', x: a.x, y: a.y - 38, x2: w.x, y2: w.y - 30, life: 0.3, max: 0.3 });
-  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'icegiant' || (b.kind === 'lizard' && !b.flying)) { fx.push({ kind: 'text', x: w.x, y: w.y - 60, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' }); sfx('clang'); return true; }
+  if (b.kind === 'king' || b.kind === 'elder' || b.kind === 'icegiant' || b.kind === 'spiderqueen' || (b.kind === 'lizard' && !b.flying)) { fx.push({ kind: 'text', x: w.x, y: w.y - 60, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' }); sfx('clang'); return true; }
   hurtBoss(hasTech('arc') ? 2 : 1); sfx('zap');
   return true;
 }
@@ -4081,6 +4178,11 @@ function bossAt(mx, my) {
     const bx = view.x + w.x * sc, by = view.y + (w.y - 55 * k) * sc;
     if (Math.abs(mx - bx) < 32 * k * sc && Math.abs(my - by) < 55 * k * sc) { hurtBoss(1); sfx('clang'); say('eng', 'Aim for the glowing head! That is where it really counts.', 'chief-aim'); return true; }
     return false;
+  }
+  if (b.kind === 'spiderqueen') {
+    const k = QS * 2.6, bx = view.x + w.x * sc, by = view.y + (w.y - 10 * k) * sc;
+    if (Math.abs(mx - bx) > 13 * k * sc || Math.abs(my - by) > 10 * k * sc) return false;
+    hurtBoss(2); sfx('bonk'); burst(w.x, w.y - 10 * k, 8, ['#c9a7ff', '#ffffff']); return true;
   }
   if (b.kind === 'icegiant') {
     const k = QS * 2.6, bx = view.x + w.x * sc, by = view.y + (w.y - 15 * k) * sc;
@@ -4172,6 +4274,22 @@ function drawBoss(g) {
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
       g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center';
       g.fillText('LIZARD KING' + (b.flying ? ' · FLYING' : ''), w.x, top - 6);
+    }
+    return;
+  }
+  if (b.kind === 'spiderqueen') {
+    const kk = k * 2.6;
+    g.save(); g.translate(w.x, w.y); g.globalAlpha = alpha;
+    ell(g, 0, 2, 13 * kk, 4 * kk, 'rgba(20,10,30,0.35)');
+    if (b.hit > 0) g.translate((Math.random() - 0.5) * 3, 0);
+    g.scale(kk * (b.face || 1), kk);
+    drawSpiderBody(g, b.enraged ? '#8a2a5a' : '#5a3a7a', b.t, b.state === 'walk', b.hit > 0, b.enraged, true);
+    g.restore();
+    if (b.state !== 'dead') {
+      const top = w.y - 24 * kk;
+      g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
+      g.fillStyle = '#c9a7ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
+      g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('THE SPIDER QUEEN', w.x, top - 6);
     }
     return;
   }
@@ -4310,6 +4428,19 @@ function maybeElder(L) {
   if (!L.elder || S.boss || S.elderDefeated) return;
   const ci = L.goals.findIndex(g => g.elder);
   if (L.goals.every((g, i) => i >= ci || S.goalsDone[i])) spawnElder();
+}
+function maybeSpiderQueen(L) {
+  if (!L.spiderQueen || S.boss || S.spiderQueenDefeated) return;
+  const qi = L.goals.findIndex(g => g.spiderQueen);
+  if (L.goals.every((g, i) => i >= qi || S.goalsDone[i])) spawnSpiderQueen();
+}
+function spawnSpiderQueen() {
+  const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
+  S.boss = { kind: 'spiderqueen', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 460, maxhp: 460, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 11, atk: 2, enraged: false, hs: crater.h };
+  shake = RM ? 0 : 16; sfx('boom'); sfx('roar');
+  toast('THE SPIDER QUEEN has crawled out of her nest!', 'bad');
+  say('kip', 'That is the Spider Queen! Zaps and wizard magic bounce off her. Only knights, police and taps can hurt her.', 'sq1');
+  say('cmd', 'She is heading for the castles. Keep the knights and police fed and fighting, and tap her as much as you can!', 'sq2');
 }
 function maybeIceGiant(L) {
   if (!L.iceGiant || S.boss || S.iceGiantDefeated) return;
@@ -4476,7 +4607,7 @@ function spawnKing() {
 function kingStep(b, dt) {
   b.spawnT -= dt;
   if (b.spawnT <= 0) {
-    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'icegiant' ? 'ice' : b.kind === 'tide' ? 'water' : b.kind === 'shadow' ? 'shadow' : b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
+    if (crits.filter(c => c.state !== 'bonked').length < 9) spawnCritter(b.kind === 'spiderqueen' ? 'spider' : b.kind === 'icegiant' ? 'ice' : b.kind === 'tide' ? 'water' : b.kind === 'shadow' ? 'shadow' : b.kind === 'elder' ? 'tree' : Math.random() < 0.65 ? 'shell' : 'shellbig', tileAt(Math.floor(b.x), Math.floor(b.y)));
     b.spawnT = b.enraged ? 9 : 13;
   }
   b.slam = Math.max(0, (b.slam || 0) - dt);
@@ -4506,7 +4637,7 @@ function kingStep(b, dt) {
     b.state = 'stomp'; tgt.off = Math.max(tgt.off || 0, 0.4);
     b.chew = (b.chew || 0) + dt * (near.length ? 0.5 : 1);
     if (b.chew > 12) {
-      toast(`${b.kind === 'icegiant' ? 'The Ice Giant' : b.kind === 'tide' ? 'The Great Wave' : b.kind === 'shadow' ? 'The Shadow King' : b.kind === 'elder' ? 'The Elder Tree' : 'The Shell-beast King'} flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
+      toast(`${b.kind === 'spiderqueen' ? 'The Spider Queen' : b.kind === 'icegiant' ? 'The Ice Giant' : b.kind === 'tide' ? 'The Great Wave' : b.kind === 'shadow' ? 'The Shadow King' : b.kind === 'elder' ? 'The Elder Tree' : 'The Shell-beast King'} flattened the ${B[tgt.b].name.toLowerCase()}!`, 'bad');
       const w = center(tgt); burst(w.x, w.y - 10, 26, ['#b8afd8', '#ffd166', '#ffffff'], 1.4);
       tgt.b = null; b.chew = 0; sfx('boom'); shake = RM ? 0 : 10;
     }
@@ -5188,7 +5319,7 @@ function arcadeRender() {
   // Mars falling away below
   const mr = Math.max(80, Math.min(W, H) * (0.9 - Math.min(A.t, 30) / 45));
   const by_ = H + mr * 0.55 + A.t * 6;
-  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else if (A.cfg.from === 'saturn') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'uranus') drawUranus(g, W / 2, by_, mr); else if (A.cfg.from === 'neptune') { ell(g, W / 2, by_, mr, mr, '#2a4fb8'); ell(g, W / 2 + mr * 0.25, by_ + mr * 0.15, mr * 0.25, mr * 0.14, '#1a2f78'); } else drawBigMars(g, W / 2, by_, mr);
+  if (A.cfg.from === 'jupiter') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'earth') drawLuna(g, W / 2, by_, mr); else if (A.cfg.from === 'venus') drawVenus(g, W / 2, by_, mr); else if (A.cfg.from === 'mercury') drawMercury(g, W / 2, by_, mr); else if (A.cfg.from === 'saturn') drawJupiter(g, W / 2, by_, mr); else if (A.cfg.from === 'uranus') drawUranus(g, W / 2, by_, mr); else if (A.cfg.from === 'pluto') { ell(g, W / 2, by_, mr, mr, '#c8a080'); } else if (A.cfg.from === 'neptune') { ell(g, W / 2, by_, mr, mr, '#2a4fb8'); ell(g, W / 2 + mr * 0.25, by_ + mr * 0.15, mr * 0.25, mr * 0.14, '#1a2f78'); } else drawBigMars(g, W / 2, by_, mr);
   const toSys = WORLDS[A.cfg.to].sys, grow = Math.min(70, (A.t - A.len * 0.5) * 4);
   if (A.cfg.from !== toSys && A.t > A.len * 0.5) (toSys === 'jupiter' ? drawJupiter : toSys === 'earth' ? drawEarth : toSys === 'venus' ? drawVenus : toSys === 'mercury' ? drawMercury : drawBigMars)(g, W * 0.75, 90, grow);
   const sx = shake ? (Math.random() - 0.5) * shake : 0;
@@ -5287,6 +5418,14 @@ function planetIcon(cnv, kind) {
   } else if (kind === 'phobos') {
     g.fillStyle = '#8d8486'; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0.3, 0, Math.PI * 2); g.fill();
     ell(g, x - 6, y - 5, 16, 10, '#a89fa1'); ell(g, x + 9, y + 4, 6, 4, '#6f6668'); ell(g, x - 10, y + 7, 4, 3, '#6f6668');
+  } else if (kind === 'pluto') {
+    const pg = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    pg.addColorStop(0, '#f0dcc8'); pg.addColorStop(1, '#a87a5a');
+    g.fillStyle = pg; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff4ea'; g.beginPath(); // the big heart-shaped glacier
+    const hx = x + r * 0.15, hy = y + r * 0.1, hs = r * 0.4;
+    g.moveTo(hx, hy + hs * 0.6); g.bezierCurveTo(hx - hs * 1.1, hy, hx - hs * 0.5, hy - hs * 0.8, hx, hy - hs * 0.3);
+    g.bezierCurveTo(hx + hs * 0.5, hy - hs * 0.8, hx + hs * 1.1, hy, hx, hy + hs * 0.6); g.fill();
   } else if (kind === 'neptune') {
     const ng = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
     ng.addColorStop(0, '#7fb0ff'); ng.addColorStop(1, '#2a4fb8');
@@ -5383,6 +5522,8 @@ const KINDS = {
   water:    { hp: 17, spd: 0.6, size: 1.6, steal: 1.4, water: true, noKnight: true },
   // Neptune's ice aliens: eighteen hits; zaps bounce off the ice, but taps, knights and wizards crack it
   ice:      { hp: 18, spd: 0.55, size: 1.6, steal: 1.4, icy: true },
+  // Pluto's spider aliens: nineteen hits; zaps and wizard magic bounce off, but knights, police and taps work
+  spider:   { hp: 19, spd: 0.85, size: 1.6, steal: 1.4, spider: true },
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -5390,6 +5531,7 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  spider: ['eng', 'Spider aliens! Zaps and wizard magic bounce off their shells. Only knights, police and taps can beat them, and they take nineteen hits.'],
   ice: ['eng', 'Ice aliens! Zaps bounce right off them. Taps, knights and wizards can crack them, and they take eighteen hits.'],
   water: ['eng', 'Water aliens! Taps and knights just splash right through them. Only zappers and wizards can beat them, and they take seventeen hits.'],
   shadow: ['kip', 'A black alien! It takes five hits. Taps, zappers, wizards and knights all work on it.'],
@@ -5424,7 +5566,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kind === 'spider' ? ['#5a3a7a', '#4a3a6a', '#6a3a5a'][Math.floor(Math.random() * 3)] : kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -5646,7 +5788,7 @@ function updateCritters(dt) {
     const near = (x, y) => Math.hypot(x - (t.gx + 0.5), y - (t.gy + 0.5)) <= 4.2;
     let target = crits.find(c => c.state !== 'bonked' && !zapProof(c) && !KINDS[c.kind || 'basic'].water && near(c.x, c.y));
     let nest = !target && S.tiles.find(o => o.type === 'nest' && near(o.gx + 0.5, o.gy + 0.5));
-    let boss = !target && !nest && S.boss && S.boss.kind !== 'king' && S.boss.kind !== 'tide' && S.boss.kind !== 'icegiant' && !(S.boss.kind === 'lizard' && !S.boss.flying) && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
+    let boss = !target && !nest && S.boss && S.boss.kind !== 'king' && S.boss.kind !== 'tide' && S.boss.kind !== 'icegiant' && S.boss.kind !== 'spiderqueen' && !(S.boss.kind === 'lizard' && !S.boss.flying) && S.boss.state !== 'dead' && S.boss.state !== 'burrow' && near(S.boss.x, S.boss.y);
     if (!target && !nest && !boss) continue;
     const a = center(t);
     const to = target ? (() => { const w = critWorld(target); return [w.x, w.y - 8]; })() : nest ? (() => { const c = center(nest); return [c.x, c.y - 4]; })() : [bossWorld().x, bossWorld().y - 30];
@@ -5657,10 +5799,19 @@ function updateCritters(dt) {
   crits = crits.filter(c => !c.gone);
 }
 const dmgMul = () => S && S.tiles.some(t => t.b === 'church') ? 2 : 1;
-const zapProof = c => { const K = KINDS[c.kind || 'basic']; return K.immune || K.icy || (K.lizard && !(c.fly > 0)); };
+const zapProof = c => { const K = KINDS[c.kind || 'basic']; return K.immune || K.icy || K.spider || (K.lizard && !(c.fly > 0)); };
 function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
   if (c.state === 'bonked') return;
   if (knight && KINDS[c.kind || 'basic'].noKnight) return;
+  if (KINDS[c.kind || 'basic'].spider && !knight && (zapped || src === 'wizard')) { // zaps and magic bounce off
+    c.hit = 0.2;
+    const p = critWorld(c);
+    burst(p.x, p.y - 12, 6, ['#ffffff', '#c9a7ff']);
+    fx.push({ kind: 'text', x: p.x, y: p.y - 30, text: 'Tink!', life: 0.8, max: 0.8, color: '#c9cee8' });
+    sfx('clang');
+    say('eng', 'Zaps and wizard magic bounce off spider shells! Only knights, police and taps can beat them.', 'spider-tink');
+    return;
+  }
   if (KINDS[c.kind || 'basic'].icy && zapped) { // zaps bounce off the ice
     c.hit = 0.2;
     const p = critWorld(c);
@@ -5723,7 +5874,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     return;
   }
   c.state = 'bonked'; c.t = 0;
-  if (KINDS[c.kind || 'basic'].icy) {
+  if (KINDS[c.kind || 'basic'].spider) {
+    S.spidersBeaten = (S.spidersBeaten || 0) + 1;
+    say('kip', 'Got it! The spider alien curled up its legs and rolled away. Seven more legs than I have.', 'spider-down');
+    S.crystals += 2;
+  } else if (KINDS[c.kind || 'basic'].icy) {
     S.iceBeaten = (S.iceBeaten || 0) + 1; S.water += 3;
     say('kip', 'Crack! The ice alien shattered into a pile of ice cubes. We can melt those for water.', 'ice-down');
     S.crystals += 2;
@@ -5798,6 +5953,15 @@ function finishIceDig(t) {
 }
 function finishDig(t) {
   const L_ = LEVELS[S.level];
+  if (S.hiddenCore != null && S.tiles[S.hiddenCore] === t && !S.hiddenFound) { // the power core the metal detector found
+    t.b = null; t.type = 'relic'; t.prog = 0; t.born = RT; S.hiddenFound = true; dirty = true;
+    const c = center(t);
+    burst(c.x, c.y - 10, 30, ['#7ff7ff', '#ff9fe8', '#ffffff', '#ffd166'], 1.5);
+    fx.push({ kind: 'ring', x: c.x, y: c.y, r: 8, life: 1, max: 1, color: '#7ff7ff', big: true });
+    gainCore('pluto1', 'the Hidden Core of Pluto');
+    say('kip', 'The hidden power core! The metal detector was right. Beep beep, hooray!', 'hidden-core');
+    return;
+  }
   if (t.rh) { // a rock monster hole, filled in for good
     t.b = null; t.rh = false; t.sealed = true; t.prog = 0;
     S.holesSealed = (S.holesSealed || 0) + 1; S.crystals += 3; dirty = true;
@@ -5927,7 +6091,7 @@ function canPlace(name, t) {
     if (t.b) return [false, 'This tile already has a building.'];
     const layer = t.layer || 'surface', where = WHERE[name] || ['surface', 'under', 'sky'];
     if (!where.includes(layer)) return [false, `${d.name}s can’t go ${LAYER_NAME[layer]}.`];
-    const type = t.rh ? 'hole' : t.type === 'cave' || t.type === 'isle' ? 'plain' : t.type === 'magma' ? 'vent' : t.type;
+    const type = t.rh ? 'hole' : S.coreMarked && !S.hiddenFound && S.tiles[S.hiddenCore] === t && name === 'dig' ? 'ruin' : t.type === 'cave' || t.type === 'isle' ? 'plain' : t.type === 'magma' ? 'vent' : t.type;
     if (!d.on.includes(type)) return [false, d.onText];
     if (d.unique && count(name) > 0) return [false, `You only need one ${d.name.toLowerCase()}.`];
     if (d.max && count(name) >= d.max) return [false, `${d.max} ${d.name.toLowerCase()}s is the most that helps.`];
@@ -6136,6 +6300,7 @@ function drawTile(g, t) {
   if (t.h === 2 && t.type !== 'ice') top = shade(top, 0.07);
   if (t.type === 'plain' || t.type === 'ore' || t.type === 'rock' || t.type === 'crater') top = shade(top, (t.v - 0.5) * 0.08);
   if (t.lichen > 0) top = mix(top, '#4cb878', t.lichen * 0.8);
+  if (S.coreMarked && !S.hiddenFound && S.tiles[S.hiddenCore] === t) top = mix(top, '#ffd166', 0.35);
   if (t.warm && !t.layer && (LEVELS[S.level].uranus || LEVELS[S.level].neptune)) top = mix(top, '#ffb070', 0.28);
   const N_ = [c.x, c.y - 16], E = [c.x + 32, c.y], S_ = [c.x, c.y + 16], W = [c.x - 32, c.y];
   const left = t.type === 'ice' || t.type === 'wall' ? pal[1] : sides[0], right = t.type === 'ice' || t.type === 'wall' ? pal[2] : sides[1];
@@ -6649,6 +6814,26 @@ const DRAW = {
     ell(g, 0, -37, 8, 8, `rgba(155,227,255,${a * 0.35})`);
     ell(g, 0, -37, 4.5, 4.5, '#bff4ff');
   },
+  fusion(g, T, v) {
+    shadow(g, 20, 9);
+    isoBox(g, 0, 4, 16, 8, 7, '#9aa0c4', '#757aa0', '#5d6186');
+    const pulse = 0.75 + 0.25 * Math.sin(T * 5 + v * 4);
+    g.strokeStyle = '#c9cee8'; g.lineWidth = 5; g.beginPath(); g.ellipse(0, -14, 14, 6, 0, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = '#7ff7ff'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, -14, 14, 6, 0, T * 3, T * 3 + 2.2); g.stroke();
+    ell(g, 0, -14, 9 * pulse, 9 * pulse, 'rgba(255,220,140,0.35)');
+    ell(g, 0, -14, 5 * pulse, 5 * pulse, '#fff3c0'); ell(g, 0, -14, 2.6, 2.6, '#ffffff');
+  },
+  detector(g, T, v, t) {
+    shadow(g, 10, 5);
+    g.strokeStyle = '#8a7a5a'; g.lineWidth = 2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-3, 2); g.lineTo(0, -20); g.moveTo(4, 2); g.lineTo(0, -20); g.stroke();
+    g.fillStyle = '#c9cee8'; g.beginPath(); g.ellipse(2, -24, 7, 3.4, -0.4, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#757aa0'; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = '#757aa0'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -20); g.lineTo(3, -24); g.stroke();
+    isoBox(g, 0, -8, 4, 2.5, 5, '#f6c453', '#c99a30', '#a07a20');
+    const on = Math.sin(T * 10 + v * 6) > 0;
+    ell(g, 0, -15, 1.6, 1.6, on ? '#ff6b81' : '#7a2a3a');
+  },
   icedig(g, T, v) {
     shadow(g, 16, 7);
     ell(g, 0, 2, 13, 6, '#3f8fd8'); ell(g, -2, 1, 9, 4, '#7fd8ff');
@@ -6992,6 +7177,11 @@ function drawBuildingOn(g, t) {
     for (let i = 0; i < KNIGHTS_PER; i++) ell(g, (i - 1) * 7, -58, 2.6, 2.6, i < (t.kn || 0) ? '#ffd166' : 'rgba(255,255,255,0.22)');
     if ((t.kn || 0) < KNIGHTS_PER) { g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-14, -53, 28, 4); g.fillStyle = '#ffd166'; g.fillRect(-13, -52, 26 * clamp(t.train || 0, 0, 1), 2); }
   }
+  if (t.b === 'detector' && S.hiddenCore != null && !S.hiddenFound) {
+    const d = detectorDist(t), word = d === 0 ? 'HERE!' : d < 2 ? 'Hot!' : d < 4 ? 'Warm' : d < 6 ? 'Cool' : 'Cold';
+    g.fillStyle = d === 0 ? '#ffd166' : d < 2 ? '#ff6b81' : d < 4 ? '#ffb35c' : '#bdf3ff';
+    g.font = '800 12px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(word, 0, -48);
+  }
   if (t.b === 'icedig') {
     g.fillStyle = 'rgba(20,14,43,0.75)'; g.fillRect(-16, -44, 32, 5);
     g.fillStyle = '#5cc8ff'; g.fillRect(-15, -43, 30 * clamp(t.prog || 0, 0, 1), 3);
@@ -7016,7 +7206,7 @@ const LIGHTS = {
   clinic: [[0, -27, 14, '#ff6b81'], [-9, -4, 9, '#9fd8ff']],
   arcade: [[0, -10, 22, '#ff5df5'], [0, -6, 16, '#5cf2ff']],
   greenhouse: [[0, -8, 18, '#9cf0bd']],
-  zapper: [[0, -37, 16, '#9be3ff']], oven: [[3, -3, 18, '#ff9a3c']], icedig: [[-2, -28, 6, '#ff9bb8']], shaft: [[-3, -30, 6, '#ffd166']],
+  zapper: [[0, -37, 16, '#9be3ff']], oven: [[3, -3, 18, '#ff9a3c']], icedig: [[-2, -28, 6, '#ff9bb8']], fusion: [[0, -14, 20, '#ffe8a0']], detector: [[0, -15, 5, '#ff6b81']], shaft: [[-3, -30, 6, '#ffd166']],
   condenser: [[0, -9, 10, '#5cc8ff']], oredrill: [[0, -36, 8, '#c9a7ff']], ccrafter: [[0, -18, 14, '#c9a7ff']], police: [[-6, -30, 8, '#ff6b81'], [6, -30, 8, '#5cc8ff']], graveyard: [[8, -22, 10, '#b8f0ff']], field: [[0, -14, 22, '#7ff7ff']], wizhut: [[0, -34, 10, '#c9a7ff'], [6, -8, 8, '#ffd36e']], church: [[0, -40, 10, '#ffd36e'], [-6, -8, 8, '#ffb35c']], crafter: [[0, -10, 12, '#ffb03a']],
   lemonade: [[0, -26, 10, '#ffe066']], lemon: [[0, -14, 12, '#fff3a0']],
   castle: [[-17, -30, 9, '#ffb35c'], [17, -30, 9, '#ffb35c'], [0, -8, 10, '#ffd36e']],
@@ -7155,6 +7345,37 @@ function drawRockBody(g, col, step, hit, bonked, angry) {
 }
 // a black alien: a dark wispy body with a faint purple glow and bright eyes
 // a water alien: a wobbly, see-through droplet with bubbles inside
+// a spider alien: a round body on eight jointed legs, with lots of glowing eyes
+function drawSpiderBody(g, col, t, walking, hit, angry, crown) {
+  const body = hit ? '#ffffff' : col, dark = shade(col, -0.35);
+  g.strokeStyle = dark; g.lineWidth = 1.4; g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let i = 0; i < 4; i++) for (const sd of [-1, 1]) {
+    const ph = walking ? Math.sin(t * 12 + i * 1.6 + (sd > 0 ? Math.PI : 0)) * 1.5 : 0;
+    const bx = sd * (2 + i * 1.2), kx = sd * (8 + i * 1.5), fx_ = sd * (11 + i * 1.2);
+    g.beginPath(); g.moveTo(bx, -8); g.lineTo(kx, -14 + ph); g.lineTo(fx_, ph * 0.4); g.stroke();
+  }
+  ell(g, -4, -10, 7, 5.5, body);
+  ell(g, 4, -9, 4.5, 4, body);
+  g.fillStyle = shade(col, 0.25); g.beginPath(); g.ellipse(-4, -12, 5, 2.4, 0, Math.PI, 0); g.fill();
+  g.strokeStyle = shade(col, 0.4); g.lineWidth = 0.8; g.beginPath(); g.moveTo(-8, -9); g.lineTo(-1, -11); g.stroke();
+  const eye = angry ? '#ff6b81' : '#ffd166';
+  for (const [x, y, r] of [[5.5, -10.5, 1], [7, -9.5, 0.9], [4.5, -8.6, 0.7], [6.6, -8, 0.6]]) ell(g, x, y, r, r, eye);
+  if (crown) { g.fillStyle = '#ffd166'; for (const [x, y] of [[-7, -15.5], [-4, -16.5], [-1, -15.5]]) poly(g, [[x - 1, y + 1], [x, y - 2.4], [x + 1, y + 1]]); }
+}
+function drawSpider(g, c, p, k, alpha, walking) {
+  g.restore(); g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
+  ell(g, 0, 1, 10 * k, 3.4 * k, 'rgba(20,10,30,0.3)');
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 26 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -22 * k, w, 4);
+    g.fillStyle = '#c9a7ff'; g.fillRect(-w / 2 + 1, -22 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  if (c.state === 'bonked') { g.translate(0, -6); g.scale(1, -0.8); }
+  drawSpiderBody(g, c.col, c.t + c.seed, walking, c.hit > 0, false, false);
+  g.restore();
+}
 // an ice alien: a chunky figure of pale blue ice crystals with a frosty glow
 function drawIceBody(g, col, step, hit, angry, crown) {
   const body = hit ? '#ffffff' : col, dark = shade(col, -0.25), edge = '#8fc8e8';
@@ -7404,7 +7625,7 @@ function updateKnights(dt) {
     }
   }
   knights = knights.filter(k => k.home.b === (k.cop ? 'police' : 'castle'));
-  const king = S.boss && (S.boss.kind === 'king' || S.boss.kind === 'elder' || S.boss.kind === 'shadow' || S.boss.kind === 'icegiant' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  const king = S.boss && (S.boss.kind === 'king' || S.boss.kind === 'elder' || S.boss.kind === 'shadow' || S.boss.kind === 'icegiant' || S.boss.kind === 'spiderqueen' || (S.boss.kind === 'lizard' && !S.boss.flying)) && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
   for (const k of knights) {
     k.t += dt; k.cd -= dt; k.swing = Math.max(0, k.swing - dt); k.hit = Math.max(0, k.hit - dt);
     const hx = k.home.gx + 0.5, hy = k.home.gy + 0.5;
@@ -7479,13 +7700,13 @@ function updateWizards(dt) {
     stepToward(w, w.home.gx + 0.5 + Math.cos(a) * 0.75, w.home.gy + 0.5 + Math.sin(a) * 0.75, 0.6 * dt);
     if (w.cd > 0) continue;
     const dist = c => Math.hypot(c.x - w.x, c.y - w.y);
-    const prey = crits.filter(c => c.state !== 'bonked' && c.state !== 'emerge' && !KINDS[c.kind || 'basic'].immune && dist(c) <= 3.6)
+    const prey = crits.filter(c => c.state !== 'bonked' && c.state !== 'emerge' && !KINDS[c.kind || 'basic'].immune && !KINDS[c.kind || 'basic'].spider && dist(c) <= 3.6)
       .sort((p, q) => (KINDS[q.kind || 'basic'].blob ? 1 : 0) - (KINDS[p.kind || 'basic'].blob ? 1 : 0) || dist(p) - dist(q)).slice(0, 2);
     const from = critWorld(w);
     if (prey.length) {
       for (const c of prey) { const to = critWorld(c); fx.push({ kind: 'magic', x: from.x + 5, y: from.y - 30, x2: to.x, y2: to.y - 10, life: 0.4, max: 0.4 }); bonk(c, false, 1, false, 'wizard'); }
       w.cd = 1.3; w.cast = 0.3; w.face = prey[0].x - w.x - (prey[0].y - w.y) > 0 ? 1 : -1;
-    } else if (boss && boss.kind !== 'king' && Math.hypot(boss.x - w.x, boss.y - w.y) <= 4.2) {
+    } else if (boss && boss.kind !== 'king' && boss.kind !== 'spiderqueen' && Math.hypot(boss.x - w.x, boss.y - w.y) <= 4.2) {
       const bw = bossWorld(); fx.push({ kind: 'magic', x: from.x + 5, y: from.y - 30, x2: bw.x, y2: bw.y - 40, life: 0.4, max: 0.4 });
       hurtBoss(1); w.cd = 1.3; w.cast = 0.3;
     }
@@ -7588,6 +7809,7 @@ function drawCritter(g, c) {
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.spider) { drawSpider(g, c, p, k, alpha, walking); return; }
   if (K.icy) { drawIce(g, c, p, k, alpha, walking); return; }
   if (K.water) { drawWater(g, c, p, k, alpha, walking); return; }
   if (K.shadow) { drawShadow(g, c, p, k, alpha, walking); return; }
@@ -7821,6 +8043,12 @@ function drawRange(g, t, r, col) {
   }
 }
 function drawGhost(g) {
+  if (dragDet && hover && hover !== dragDet) { // the detector you are dragging, shown where it would go
+    const c = center(hover), ok = !hover.b && ['plain', 'ore', 'ice', 'lake'].includes(hover.type) && !hover.layer;
+    g.save(); g.translate(c.x, c.y);
+    g.fillStyle = ok ? 'rgba(120,255,180,0.28)' : 'rgba(255,80,110,0.3)'; poly(g, [[0, -16], [32, 0], [0, 16], [-32, 0]]);
+    g.globalAlpha = 0.7; DRAW.detector(g, RT, 0.3, hover); g.restore();
+  }
   if (hover && ((tool === 'tower' && !hover.b) || (!tool && hover.b === 'tower'))) drawRange(g, hover, 2, 'rgba(92,200,255,0.16)');
   if (hover && ((tool === 'zapper' && !hover.b) || (!tool && hover.b === 'zapper'))) drawRange(g, hover, hasTech('arc') ? 3 : 2, 'rgba(255,209,102,0.12)');
   if (!hover || !tool) return;
@@ -7942,6 +8170,18 @@ function drawBG(g, W, H) {
   ell(g, sx, sy, 11, 11, '#fff3d6');
   if (S && LEVELS[S.level].bonus) { drawGlorpSky(g, W, H); return; }
   const sk = S && LEVELS[S.level].sky;
+  if (sk === 'pluto') { // black sky, a tiny bright Sun, and big Charon hanging overhead
+    g.fillStyle = '#04030a'; g.fillRect(0, 0, W, H);
+    for (const st of stars) ell(g, st.x * W, st.y * H, st.z, st.z, `rgba(255,248,235,${st.a * 0.8})`);
+    ell(g, W * 0.1, H * 0.15, 2.4, 2.4, '#ffffff'); ell(g, W * 0.1, H * 0.15, 8, 8, 'rgba(255,250,230,0.2)');
+    const cx = W * 0.78, cy = H * 0.24, cr = Math.min(W, H) * 0.12;
+    const cg = g.createRadialGradient(cx - cr * 0.4, cy - cr * 0.4, cr * 0.1, cx, cy, cr);
+    cg.addColorStop(0, '#d8d0c8'); cg.addColorStop(1, '#7a706a');
+    g.fillStyle = cg; g.beginPath(); g.arc(cx, cy, cr, 0, Math.PI * 2); g.fill();
+    ell(g, cx, cy - cr * 0.7, cr * 0.45, cr * 0.18, 'rgba(120,50,40,0.45)'); // Charon's reddish north pole
+    for (const [dx, dy, r] of [[-0.3, 0.1, 0.12], [0.25, 0.3, 0.09], [0.1, -0.2, 0.07]]) ell(g, cx + dx * cr, cy + dy * cr, r * cr, r * cr * 0.7, 'rgba(60,50,50,0.3)');
+    return;
+  }
   if (sk === 'neptune') { // deep blue sky, fast white cloud streaks, faint rings and Triton
     const ng = g.createLinearGradient(0, 0, 0, H);
     ng.addColorStop(0, '#0a1440'); ng.addColorStop(0.6, '#1f4fa8'); ng.addColorStop(1, '#5a8fe0');
@@ -8197,6 +8437,8 @@ function showTip(preview) {
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
     if (hover.frozen) b += ' <span style="color:var(--sky)">❄️ Frozen: working at 40% speed. Build a giant oven next to it.</span>';
     else if ((LEVELS[S.level].uranus || LEVELS[S.level].neptune) && hover.warm && !hover.layer) b += ' <span style="color:#ffb35c">🔥 Warmed by a giant oven.</span>';
+    if (S.coreMarked && !S.hiddenFound && S.tiles[S.hiddenCore] === hover) b += ' <b style="color:#ffd166">❌ The hidden power core is buried here! Build a dig site on it.</b>';
+    if (hover.b === 'detector') b += ' <span style="color:var(--sky)">Drag it to move it.</span>';
     if (hover.pond && !hover.b) b += ' <span style="color:var(--sky)">💧 This pond gives 0.5 water/s.</span>';
     if (hover.b === 'icedig') b += ` <b>${Math.round((hover.prog || 0) * 100)}% dug.</b>`;
     if (hover.b === 'dig') b += ` <b>${Math.round((hover.prog || 0) * 100)}% dug.</b>`;
@@ -8359,6 +8601,7 @@ function showTitle() {
       <button class="lvl nep" data-l="38"><span class="n">37</span><span><b>Neptune: Supersonic Winds</b><small>The fastest winds in the solar system.</small></span><span class="go">Play</span></button>
       <button class="lvl nep" data-l="39"><span class="n">38</span><span><b>Neptune: Triton’s Shadow</b><small>Under the backwards moon, the ice aliens gather.</small></span><span class="go">Play</span></button>
       <button class="lvl nep2" data-l="40"><span class="n">39</span><span><b>Neptune: The Ice Giant</b><small>The boss of all the ice aliens climbs out of the ice.</small></span><span class="go">Play</span></button>
+      <button class="lvl plu" data-l="41"><span class="n">40</span><span><b>Pluto: The Hidden Core</b><small>Fusion reactors, spider aliens, a metal detector and the Spider Queen.</small></span><span class="go">Play</span></button>
     </div>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
@@ -8575,7 +8818,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0aed9b59 0b1c87ac 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1d2363f8 1e261bbc 1e3bc430 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d4236e0 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6ad137a8 6b4736a6 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 776c07c6 7794c923 77a911a5 7837b257 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6e9c3d4 b7025808 b762f60b b7bacc46 b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6ad137a8 6b4736a6 6b8709b4 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71219925 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7794c923 77a911a5 7837b257 785c9c14 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b45ba542 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -8854,7 +9097,7 @@ function readSave() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     // Glorp has moved to the end of the list twice: slot 7 before v3, slot 10 before v4
-    if (d && d.S && !d.S.v13) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : !d.S.v10 ? 30 : !d.S.v11 ? 32 : !d.S.v12 ? 33 : 37)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = d.S.v11 = d.S.v12 = d.S.v13 = true; }
+    if (d && d.S && !d.S.v14) { if (d.S.level === (!d.S.v3 ? 7 : !d.S.v4 ? 10 : !d.S.v5 ? 12 : !d.S.v6 ? 16 : !d.S.v7 ? 19 : !d.S.v8 ? 24 : !d.S.v9 ? 25 : !d.S.v10 ? 30 : !d.S.v11 ? 32 : !d.S.v12 ? 33 : !d.S.v13 ? 37 : 41)) d.S.level = GLORP; d.S.v3 = d.S.v4 = d.S.v5 = d.S.v6 = d.S.v7 = d.S.v8 = d.S.v9 = d.S.v10 = d.S.v11 = d.S.v12 = d.S.v13 = d.S.v14 = true; }
     if (d && d.S && LEVELS[d.S.level] && Array.isArray(d.S.tiles) && d.S.tiles.length === (d.S.n || 11) ** 2) return d;
   } catch (e) {}
   return null;
@@ -9202,6 +9445,7 @@ function sfx(k) {
 
 // ---------------------------------------------------------------- input
 let hoverThing = null;
+let dragDet = null; // the metal detector being dragged
 function setHover(e) {
   if (!S || A) return;
   const thing = saucerAt(e.clientX, e.clientY) ? 'saucer' : critterAt(e.clientX, e.clientY) ? 'critter' : null;
@@ -9225,10 +9469,22 @@ cv.addEventListener('pointerdown', e => {
   if (met) { stopMeteor(met); return; }
   setHover(e);
   if (!hover) return;
+  if (!tool && hover.b === 'detector' && !hover.layer) { dragDet = hover; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); return; }
   if (tool) { place(tool, hover); showTip(); }
   else if (hover.type === 'nest') hitNest(hover);
   else if (hover.b === 'pad' && typeof showRocket === 'function') showRocket();
   else if (hover.b === 'crafter') showCrafter();
+});
+addEventListener('pointerup', e => {
+  if (!dragDet) return;
+  const from = dragDet; dragDet = null;
+  if (!S || A) return;
+  const to = pick(e.clientX, e.clientY);
+  if (!to || to === from || to.layer) return;
+  if (to.b || !['plain', 'ore', 'ice', 'lake'].includes(to.type)) { toast('The metal detector can’t go there.', 'bad'); sfx('nope'); return; }
+  from.b = null; to.b = 'detector'; to.born = RT; dirty = true;
+  sfx('tick'); hover = to; showTip();
+  say('kip', 'Keep dragging the detector around. Fast beeps mean we are close!', 'det-drag');
 });
 cv.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keydown', e => {

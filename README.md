@@ -156,6 +156,15 @@ screen, saved on the device), and one day come home to free Earth.
 39. **Neptune: The Ice Giant**: the boss climbs out of a frozen crater and marches on the
     castles. Taps, knights and wizards hurt it; zaps bounce off. Beating it wins a power core
     and the Ice Folk as allies.
+40. **Pluto: The Hidden Core** (on the star map from the start, like every world): the Sun is so
+    faint that solar arrays barely work, so **fusion reactors** (+12 energy, 80 metal and 4
+    crystals) and storm turbines power the colony; nothing freezes. **Spider aliens** take 19 hits;
+    zaps, drones and wizard magic bounce off, but knights, police and taps work. A power core is
+    buried on a random tile: build a **metal detector** and **drag it** around the map. It beeps
+    faster and says Cold / Cool / Warm / Hot! / HERE! as it gets closer, and when it's right on
+    top an **X marks the spot**: drag the detector away and build a dig site there. Then the
+    **Spider Queen** comes out (knights, police and taps only); beating her wins a second core and
+    the Spider Folk as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
