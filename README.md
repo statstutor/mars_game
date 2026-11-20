@@ -187,6 +187,14 @@ Every Mix-Up also brings things no other level has:
 - **Combo buildings** (2–3 per mix): two buildings in one, like a *Mining Greenhouse* or a *Dew
   Zapper*. Each does both jobs at half strength and costs half of each. The level's special goal
   is usually to build one.
+- **Brand-new buildings** (2 per mix), found nowhere else in the game:
+  - **Goo Pool**: aliens within 2 tiles get stuck and move at half speed.
+  - **Bounce Pad**: every 5 seconds it flings the nearest alien back home, and the alien drops
+    everything it stole.
+  - **Crystal Tree**: grows 1 crystal every 20 seconds (up to 2 trees).
+  - **Knight Medic Tent**: knights and police within 3 tiles get a heart back every 3 seconds.
+  - **Rainbow Fountain**: +10 happiness for 12 colonists and a little water.
+  Half the time, the special goal is to build one of them.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
