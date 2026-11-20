@@ -383,7 +383,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 47;
+const BUILD = 48;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2905,6 +2905,42 @@ const MIX_BOSSES = [
   ['lizardKing', 'lizardKingDefeated', 'the Lizard King'], ['chief', 'chiefDefeated', 'the Five-Head Chief'],
 ];
 const MIX_EXTRAS = ['cafe', 'clinic', 'arcade', 'park', 'church', 'graveyard', 'ccrafter', 'coop', 'ranch', 'icedig', 'condenser', 'tower', 'lemonade', 'fusion', 'turbine'];
+// what combo aliens are called: the first part of one, the second part of another
+const COMBO_FRONT = { armor: 'Armour', zippy: 'Zippy', brute: 'Brute', shell: 'Shell', fivehead: 'Five-Head', lizard: 'Lizard', blob: 'Blob', rhino: 'Rhino', rock: 'Rock', tree: 'Bark', shadow: 'Shadow', water: 'Splash', ice: 'Frost', spider: 'Spider' };
+const COMBO_BACK = { armor: 'crawler', zippy: 'zoomer', brute: 'brute', shell: 'beast', fivehead: 'header', lizard: 'lizard', blob: 'blob', rhino: 'rhino', rock: 'monster', tree: 'tree', shadow: 'shade', water: 'splasher', ice: 'freezer', spider: 'spider' };
+const COMBO_COLS = { armor: ['#7fe0c4', '#b79bff'], zippy: ['#ffd166'], brute: ['#e0607e'], shell: ['#5f86a8'], fivehead: ['#e0607e', '#5cc8ff', '#b79bff'], lizard: ['#5fbf6a', '#4fae8c'], blob: ['#7be06a', '#a6e85a'],
+  rhino: ['#8a7fa8', '#7a8aa8'], rock: ['#8a7a6a', '#9a8670'], tree: ['#5fbf6a', '#7cc15a'], shadow: ['#120e1c'], water: ['#5cc8ff', '#7fd8ff'], ice: ['#dff6ff', '#c4e8ff'], spider: ['#5a3a7a', '#6a3a5a'] };
+const COMBO_FLAGS = ['immune', 'icy', 'spider', 'water', 'noKnight', 'rock', 'lizard', 'regrow', 'blob', 'tree', 'rhino', 'shadow', 'smash'];
+// buildings that can be combined: their jobs are numbers (power, metal, water, food), or zapping
+const COMBO_BUILD = ['solar', 'turbine', 'fusion', 'condenser', 'greenhouse', 'coop', 'ranch', 'mine', 'drill', 'zapper'];
+const COMBO_WORD = { solar: 'Solar', turbine: 'Wind', fusion: 'Fusion', condenser: 'Dew', greenhouse: 'Greenhouse', coop: 'Chicken', ranch: 'Goat', mine: 'Mining', drill: 'Ice', zapper: 'Zapper' };
+function makeComboAlien(id, a, b) {
+  const A = KINDS[a], Bk = KINDS[b];
+  const K = { hp: Math.max(5, Math.round((A.hp + Bk.hp) / 2 * 1.1)), spd: (A.spd + Bk.spd) / 2, size: Math.max(A.size, Bk.size), steal: Math.max(A.steal, Bk.steal),
+    combo: true, drawAs: a, col: COMBO_COLS[b], name: `${COMBO_FRONT[a]}-${COMBO_BACK[b]}`, parents: [a, b] };
+  for (const f of COMBO_FLAGS) if (A[f] || Bk[f]) K[f] = A[f] || Bk[f];
+  KINDS[id] = K; KIND_LINES[id] = KIND_LINES.combo;
+  return K;
+}
+function makeComboBuilding(id, a, b) {
+  const A = B[a], Bb = B[b], on = A.on.filter(x => Bb.on.includes(x));
+  const cost = {};
+  for (const [k, v] of Object.entries(A.cost).concat(Object.entries(Bb.cost))) cost[k] = (cost[k] || 0) + Math.ceil(v / 2);
+  const half = (x, y) => ((x || 0) + (y || 0)) / 2;
+  const out = {};
+  for (const k of ['metal', 'water', 'food']) { const v = ((A.out || {})[k] || 0) / 2 + ((Bb.out || {})[k] || 0) / 2; if (v) out[k] = Math.round(v * 100) / 100; }
+  const name = `${COMBO_WORD[a]} ${Bb.name}`;
+  B[id] = { name, cost, on, onText: `${name}s need ${on.join(' or ')}.`, energy: Math.round(half(A.energy, Bb.energy) * 10) / 10 || undefined,
+    out: Object.keys(out).length ? out : undefined, drinks: half(A.drinks, Bb.drinks) || undefined, zapHalf: a === 'zapper' || b === 'zapper' || undefined,
+    desc: `A mixed-up building: it does the jobs of a ${A.name.toLowerCase()} AND a ${Bb.name.toLowerCase()}, each at half strength.` };
+  WHERE[id] = ['surface'];
+  DRAW[id] = (g, T, v, t) => {
+    g.save(); g.translate(-7, 3); g.scale(0.72, 0.72); DRAW[a](g, T, v, t); g.restore();
+    g.save(); g.translate(7, -2); g.scale(0.72, 0.72); DRAW[b](g, T, v + 0.3, t); g.restore();
+    ell(g, 0, -30, 2 + Math.sin(T * 5 + v) * 0.6, 2 + Math.sin(T * 5 + v) * 0.6, `hsl(${(T * 120) % 360},90%,70%)`);
+  };
+  return B[id];
+}
 const MIX_FACTS = [
   '<b>Mixed-up moons:</b> the solar system has more than 290 known moons, and new ones are still being found.',
   '<b>Far apart:</b> if the Sun were a football, Earth would be a peppercorn 25 metres away, and Neptune would be 750 metres away.',
@@ -2929,10 +2965,20 @@ function applyMix(seed) {
   L.n = n; L.seed = 1 + Math.floor(r() * 1e6);
   L.map = { ice: m.ice || 0, mountains: m.mountains || [], craters: m.craters && m.craters.length ? m.craters : [[3, 3], [n - 4, 3]],
             ore: (m.ore || []).concat([[2, n - 3, 1.0]]), ruins: [], frost: (m.frost || []).concat(frost), voids: look.floating ? (m.voids || []) : [] };
-  // the aliens: two or three kinds from all over the solar system
+  // the aliens: one or two ordinary kinds, two or three combos of two kinds, and one or two brand-new ones
   const kinds = Object.keys(MIX_ALIENS), chosen = [];
-  while (chosen.length < 2 + (r() < 0.5 ? 1 : 0)) { const k = pick(kinds); if (!chosen.includes(k)) chosen.push(k); }
-  L.critters = { every: [[16, 22], [12, 17], [9, 13]][D], max: [5, 7, 9][D], speed: [0.7, 0.85, 1][D], after: () => S.time > 25, mix: Object.fromEntries(chosen.map(k => [k, 2]).concat([['basic', 1]])) };
+  while (chosen.length < 1 + (r() < 0.5 ? 1 : 0)) { const k = pick(kinds); if (!chosen.includes(k)) chosen.push(k); }
+  const combos = [], nCombo = 2 + (r() < 0.5 ? 1 : 0);
+  while (combos.length < nCombo) {
+    const a = pick(kinds), b = pick(kinds);
+    if (a === b || combos.some(x => x.join() === [a, b].join())) continue;
+    combos.push([a, b]);
+  }
+  combos.forEach(([a, b], i) => makeComboAlien('mixa' + i, a, b));
+  const fresh = [];
+  while (fresh.length < 1 + (r() < 0.5 ? 1 : 0)) { const k = pick(['splitter', 'ghost', 'healer']); if (!fresh.includes(k)) fresh.push(k); }
+  const alienIds = chosen.concat(combos.map((_, i) => 'mixa' + i), fresh);
+  L.critters = { every: [[16, 22], [12, 17], [9, 13]][D], max: [6, 8, 10][D], speed: [0.7, 0.85, 1][D], after: () => S.time > 25, mix: Object.fromEntries(alienIds.map(k => [k, 2]).concat([['basic', 1]])) };
   // the buildings: the basics, every kind of defence, and four random extras
   const extras = [];
   while (extras.length < 4) { const b = pick(MIX_EXTRAS); if (!extras.includes(b)) extras.push(b); }
@@ -2940,6 +2986,15 @@ function applyMix(seed) {
   if (cold) tools.push('oven');
   if ((look.sun || 1) < 0.4 && !extras.includes('fusion')) tools.push('fusion');
   for (const b of extras) { if (b === 'lemonade') tools.push('tower', 'lemon', 'lemonade'); else if (!tools.includes(b)) tools.push(b); }
+  // two or three combo buildings: two buildings fused, each job at half strength
+  const cbs = [], nCB = 2 + (r() < 0.5 ? 1 : 0);
+  for (let tries = 0; cbs.length < nCB && tries < 200; tries++) {
+    const a = pick(COMBO_BUILD), b = pick(COMBO_BUILD);
+    if (a === b || cbs.some(x => x.join() === [a, b].join() || x.join() === [b, a].join())) continue;
+    if (!B[a].on.some(x => B[b].on.includes(x))) continue; // they must fit on the same kind of ground
+    cbs.push([a, b]);
+  }
+  cbs.forEach(([a, b], i) => { makeComboBuilding('mixb' + i, a, b); tools.push('mixb' + i); });
   tools.push('recycle');
   L.tools = tools;
   L.prebuilt = [['habitat', c - 1, c + 2], ['habitat', c, c + 2], ['solar', c + 1, c + 2], ['drill', c - 1, c + 3], ['castle', c, c]].concat(cold ? [['oven', c, c + 1]] : []);
@@ -2949,7 +3004,7 @@ function applyMix(seed) {
   if (r() < 0.3) L[pick(['meteors', 'diamonds'])] = true;
   L.mixBoss = [0.7, 1, 1.3][D]; L.mixReward = [25, 40, 60][D]; L.mixDiff = diff;
   // the goals (their hints are fixed, so the crew can say them out loud)
-  const special = extras.find(b => b !== 'lemonade' && b !== 'turbine') || 'cafe', G = L.goals;
+  const special = cbs.length ? 'mixb0' : extras.find(b => b !== 'lemonade' && b !== 'turbine') || 'cafe', G = L.goals;
   const byMix = (k) => G.find(g => g.mix === k);
   Object.assign(byMix('power'), { get: () => count('solar') + count('turbine') + count('fusion') });
   Object.assign(byMix('homes'), { get: () => count('habitat') });
@@ -2962,12 +3017,13 @@ function applyMix(seed) {
   for (const b of MIX_BOSSES) delete bg[b[0]];
   Object.assign(bg, { text: `Defeat ${boss[2]}`, [boss[0]]: true, get: () => S[boss[1]] ? 1 : 0 });
   // the briefing
-  const names = chosen.map(k => MIX_ALIENS[k]);
+  const names = chosen.map(k => MIX_ALIENS[k]).concat(combos.map((_, i) => KINDS['mixa' + i].name + 's'), fresh.map(k => KINDS[k].name));
   const list = names.length > 2 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names.join(' and ');
   L.brief = {
     eyebrow: `Bonus level · ${diff}`, title: 'Random Mix-Up',
     body: [`A brand new random level! It looks like <b>${look.name}</b>, with the land of <b>${land.name}</b>${cold ? ', and it is freezing: build <b>giant ovens</b>' : ''}.`,
-      `Watch out for <b>${list}</b>. Special buildings this time: <b>${extras.map(b => B[b].name).join(', ')}</b>. At the end, <b>${boss[2]}</b> is waiting. Difficulty: <b>${diff}</b>.`],
+      `Watch out for <b>${list}</b>. Combo aliens have both aliens’ powers, but taps always work on them.`,
+      `Combo buildings (each job at half strength): <b>${cbs.map((_, i) => B['mixb' + i].name).join(', ')}</b>. Other special buildings: <b>${extras.map(b => B[b].name).join(', ')}</b>. At the end, <b>${boss[2]}</b> is waiting. Difficulty: <b>${diff}</b>.`],
     fact: MIX_FACTS[Math.floor(r() * MIX_FACTS.length)],
   };
   L.done = { title: 'Mix-Up beaten!', body: `You beat a ${diff.toLowerCase()} Random Mix-Up, with ${list} and ${boss[2]}.`, fact: L.brief.fact };
@@ -5643,6 +5699,11 @@ const KINDS = {
   ice:      { hp: 18, spd: 0.55, size: 1.6, steal: 1.4, icy: true },
   // Pluto's spider aliens: nineteen hits; zaps and wizard magic bounce off, but knights, police and taps work
   spider:   { hp: 19, spd: 0.85, size: 1.6, steal: 1.4, spider: true },
+  // Random Mix-Up only: brand-new aliens
+  splitter:  { hp: 6, spd: 0.8, size: 1.4, steal: 1.2, splits: true, col: ['#ff9a3c', '#ffb35c'], name: 'splitters' },   // splits in two when beaten
+  splitling: { hp: 2, spd: 1.3, size: 0.8, steal: 0.6, col: ['#ffb35c', '#ffd166'], name: 'splitlings' },
+  ghost:     { hp: 7, spd: 0.9, size: 1.3, steal: 1.2, phase: true, col: ['#eef0ff', '#dfe6ff'], name: 'phantoms' },     // vanishes now and then; nothing can hit it then
+  healer:    { hp: 8, spd: 0.7, size: 1.3, steal: 1, healer: true, col: ['#7be06a', '#5fd38d'], name: 'medic bugs' },   // heals the aliens around it
 };
 const KIND_LINES = {
   armor: ['eng', 'Careful, that one has a shell. Armoured critters need two bonks.'],
@@ -5650,6 +5711,10 @@ const KIND_LINES = {
   sneaky: ['kip', 'I can barely see that one. Sneaky critters are almost invisible until they get close to a building.'],
   brute: ['eng', 'That is a big one. Brutes take four bonks and steal a lot. Get the zappers on it!'],
   shell: ['eng', 'That is a shell-beast! Zappers and taps just bounce off that shell. Only knights can beat it, so build a castle.'],
+  splitter: ['kip', 'A splitter! When you beat it, it splits into two little splitlings. Get them too!'],
+  ghost: ['kip', 'A phantom! Every few seconds it fades away, and nothing can touch it. Hit it when you can see it.'],
+  healer: ['bot', 'That is a medic bug! It heals the aliens around it. Beat it first!'],
+  combo: ['kip', 'A combo alien! It has the powers of two aliens mixed together. Taps always work on it, though.'],
   spider: ['eng', 'Spider aliens! Zaps and wizard magic bounce off their shells. Only knights, police and taps can beat them, and they take nineteen hits.'],
   ice: ['eng', 'Ice aliens! Zaps bounce right off them. Taps, knights and wizards can crack them, and they take eighteen hits.'],
   water: ['eng', 'Water aliens! Taps and knights just splash right through them. Only zappers and wizards can beat them, and they take seventeen hits.'],
@@ -5675,6 +5740,8 @@ function pickKind() {
 }
 const graveHp = hp => hp > 1 && S.tiles.some(t => t.b === 'graveyard') ? hp - 1 : hp;
 function spawnCritter(kind = pickKind(), from = null) {
+  const K = KINDS[kind];
+  if ((K.combo || K.name) && S.said && !S.said['new-' + kind]) { S.said['new-' + kind] = 1; toast(`New in this mix: ${K.combo ? 'a ' + K.name : K.name}!`, 'bad'); }
   const targets = S.tiles.filter(t => t.b && t.b !== 'zapper' && t.b !== 'field');
   if (!targets.length) return false;
   const homes = S.tiles.filter(t => t.type === 'crater' || t.type === 'frozen' || (t.basin && t.type === 'lake'));
@@ -5683,9 +5750,8 @@ function spawnCritter(kind = pickKind(), from = null) {
   else if (homes.length) { const h = homes[Math.floor(Math.random() * homes.length)]; hx = h.gx + 0.5; hy = h.gy + 0.5; home = h; }
   else { const e = Math.random() * N; [hx, hy] = Math.random() < 0.5 ? [e, N - 0.3] : [N - 0.3, e]; }
   const tgt = targets[Math.floor(Math.random() * targets.length)];
-  const K = KINDS[kind];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = kind === 'spider' ? ['#5a3a7a', '#4a3a6a', '#6a3a5a'][Math.floor(Math.random() * 3)] : kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = K.col ? K.col[Math.floor(Math.random() * K.col.length)] : kind === 'spider' ? ['#5a3a7a', '#4a3a6a', '#6a3a5a'][Math.floor(Math.random() * 3)] : kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -5823,6 +5889,15 @@ function updateCritters(dt) {
       }
       continue;
     }
+    if (K.healer && c.state !== 'bonked') {
+      c.healT = (c.healT ?? 4) - dt;
+      if (c.healT <= 0) {
+        c.healT = 4;
+        for (const o of crits) if (o !== c && o.state !== 'bonked' && o.hp < o.maxhp && Math.hypot(o.x - c.x, o.y - c.y) < 2.2) {
+          o.hp++; const w = critWorld(o); fx.push({ kind: 'text', x: w.x, y: w.y - 34, text: '+1', life: 0.8, max: 0.8, color: '#7be06a' });
+        }
+      }
+    }
     if (K.regrow && c.hp < c.maxhp && c.state !== 'bonked') {
       c.calm = (c.calm || 0) + dt;
       if (c.calm > K.regrow) {
@@ -5865,7 +5940,7 @@ function updateCritters(dt) {
   }
   // zappers
   for (const t of S.tiles) {
-    if ((t.b !== 'zapper' && t.b !== 'tesla') || t.off > 0) continue;
+    if (!t.b || (t.b !== 'zapper' && t.b !== 'tesla' && !(B[t.b] && B[t.b].zapHalf)) || t.off > 0) continue;
     t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1) * (t.frozen ? FROZEN : 1);
     if (t.cd > 0) continue;
     const tesla = t.b === 'tesla', arc = hasTech('arc');
@@ -5888,6 +5963,7 @@ function updateCritters(dt) {
       }
       t.cd = 1.4;
     } else if (zapBoss(t, range) || zapCrasher(t, range, dmg)) t.cd = 1.4;
+    if (B[t.b].zapHalf && t.cd > 0) t.cd *= 2; // a combo zapper zaps at half speed
   }
   // zappers underground can reach rock monsters hiding down a tunnel
   if (S.under && burrowed.length) for (const t of S.under) {
@@ -5918,11 +5994,14 @@ function updateCritters(dt) {
   crits = crits.filter(c => !c.gone);
 }
 const dmgMul = () => S && S.tiles.some(t => t.b === 'church') ? 2 : 1;
-const zapProof = c => { const K = KINDS[c.kind || 'basic']; return K.immune || K.icy || K.spider || (K.lizard && !(c.fly > 0)); };
+const phased = c => KINDS[c.kind || 'basic'].phase && ((c.t + c.seed * 3) % 6) > 4.2;
+const zapProof = c => { const K = KINDS[c.kind || 'basic']; return phased(c) || K.immune || K.icy || K.spider || (K.lizard && !(c.fly > 0)); };
 function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
   if (c.state === 'bonked') return;
+  if (phased(c)) return; // a faded phantom: it went right through
+  const tapThrough = KINDS[c.kind || 'basic'].combo && !zapped && !knight && !src; // combo aliens: taps always work
   if (knight && KINDS[c.kind || 'basic'].noKnight) return;
-  if (KINDS[c.kind || 'basic'].spider && !knight && (zapped || src === 'wizard')) { // zaps and magic bounce off
+  if (!tapThrough && KINDS[c.kind || 'basic'].spider && !knight && (zapped || src === 'wizard')) { // zaps and magic bounce off
     c.hit = 0.2;
     const p = critWorld(c);
     burst(p.x, p.y - 12, 6, ['#ffffff', '#c9a7ff']);
@@ -5931,7 +6010,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     say('eng', 'Zaps and wizard magic bounce off spider shells! Only knights, police and taps can beat them.', 'spider-tink');
     return;
   }
-  if (KINDS[c.kind || 'basic'].icy && zapped) { // zaps bounce off the ice
+  if (!tapThrough && KINDS[c.kind || 'basic'].icy && zapped) { // zaps bounce off the ice
     c.hit = 0.2;
     const p = critWorld(c);
     burst(p.x, p.y - 12, 6, ['#ffffff', '#dff6ff']);
@@ -5940,7 +6019,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     say('eng', 'Zaps bounce right off the ice! Taps, knights and wizards can crack ice aliens.', 'ice-tink');
     return;
   }
-  if (KINDS[c.kind || 'basic'].water && src !== 'wizard' && !(zapped && src !== 'drone')) { // taps splash right through
+  if (!tapThrough && KINDS[c.kind || 'basic'].water && src !== 'wizard' && !(zapped && src !== 'drone')) { // taps splash right through
     c.hit = 0.2;
     const p = critWorld(c);
     burst(p.x, p.y - 12, 8, ['#bdf3ff', '#5cc8ff', '#ffffff']);
@@ -5949,7 +6028,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     say('eng', 'Taps just splash right through water aliens! Only zappers and wizards can beat them.', 'water-tap');
     return;
   }
-  if (KINDS[c.kind || 'basic'].lizard) {
+  if (!tapThrough && KINDS[c.kind || 'basic'].lizard) {
     if (knight && c.fly > 0) return; // knights can't reach a lizard in the air
     if (zapped && !(c.fly > 0)) {      // zaps bounce off their scales on the ground
       c.hit = 0.2;
@@ -5960,7 +6039,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
       return;
     }
   }
-  if (KINDS[c.kind || 'basic'].immune && !knight) {
+  if (!tapThrough && KINDS[c.kind || 'basic'].immune && !knight) {
     c.hit = 0.2;
     const p = critWorld(c);
     burst(p.x, p.y - 14, 6, ['#ffffff', '#9be3ff']);
@@ -5993,6 +6072,11 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     return;
   }
   c.state = 'bonked'; c.t = 0;
+  if (KINDS[c.kind || 'basic'].splits) {
+    const home = critTile(c);
+    for (let i = 0; i < 2; i++) if (spawnCritter('splitling', home)) { const n = crits[crits.length - 1]; n.x = c.x + (i ? 0.3 : -0.3); n.y = c.y; n.state = 'walk'; }
+    say('kip', 'It split into two splitlings! Quick, get them!', 'split1');
+  }
   if (KINDS[c.kind || 'basic'].spider) {
     S.spidersBeaten = (S.spidersBeaten || 0) + 1;
     say('kip', 'Got it! The spider alien curled up its legs and rolled away. Seven more legs than I have.', 'spider-down');
@@ -6041,9 +6125,10 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
 }
 function critterAt(mx, my) {
   const under = S.view === 'under';
+  const pool = (under ? burrowed.filter(c => c.tun) : crits).filter(c => !phased(c));
   if (S.view && S.view !== 'surface' && !under) return null;
   let best = null, bd = Infinity;
-  for (const c of under ? burrowed.filter(c => c.tun) : crits) {
+  for (const c of pool) {
     if (c.state === 'bonked') continue;
     const k = KINDS[c.kind || 'basic'].size;
     const p = critWorld(c), sx = view.x + p.x * view.s, sy = view.y + (p.y - 7 * k - (c.fly > 0 ? 24 : 0)) * view.s;
@@ -7464,6 +7549,36 @@ function drawRockBody(g, col, step, hit, bonked, angry) {
 }
 // a black alien: a dark wispy body with a faint purple glow and bright eyes
 // a water alien: a wobbly, see-through droplet with bubbles inside
+// Random Mix-Up's brand-new aliens
+function drawNewAlien(g, c, k, walking, K) {
+  if (c.state !== 'bonked' && c.hp < c.maxhp) {
+    const w = 22 * k;
+    g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(-w / 2, -24 * k, w, 4);
+    g.fillStyle = '#ff9b9b'; g.fillRect(-w / 2 + 1, -24 * k + 1, (w - 2) * c.hp / c.maxhp, 2);
+  }
+  if (c.hit > 0) g.translate((Math.random() - 0.5) * 2, 0);
+  g.scale(k * c.face, k);
+  if (c.state === 'bonked') g.rotate(Math.min(1.4, c.t * 3));
+  const bob = walking ? Math.abs(Math.sin(c.t * 12 + c.seed)) * 1.5 : 0, body = c.hit > 0 ? '#ffffff' : c.col;
+  if (K.phase) { // a sheet-ghost alien with a wavy hem
+    g.fillStyle = body; g.beginPath(); g.moveTo(-6, -2 - bob);
+    for (let i = 0; i <= 4; i++) g.lineTo(-6 + i * 3, (i % 2 ? 0 : -2) - bob + Math.sin(c.t * 6 + i) * 0.6);
+    g.lineTo(6, -2 - bob); g.quadraticCurveTo(7, -18 - bob, 0, -18 - bob); g.quadraticCurveTo(-7, -18 - bob, -6, -2 - bob); g.fill();
+    ell(g, 1.5, -12 - bob, 1.3, 1.8, '#3a2a5a'); ell(g, 4.2, -11.6 - bob, 1.1, 1.6, '#3a2a5a'); ell(g, 3, -7.5 - bob, 1.2, 0.8, '#3a2a5a');
+    return;
+  }
+  if (K.healer) { // a round green bug with little wings and a red cross
+    for (const sd of [-1, 1]) ell(g, sd * 5, -12 - bob + Math.sin(RT * 30) * 0.8, 4, 2.4, 'rgba(255,255,255,0.6)');
+    ell(g, 0, -8 - bob, 6.5, 6, body);
+    g.fillStyle = '#ff6b81'; g.fillRect(-1, -11.5 - bob, 2, 7); g.fillRect(-3.5, -9 - bob, 7, 2);
+    ell(g, 3.5, -12 - bob, 1, 1, '#1a1238'); ell(g, 5.6, -11.4 - bob, 0.9, 0.9, '#1a1238');
+    return;
+  }
+  // splitters and splitlings: a round orange blob with a crack down the middle
+  ell(g, 0, -7 - bob, 6.5, 6, body);
+  g.strokeStyle = shade(c.col, -0.35); g.lineWidth = 0.9; g.beginPath(); g.moveTo(0, -13 - bob); g.lineTo(-1, -9 - bob); g.lineTo(1, -6 - bob); g.lineTo(0, -1 - bob); g.stroke();
+  ell(g, 2.6, -9 - bob, 1.2, 1.4, '#1a1238'); ell(g, 4.8, -8.6 - bob, 1, 1.2, '#1a1238');
+}
 // a spider alien: a round body on eight jointed legs, with lots of glowing eyes
 function drawSpiderBody(g, col, t, walking, hit, angry, crown) {
   const body = hit ? '#ffffff' : col, dark = shade(col, -0.35);
@@ -7925,9 +8040,21 @@ function drawCritter(g, c) {
   const bob = walking ? Math.abs(Math.sin(c.t * 13 + c.seed)) * 3 : c.state === 'nibble' ? Math.abs(Math.sin(c.t * 22)) * 1.2 : 0;
   alpha *= critAlpha(c);
   const K = KINDS[c.kind || 'basic'];
+  if (K.combo) { // a combo alien: drawn as one parent, in the other's colours, on a rainbow ring
+    if (c.state !== 'bonked') {
+      g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha * 0.8;
+      g.strokeStyle = `hsl(${(RT * 120 + c.seed * 40) % 360},90%,65%)`; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(0, 1, 9 * K.size, 3.6 * K.size, 0, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = '#ffffff'; g.font = '700 10px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(K.name, 0, -34 * K.size);
+      g.restore();
+    }
+    const real = c.kind; c.kind = K.drawAs; drawCritter(g, c); c.kind = real; return;
+  }
+  if (phased(c)) alpha *= 0.15;
   k *= K.size;
   g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha;
   ell(g, 0, 1, 7 * k, 2.6 * k, 'rgba(70,16,24,0.25)');
+  if (K.splits || c.kind === 'splitling' || K.phase || K.healer) { drawNewAlien(g, c, k, walking, K); g.restore(); return; }
   if (K.spider) { drawSpider(g, c, p, k, alpha, walking); return; }
   if (K.icy) { drawIce(g, c, p, k, alpha, walking); return; }
   if (K.water) { drawWater(g, c, p, k, alpha, walking); return; }
@@ -8957,7 +9084,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40ec22c0 42166813 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a79b588 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71219925 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7794c923 77a911a5 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 883ccef6 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b45ba542 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40ec22c0 42166813 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 5598b671 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a79b588 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71219925 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7794c923 77a911a5 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 883ccef6 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b45ba542 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;

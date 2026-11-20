@@ -176,6 +176,17 @@ diamond rain join in, and an ice-giant look means giant ovens. Beating it gives 
 crystals and a golden crystal for Zorp; it never gives mission power cores or allies. A saved
 Mix-Up comes back exactly the same (the save keeps its random seed).
 
+Every Mix-Up also brings things no other level has:
+- **Combo aliens** (2–3 per mix): two alien kinds fused into one, like a *Rhino-crawler* or an
+  *Ice-monster*. They have a rainbow ring and both parents' powers mixed together (ice, water,
+  regrowing, hiding and so on), but taps always work on them.
+- **Brand-new aliens** (1–2 per mix): **splitters** split into two little splitlings when beaten,
+  **phantoms** fade away every few seconds and nothing can hit them while they're faded, and
+  **medic bugs** heal the aliens next to them.
+- **Combo buildings** (2–3 per mix): two buildings in one, like a *Mining Greenhouse* or a *Dew
+  Zapper*. Each does both jobs at half strength and costs half of each. The level's special goal
+  is usually to build one.
+
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
 worth 3 hearts as a gift. At 20 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
