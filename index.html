@@ -381,7 +381,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 41;
+const BUILD = 42;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3700,9 +3700,19 @@ const sysOf = k => k === 'mars' ? 'mars' : WORLDS[k].sys;
 // two levels on the same moon (Europa 1 and 2, Moon 1 and 2) need no flight between them
 const sameBody = (a, b) => !!(WORLDS[a] && WORLDS[b] && WORLDS[a].body && WORLDS[a].body === WORLDS[b].body);
 const sameMoon = k => sameBody(k, hereWorld());
+// How far each planet is from the Sun, in AU (Earth = 1). The black hole is out past Neptune.
+const SYS_AU = { mercury: 0.39, venus: 0.72, earth: 1, mars: 1.52, jupiter: 5.2, saturn: 9.5, uranus: 19.2, neptune: 30, blackhole: 40 };
+// Fuel for a trip between planets grows with how far apart they are: next-door planets (Neptune
+// to Uranus, Earth to Mars) cost about 170, the far side of the solar system (Mercury to Uranus) 500.
+// Trips between moons of the same planet keep each world's own, smaller number.
+function sysFuel(a, b) {
+  const ra = SYS_AU[a] || 1, rb = SYS_AU[b] || 1;
+  return clamp(Math.round((120 + 110 * Math.abs(Math.log(ra / rb))) / 10) * 10, 150, 500);
+}
 function tripFuel(k) {
   if (sameMoon(k)) return 0;
-  return sysOf(hereWorld()) !== WORLDS[k].sys ? 300 : WORLDS[k].fuel;
+  const from = sysOf(hereWorld()), to = WORLDS[k].sys;
+  return from !== to ? sysFuel(from, to) : Math.min(WORLDS[k].fuel, 160);
 }
 function tripNeeds(k) {
   if (sameMoon(k)) return [];

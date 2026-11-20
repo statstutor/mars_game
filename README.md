@@ -40,11 +40,15 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 6. **Exodus**: two ways to win. Build a **Greater Mars** on every layer, or build the colony
    rocket, beat the **Critter Queen** and fight your way out of orbit past the Swarm Mother.
 **Leaving Mars is your choice.** At the launch pad, open the star map and set a course for
-Phobos (120 fuel), Deimos (160 fuel, needs **Big Engines**) or Europa (300 fuel, needs Big
+Phobos (120 fuel), Deimos (160 fuel, needs **Big Engines**) or Europa (260 fuel, needs Big
 Engines and a **Radiation Shield**). Upgrades cost metal and crystals and stay on the rocket
 for good. Farther trips mean a longer, tougher escape battle; Europa adds the Radiation Ray
 boss in Jupiter's radiation belts. After finishing a moon, build a pad and fuel plant there
 and fly on to any other world. The Shell King (Level 10) opens once Europa is done.
+Fuel for a trip to another planet depends on how far apart the two planets are from the Sun:
+next-door planets (Earth and Mars, Uranus and Neptune) cost about 170, while crossing the
+whole solar system (Mercury to Uranus or Neptune) costs 500. Trips between moons of the same
+planet stay cheap (120 to 160).
 
 6½. **Under Mars** (a side trip from Exodus): finishing Level 6 offers *Go underground*. A city in
    the lava tubes with the same buildings and research as Level 6, tunnel critters that take 2 to
