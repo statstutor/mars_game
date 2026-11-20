@@ -139,6 +139,15 @@ screen, saved on the device), and one day come home to free Earth.
 35. **Uranus: The Great Wave**: a giant water alien rises out of the slush. Only zappers and
     wizards hurt it, and every 40 damage splashes off a new water alien. Beating it wins a power
     core and the Water Folk as allies.
+36. **Neptune: Blue Ice**, 37. **Supersonic Winds**, 38. **Triton's Shadow** (on the star map
+    after the Great Wave): the farthest planet. Giant ovens and mine shafts work as on Uranus.
+    The **ice digger** digs into any flat ground or ice, pumps water while it digs, and after
+    about 30 seconds leaves a **pond** that keeps giving water (ice drills and fish farms work on
+    ponds). **Ice aliens** take 18 hits; zappers and drones bounce off, but taps, knights and
+    wizards crack them, and each one beaten leaves 3 water. A power core in each level.
+39. **Neptune: The Ice Giant**: the boss climbs out of a frozen crater and marches on the
+    castles. Taps, knights and wizards hurt it; zaps bounce off. Beating it wins a power core
+    and the Ice Folk as allies.
 
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
