@@ -62,7 +62,8 @@ The "(on the star map after ...)" notes below give the suggested story order.
 8. **Deimos Watch**: Mars's outer moon, and the first **shell-beasts**: armoured aliens that
    zappers, drones and taps bounce off. Build **castles**, which train up to 3 **knights** each
    (one every 12 seconds, 5 food apiece). Knights guard everything within 4 tiles of their castle
-   and are the only thing that can hurt a shell-beast. A knocked-out knight walks home to heal.
+   and are the only thing that can hurt a shell-beast. Aliens hit back hard: each hit takes 2 of a knight's 4 hearts, so a knocked-out knight (who walks
+   home to heal) can happen fast. Chewing aliens also steal supplies quickly, so bonk them early.
 9. **Europa: The Ice Shell**: Jupiter's ice moon. Solar arrays make half as much power, so use
    geothermal plants on the warm cracks. Giant shell-beasts smash buildings if left alone.
 10. **Europa: The Shell King**: three castles and nine knights, then the **Shell-beast King**

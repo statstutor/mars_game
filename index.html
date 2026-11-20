@@ -383,7 +383,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 48;
+const BUILD = 49;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4788,7 +4788,7 @@ function kingStep(b, dt) {
   const near = knights.filter(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - b.x, k.y - b.y) < 1.8);
   if (b.atk <= 0 && near.length) {
     b.atk = b.enraged ? 1.5 : 2.1; b.slam = 0.35;
-    for (const k of near) hurtKnight(k, 1, b);
+    for (const k of near) hurtKnight(k, ALIEN_HIT, b);
     const w = bossWorld();
     fx.push({ kind: 'ring', x: w.x, y: w.y, r: 10, life: 0.6, max: 0.6, color: '#c9cee8', big: true });
     shake = RM ? 0 : 6; sfx('boom');
@@ -4972,7 +4972,7 @@ function lizardStep(b, dt) {
   const near = b.flying ? [] : knights.filter(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - b.x, k.y - b.y) < 1.7);
   if (b.atk <= 0 && near.length) {
     b.atk = 2; b.slam = 0.35;
-    for (const k of near) hurtKnight(k, 1, b);
+    for (const k of near) hurtKnight(k, ALIEN_HIT, b);
     const w = bossWorld(); fx.push({ kind: 'ring', x: w.x, y: w.y, r: 10, life: 0.6, max: 0.6, color: '#7cc15a', big: true }); sfx('clang');
   }
   let tgt = S.tiles[b.ti];
@@ -5885,7 +5885,7 @@ function updateCritters(dt) {
       if (c.atk <= 0) {
         c.atk = K.immune ? 1.4 : 2.5;
         const kn = knights.find(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - c.x, k.y - c.y) < 0.6 + 0.3 * K.size);
-        if (kn) hurtKnight(kn, 1, c);
+        if (kn) hurtKnight(kn, ALIEN_HIT, c);
       }
       continue;
     }
@@ -5916,7 +5916,7 @@ function updateCritters(dt) {
       if (!tgt.b) { c.state = 'flee'; c.t = 0; continue; }
       tgt.off = Math.max(tgt.off || 0, 0.3);
       const key = LOOT[tgt.b] || 'metal';
-      const amt = Math.min(S[key] || 0, 1.4 * K.steal * (S.techs && S.techs.includes('shields') ? 0.5 : 1) * dt);
+      const amt = Math.min(S[key] || 0, 1.4 * STEAL_MUL * K.steal * (S.techs && S.techs.includes('shields') ? 0.5 : 1) * dt);
       S[key] -= amt; c.loot[key] = (c.loot[key] || 0) + amt;
       if (c.t > (K.smash || (c.kind === 'brute' ? 10 : 7))) {
         if (K.smash && tgt.b !== 'zhouse') {
@@ -5993,6 +5993,9 @@ function updateCritters(dt) {
   }
   crits = crits.filter(c => !c.gone);
 }
+// How hard aliens hit back: each hit on a knight or police officer takes 2 of their 4 hearts,
+// and chewing aliens steal supplies 1.5 times as fast.
+const ALIEN_HIT = 2, STEAL_MUL = 1.5;
 const dmgMul = () => S && S.tiles.some(t => t.b === 'church') ? 2 : 1;
 const phased = c => KINDS[c.kind || 'basic'].phase && ((c.t + c.seed * 3) % 6) > 4.2;
 const zapProof = c => { const K = KINDS[c.kind || 'basic']; return phased(c) || K.immune || K.icy || K.spider || (K.lizard && !(c.fly > 0)); };
