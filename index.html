@@ -140,6 +140,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.jup2 .n { background: #ff8a5c; } .lvl.jup2 .go { color: #ffb08a; }
 .lvl.sat .n { background: #e8d29e; } .lvl.sat .go { color: #f3e3bc; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
+.lvl.mix .n { background: linear-gradient(135deg, #ff7a45, #c9a7ff 50%, #5cc8ff); } .lvl.mix .go { color: #ffd166; }
 .lvl.plu .n { background: #e8d4bc; color: #4e3e30; } .lvl.plu .go { color: #f0dcc8; }
 .lvl.nep .n { background: #3f6fd8; } .lvl.nep .go { color: #9fc0ff; }
 .lvl.nep2 .n { background: #dff6ff; color: #1a2f78; } .lvl.nep2 .go { color: #dff6ff; }
@@ -382,7 +383,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 45;
+const BUILD = 46;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -598,7 +599,7 @@ const TECHS = [
 const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
 const lvlNum = i => LEVELS[i].num || i + 1;
 // how a level is named on screen: bonus levels (Glorp, the black hole) say so instead of a number
-const lvlName = i => LEVELS[i].bonus || LEVELS[i].voidLevel ? 'Bonus level' : 'Level ' + lvlNum(i);
+const lvlName = i => LEVELS[i].bonus || LEVELS[i].voidLevel || LEVELS[i].mixup ? 'Bonus level' : 'Level ' + lvlNum(i);
 // buildings shown in the toolbar: the level's own list plus whatever research has unlocked
 function levelTools() {
   const L = LEVELS[S.level], tools = L.tools.filter(n => n !== 'recycle');
@@ -2864,6 +2865,113 @@ LEVELS.push({
   done: { title: 'The Glorp Festival!', body: '', fact: '' },
 });
 const GLORP = LEVELS.findIndex(L => L.bonus);
+LEVELS.push({
+  // Random Mix-Up: a template. applyMix() fills in the world, aliens, buildings, boss and goals
+  // from a random seed every time it starts, and again from the saved seed when a game is loaded.
+  name: 'Random Mix-Up', mixup: true,
+  seed: 1, n: 11, offworld: true, knights: true, wizards: true,
+  map: { ice: 0, mountains: [], craters: [[3, 3]], ore: [[5, 2, 1]], ruins: [] },
+  start: { metal: 250, energy: 60, water: 60, food: 100 },
+  planet: { temp: -60, press: 1, o2: 0 },
+  tools: ['solar', 'drill', 'mine', 'greenhouse', 'habitat', 'recycle'],
+  prebuilt: [],
+  critters: { every: [12, 17], max: 7, speed: 0.85, after: () => S.time > 20, mix: { basic: 1 } },
+  goals: [
+    { text: 'Build 3 power buildings', get: () => 0, target: 3, mix: 'power',
+      who: 'eng', hint: 'A brand new mixed-up world! First, power. Build solar arrays, storm turbines or fusion reactors, whatever works best here.' },
+    { text: 'Build 3 habitats', get: () => 0, target: 3, mix: 'homes',
+      who: 'bot', hint: 'More colonists are coming. Build habitats, and keep them fed and watered.' },
+    { text: 'Build a castle or police station', get: () => 0, target: 1, mix: 'defend',
+      who: 'cmd', hint: 'Who knows what aliens live in this mix? Build castles, police stations, zappers and wizard huts. Every alien can be beaten by something.' },
+    { text: 'Build the special buildings', get: () => 0, target: 2, mix: 'special',
+      who: 'kip', hint: 'This mix has some special buildings. Check the goal list to see which one to build.' },
+    { text: 'Defeat the aliens', get: () => 0, target: 10, mix: 'aliens',
+      who: 'eng', hint: 'Beat the aliens! Some only fear knights, some only zappers or wizards, so mix up your defences.' },
+    { text: 'Defeat the boss', get: () => 0, target: 1, flag: true, mix: 'boss',
+      who: 'kip', hint: 'Here comes the boss of this mix! Throw everything at it.' },
+  ],
+  intro: [['kip', 'Random Mix-Up! I have scrambled the whole solar system together. Nobody knows what is coming next.'], ['cmd', 'Stay sharp, team. Read the briefing, then start building.']],
+  outro: [['kip', 'We beat the Mix-Up! Shall I scramble up another one?']],
+  brief: { eyebrow: 'Bonus level', title: 'Random Mix-Up', body: [''], fact: '' },
+  done: { title: 'Mix-Up beaten!', body: '', fact: '' },
+});
+const MIX = LEVELS.findIndex(L => L.mixup);
+// What can go into a mix
+const MIX_ALIENS = { armor: 'armoured critters', zippy: 'zippy critters', brute: 'brutes', shell: 'shell-beasts', fivehead: 'five-headed aliens', lizard: 'lizard people',
+  blob: 'green blobs', rhino: 'alien rhinos', rock: 'rock monsters', tree: 'tree aliens', shadow: 'black aliens', water: 'water aliens', ice: 'ice aliens', spider: 'spider aliens' };
+const MIX_BOSSES = [
+  ['king', 'kingDefeated', 'the Shell-beast King'], ['elder', 'elderDefeated', 'the Elder Tree'], ['golem', 'golemDefeated', 'the Rock Giant'],
+  ['tide', 'tideDefeated', 'the Great Wave'], ['iceGiant', 'iceGiantDefeated', 'the Ice Giant'], ['spiderQueen', 'spiderQueenDefeated', 'the Spider Queen'],
+  ['lizardKing', 'lizardKingDefeated', 'the Lizard King'], ['chief', 'chiefDefeated', 'the Five-Head Chief'],
+];
+const MIX_EXTRAS = ['cafe', 'clinic', 'arcade', 'park', 'church', 'graveyard', 'ccrafter', 'coop', 'ranch', 'icedig', 'condenser', 'tower', 'lemonade', 'fusion', 'turbine'];
+const MIX_FACTS = [
+  '<b>Mixed-up moons:</b> the solar system has more than 290 known moons, and new ones are still being found.',
+  '<b>Far apart:</b> if the Sun were a football, Earth would be a peppercorn 25 metres away, and Neptune would be 750 metres away.',
+  '<b>Planet recipe:</b> rocky planets formed close to the Sun where it was hot, and icy giants formed far away where ice could survive.',
+  '<b>Speedy light:</b> sunlight takes 3 minutes to reach Mercury, 8 minutes to reach Earth and about 5 and a half hours to reach Pluto.',
+];
+function applyMix(seed) {
+  const L = LEVELS[MIX], r = rng(seed), pick = (a) => a[Math.floor(r() * a.length)];
+  const pool = LEVELS.map((x, i) => i).filter(i => !LEVELS[i].bonus && !LEVELS[i].mixup && !LEVELS[i].under);
+  const look = LEVELS[pick(pool)], land = LEVELS[pick(pool)];
+  const diff = pick(['Easy', 'Medium', 'Hard']), D = { Easy: 0, Medium: 1, Hard: 2 }[diff];
+  // clear everything a previous mix may have set
+  for (const k of ['sky', 'sun', 'floating', 'pal', 'deco', 'tileInfo', 'uranus', 'neptune', 'meteors', 'diamonds', ...MIX_BOSSES.map(b => b[0])]) delete L[k];
+  // the look of the world
+  Object.assign(L, { sky: look.sky, sun: look.sun, floating: look.floating, pal: look.pal, deco: look.deco, planet: { ...look.planet } });
+  L.tileInfo = Object.assign({ void: ['Open sky', 'A long, long way down.'] }, land.tileInfo || {}, look.tileInfo || {});
+  const cold = !!(look.uranus || look.neptune);
+  if (cold) L.uranus = true;
+  // the land: mountains, craters, ore and ice from one level (gaps only if the look floats)
+  const n = land.n || 11, m = land.map, c = Math.floor(n / 2);
+  const frost = [[c + 2, c - 2], [c - 3, c + 1], [1, 1]];
+  L.n = n; L.seed = 1 + Math.floor(r() * 1e6);
+  L.map = { ice: m.ice || 0, mountains: m.mountains || [], craters: m.craters && m.craters.length ? m.craters : [[3, 3], [n - 4, 3]],
+            ore: (m.ore || []).concat([[2, n - 3, 1.0]]), ruins: [], frost: (m.frost || []).concat(frost), voids: look.floating ? (m.voids || []) : [] };
+  // the aliens: two or three kinds from all over the solar system
+  const kinds = Object.keys(MIX_ALIENS), chosen = [];
+  while (chosen.length < 2 + (r() < 0.5 ? 1 : 0)) { const k = pick(kinds); if (!chosen.includes(k)) chosen.push(k); }
+  L.critters = { every: [[16, 22], [12, 17], [9, 13]][D], max: [5, 7, 9][D], speed: [0.7, 0.85, 1][D], after: () => S.time > 25, mix: Object.fromEntries(chosen.map(k => [k, 2]).concat([['basic', 1]])) };
+  // the buildings: the basics, every kind of defence, and four random extras
+  const extras = [];
+  while (extras.length < 4) { const b = pick(MIX_EXTRAS); if (!extras.includes(b)) extras.push(b); }
+  const tools = ['solar', 'turbine', 'drill', 'mine', 'oredrill', 'greenhouse', 'habitat', 'restaurant', 'zapper', 'castle', 'police', 'wizhut'];
+  if (cold) tools.push('oven');
+  if ((look.sun || 1) < 0.4 && !extras.includes('fusion')) tools.push('fusion');
+  for (const b of extras) { if (b === 'lemonade') tools.push('tower', 'lemon', 'lemonade'); else if (!tools.includes(b)) tools.push(b); }
+  tools.push('recycle');
+  L.tools = tools;
+  L.prebuilt = [['habitat', c - 1, c + 2], ['habitat', c, c + 2], ['solar', c + 1, c + 2], ['drill', c - 1, c + 3], ['castle', c, c]].concat(cold ? [['oven', c, c + 1]] : []);
+  L.start = { metal: [320, 260, 220][D], energy: 70, water: 70, food: [140, 110, 90][D], crystals: (look.sun || 1) < 0.4 ? 8 : 0 };
+  // the boss
+  const boss = pick(MIX_BOSSES); L[boss[0]] = true;
+  if (r() < 0.3) L[pick(['meteors', 'diamonds'])] = true;
+  L.mixBoss = [0.7, 1, 1.3][D]; L.mixReward = [25, 40, 60][D]; L.mixDiff = diff;
+  // the goals (their hints are fixed, so the crew can say them out loud)
+  const special = extras.find(b => b !== 'lemonade' && b !== 'turbine') || 'cafe', G = L.goals;
+  const byMix = (k) => G.find(g => g.mix === k);
+  Object.assign(byMix('power'), { get: () => count('solar') + count('turbine') + count('fusion') });
+  Object.assign(byMix('homes'), { get: () => count('habitat') });
+  Object.assign(byMix('defend'), { get: () => count('castle') + count('police') });
+  Object.assign(byMix('special'), { text: `Build 2 ${B[special].name.toLowerCase()}s`, get: () => count(special) });
+  Object.assign(byMix('aliens'), { text: `Defeat ${[8, 12, 16][D]} aliens`, target: [8, 12, 16][D], get: () => S.bonks || 0 });
+  const bg = byMix('boss');
+  for (const b of MIX_BOSSES) delete bg[b[0]];
+  Object.assign(bg, { text: `Defeat ${boss[2]}`, [boss[0]]: true, get: () => S[boss[1]] ? 1 : 0 });
+  // the briefing
+  const names = chosen.map(k => MIX_ALIENS[k]);
+  const list = names.length > 2 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names.join(' and ');
+  L.brief = {
+    eyebrow: `Bonus level · ${diff}`, title: 'Random Mix-Up',
+    body: [`A brand new random level! It looks like <b>${look.name}</b>, with the land of <b>${land.name}</b>${cold ? ', and it is freezing: build <b>giant ovens</b>' : ''}.`,
+      `Watch out for <b>${list}</b>. Special buildings this time: <b>${extras.map(b => B[b].name).join(', ')}</b>. At the end, <b>${boss[2]}</b> is waiting. Difficulty: <b>${diff}</b>.`],
+    fact: MIX_FACTS[Math.floor(r() * MIX_FACTS.length)],
+  };
+  L.done = { title: 'Mix-Up beaten!', body: `You beat a ${diff.toLowerCase()} Random Mix-Up, with ${list} and ${boss[2]}.`, fact: L.brief.fact };
+  L.mixSeed = seed;
+}
+
 // levels with two ways to win list their goals per path; flatten them for the HUD and saves
 for (const L of LEVELS) if (L.paths) L.goals = L.paths.flatMap((p, pi) => p.goals.map(g => ({ ...g, path: pi })));
 
@@ -3136,6 +3244,7 @@ function tick(dt) {
   if (L.tide) maybeTide(L);
   if (L.iceGiant) maybeIceGiant(L);
   if (L.spiderQueen) maybeSpiderQueen(L);
+  if (L.mixup && S.boss && !S.boss.mixed) { S.boss.mixed = true; S.boss.hp = S.boss.maxhp = Math.round(S.boss.maxhp * (L.mixBoss || 1)); }
   updateRocket(dt); updateBoss(dt);
   if (L.bonus) updateGlorp(dt);
   if (L.meteors) updateMeteors(dt);
@@ -5078,12 +5187,14 @@ function drawStorm(g, b, w, k, alpha) {
 let MISSION = store.get('mmb-mission', { cores: [], allies: [] });
 if (MISSION.cores.includes('marsunder')) { MISSION.cores = MISSION.cores.filter(c => c !== 'marsunder'); store.set('mmb-mission', MISSION); }
 function gainCore(id, name) {
+  if (LEVELS[S.level].mixup) return; // a Random Mix-Up boss doesn't count for the mission
   if (MISSION.cores.includes(id)) return;
   MISSION.cores.push(id); store.set('mmb-mission', MISSION);
   toast(`POWER CORE found: ${name}! (${MISSION.cores.length} for the mission)`, 'good');
   fx.push({ kind: 'flash', life: 0.4, max: 0.4 }); sfx('relic');
 }
 function gainAlly(id, name) {
+  if (LEVELS[S.level].mixup) return;
   if (MISSION.allies.includes(id)) return;
   MISSION.allies.push(id); store.set('mmb-mission', MISSION);
   toast(`NEW ALLY: ${name} joined the mission to free Earth!`, 'good'); sfx('win');
@@ -8438,7 +8549,7 @@ function showTip(preview) {
   if (hoverThing === 'critter') { el.innerHTML = '<strong>Critter</strong>A cheeky little native of Mars. Tap it to bonk it before it nibbles something!'; return; }
   if (hover) {
     const info = LEVELS[S.level].tileInfo || {};
-    const [n, txt] = (hover.rh && info.hole) || (hover.sealed && info.sealed) || info[hover.type] || TILE_INFO[hover.type];
+    const [n, txt] = (hover.rh && info.hole) || (hover.sealed && info.sealed) || info[hover.type] || TILE_INFO[hover.type] || ['Ground', ''];
     let b = '';
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
     if (hover.frozen) b += ' <span style="color:var(--sky)">❄️ Frozen: working at 40% speed. Build a giant oven next to it.</span>';
@@ -8609,6 +8720,7 @@ function showTitle() {
       <button class="lvl nep2" data-l="40"><span class="n">39</span><span><b>Neptune: The Ice Giant</b><small>The boss of all the ice aliens climbs out of the ice.</small></span><span class="go">Play</span></button>
       <button class="lvl plu" data-l="41"><span class="n">40</span><span><b>Pluto: The Hidden Core</b><small>Fusion reactors, spider aliens, a metal detector and the Spider Queen.</small></span><span class="go">Play</span></button>
     </div>`);
+  $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl mix" data-l="${MIX}"><span class="n">🎲</span><span><b>Bonus: Random Mix-Up</b><small>A brand new random level every time: any world, any aliens, any boss.</small></span><span class="go">Play</span></button>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
   else if (!store.get('mmb-glorp-trial', false)) $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl bonus" data-l="${GLORP}" data-trial="1"><span class="n">★</span><span><b>Free visit: Planet Glorp</b><small>One time only: Zorp offers a free ride to the secret bonus level. Earn 20 friendship hearts to come back.</small></span><span class="go">Visit</span></button>`);
   else if (HEARTS > 0) $('#modal .levels').insertAdjacentHTML('afterend', `<p class="friend small-note">Zorp’s friendship ${heartRow()} ${HEARTS}/${HEART_GOAL}</p>`);
@@ -8684,6 +8796,22 @@ function backFromUnder() {
   toast('The underground city sent up 300 metal and 20 crystals!', 'good');
   say('cmd', 'Welcome back up, team. The tunnel city sent us a big load of supplies.', 'under-back');
 }
+function showMixDone() {
+  const L = LEVELS[S.level], d = L.done;
+  sfx('win');
+  for (const [w, txt] of L.outro) say(w, txt, null, true);
+  if (!S.mixPaid) { S.mixPaid = true; S.crystals += L.mixReward || 40; foundGold(); dirty = true; saveGame(); }
+  openModal(`
+    <span class="eyebrow" style="color:var(--leaf)">Bonus level complete · ${L.mixDiff || ''} · ${Math.floor(S.time / 10) + 1} sols</span>
+    <h2>${d.title}</h2>
+    <p>${d.body}</p>
+    <p class="small-note">Reward: <b>${L.mixReward || 40} crystals</b> and a <b>golden crystal</b> for Zorp.</p>
+    <p class="fact">${d.fact}</p>
+    <div class="row"><button class="btn" id="mix-again">Play another Random Mix-Up</button><button class="btn alt" id="stay">Keep playing</button><button class="btn alt" id="menu">Level select</button></div>`);
+  $('#mix-again').addEventListener('click', () => startLevel(MIX));
+  $('#stay').addEventListener('click', closeModal);
+  $('#menu').addEventListener('click', showTitle);
+}
 function showVoidDone() {
   const L = LEVELS[S.level], d = L.done;
   sfx('win');
@@ -8715,6 +8843,7 @@ function showComplete() {
   if (LEVELS[S.level].bonus) return showGlorpDone();
   if (LEVELS[S.level].under) return showUnderDone();
   if (LEVELS[S.level].voidLevel) return showVoidDone();
+  if (LEVELS[S.level].mixup) return showMixDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
   // Europa part 1 leads straight on to part 2: same moon, no rocket needed
@@ -8746,7 +8875,9 @@ function showComplete() {
 }
 
 function startLevel(li, brief = true) {
+  if (LEVELS[li].mixup) applyMix(1 + Math.floor(Math.random() * 2e9));
   S = newState(li);
+  if (LEVELS[li].mixup) S.mixSeed = LEVELS[li].mixSeed;
   // carried research reshapes the world straight away
   if (!LEVELS[li].under) {
     if (hasTech('reclaim')) growMap();
@@ -8824,7 +8955,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6ad137a8 6b4736a6 6b8709b4 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71219925 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7794c923 77a911a5 7837b257 785c9c14 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af87f81f afbd76a6 b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b45ba542 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 091f3f5c 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 108c93be 1097c905 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1331cada 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2aa2610b 2ac797ae 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40ec22c0 42166813 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a98f022 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 55a248b0 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59f3d102 5a0049d9 5a79b588 5a7be0e7 5a8f7ec7 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5f1cf634 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 654f86d3 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 66a5fbaf 66c95ee9 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69eba331 6a2cbee6 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 710cc6be 71219925 71878520 71c2f517 71c4976c 7301527c 738b1eca 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7794c923 77a911a5 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3e6261 7a4aa7db 7a9d8c6f 7ace35c2 7b30d29e 7b4aa8fa 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8796f0db 883ccef6 884dfba3 88755faf 88922e7d 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 94bfff3f 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a403ebc2 a42066c4 a43b4a27 a4c4fea4 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad47eb64 ad70ea5b add4d7ce ae1c65a0 ae847e6a aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b0d32200 b114a3e3 b197bc7a b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b4185752 b45ba542 b479563f b4b82095 b4b9f647 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be680d9f be980d13 bf202cf8 bff1be7e c007124e c08db08b c0a9565a c0aaecdc c124f512 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cb28cba4 cbd82633 cbddf393 cbde5b59 cc18412d cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d5d49ebb d5e98a5e d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d8ddc3df d94d2885 d956d672 d983031a d9855bb5 d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4cb72c5 e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e8dc2b4c e8f796a7 e8fc609e e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f8a3b979 f8ff61da f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fd117f3c fe236ba0 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -9109,6 +9240,7 @@ function readSave() {
   return null;
 }
 function loadSave(d) {
+  if (LEVELS[d.S.level] && LEVELS[d.S.level].mixup) applyMix(d.S.mixSeed || 1);
   S = d.S;
   for (const t of S.tiles) t.born = -9;
   S.goalsDone = LEVELS[S.level].goals.map((g, i) => !!(S.goalsDone && S.goalsDone[i]));

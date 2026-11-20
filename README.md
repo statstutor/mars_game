@@ -166,6 +166,16 @@ screen, saved on the device), and one day come home to free Earth.
     **Spider Queen** comes out (knights, police and taps only); beating her wins a second core and
     the Spider Folk as allies.
 
+**Bonus level: Random Mix-Up** (🎲 in level select, always open): a brand new random level every
+time. It mixes the look of one world (ground colours, sky, sunlight, temperature) with the land of
+another, two or three alien kinds from anywhere, the basic buildings plus every kind of defence and
+four random extras, and a random boss (the Shell-beast King, Elder Tree, Rock Giant, Great Wave, Ice
+Giant, Spider Queen, Lizard King or Five-Head Chief). The difficulty is random too: Easy, Medium or
+Hard changes how many aliens come, how fast, the boss's health and the reward. Sometimes meteors or
+diamond rain join in, and an ice-giant look means giant ovens. Beating it gives 25, 40 or 60
+crystals and a golden crystal for Zorp; it never gives mission power cores or allies. A saved
+Mix-Up comes back exactly the same (the save keeps its random seed).
+
 **Secret bonus level, Planet Glorp.** Zorp the alien trader visits every level. Each trade
 earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and meteors) are
 worth 3 hearts as a gift. At 20 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
