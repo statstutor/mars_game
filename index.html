@@ -381,7 +381,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 42;
+const BUILD = 43;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3745,6 +3745,15 @@ function showRocket() {
     showStarMap();
   });
 }
+// Every planet and moon is open from the start: farther ones just take more fuel. Inside one world
+// its levels still go in order (Venus 1 before Venus 2), and the black hole only opens after Titan.
+function opensNow(k, anyDone) {
+  const w = WORLDS[k];
+  if (!w.after) return true;
+  if (k === 'blackhole') return !!WORLDS_DONE[w.after];
+  const sameWorld = (WORLDS[w.after].body || w.after) === (w.body || k);
+  return !sameWorld || !!WORLDS_DONE[w.after] || !!WORLDS_DONE[k] || anyDone;
+}
 function showStarMap() {
   const L = LEVELS[S.level], mars = !L.offworld;
   if (!S.rocket) S.rocket = { fuel: 0, fueling: false };
@@ -3756,13 +3765,14 @@ function showStarMap() {
   const picks = [];
   for (const [g, keys] of groups) {
     const anyDone = keys.some(k => WORLDS_DONE[k]);
-    const open = keys.filter(k => !WORLDS[k].after || WORLDS_DONE[WORLDS[k].after] || WORLDS_DONE[k] || anyDone);
+    const open = keys.filter(k => opensNow(k, anyDone));
     const opts = open.filter(k => k !== here);
     if (keys.includes(here) && !opts.length) continue; // you are already here, and there is nowhere else on this world
     if (!opts.length) { picks.push([keys[0], WORLDS[keys[0]], keys.length > 1 ? g : null, true]); continue; }
     const k = opts.find(k => !WORLDS_DONE[k]) || opts[0];
     picks.push([k, WORLDS[k], keys.length > 1 ? g : null, false]);
   }
+  picks.sort((a, b) => (a[3] - b[3]) || tripFuel(a[0]) - tripFuel(b[0])); // nearest first, locked ones last
   const cards = picks.map(([k, w, grp, locked]) => {
     const portal = !locked && here === 'blackhole'; // the escape crystal opens a portal to anywhere
     const stay = portal || (!locked && sameMoon(k)), fuel = tripFuel(k), needs = tripNeeds(k), missing = needs.filter(u => !RKT[u]);

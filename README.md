@@ -49,6 +49,10 @@ Fuel for a trip to another planet depends on how far apart the two planets are f
 next-door planets (Earth and Mars, Uranus and Neptune) cost about 170, while crossing the
 whole solar system (Mercury to Uranus or Neptune) costs 500. Trips between moons of the same
 planet stay cheap (120 to 160).
+Every planet and moon is on the star map from the start, so you can fly anywhere once the
+rocket has the fuel and its upgrades; inside one world the levels still go in order (Venus 1
+before Venus 2). Only the black hole has to be unlocked, by beating the Rock Giant on Titan.
+The "(on the star map after ...)" notes below give the suggested story order.
 
 6½. **Under Mars** (a side trip from Exodus): finishing Level 6 offers *Go underground*. A city in
    the lava tubes with the same buildings and research as Level 6, tunnel critters that take 2 to
