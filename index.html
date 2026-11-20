@@ -383,7 +383,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 46;
+const BUILD = 47;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -2954,7 +2954,9 @@ function applyMix(seed) {
   Object.assign(byMix('power'), { get: () => count('solar') + count('turbine') + count('fusion') });
   Object.assign(byMix('homes'), { get: () => count('habitat') });
   Object.assign(byMix('defend'), { get: () => count('castle') + count('police') });
-  Object.assign(byMix('special'), { text: `Build 2 ${B[special].name.toLowerCase()}s`, get: () => count(special) });
+  // some buildings only allow one (a church, a graveyard): then the goal asks for just one
+  const want = B[special].unique ? 1 : Math.min(2, B[special].max || 2), sname = B[special].name.toLowerCase();
+  Object.assign(byMix('special'), { text: want === 1 ? `Build a ${sname}` : `Build 2 ${sname}s`, target: want, get: () => count(special) });
   Object.assign(byMix('aliens'), { text: `Defeat ${[8, 12, 16][D]} aliens`, target: [8, 12, 16][D], get: () => S.bonks || 0 });
   const bg = byMix('boss');
   for (const b of MIX_BOSSES) delete bg[b[0]];
