@@ -137,7 +137,9 @@ screen, saved on the device), and one day come home to free Earth.
     aliens** take 5 hits and vanish for good when beaten. The **escape crystal** glows inside the
     **Shadow King**, a giant black alien that marches on your buildings and melts into the dark
     to reappear at half health. Beat it, tap the crystal it drops (a power core), then jump
-    through the portal to any unlocked world on the star map, with no fuel needed.
+    through the portal to any unlocked world on the star map, with no fuel needed. It's a hard
+    level: black aliens come fast and often (up to 11 at once), you need 6 knights and police and
+    20 black aliens beaten, and the Shadow King has 500 health and calls for help twice as often.
 32. **Uranus: The Big Chill**, 33. **Sideways World**, 34. **Diamond Rain** (on the star map after
     the Rock Giant): the coldest planet. Surface buildings **freeze** and work at 40% speed unless
     they sit on or next to a **giant oven**, which warms its own tile and the 8 around it. There is
@@ -181,9 +183,16 @@ Every Mix-Up also brings things no other level has:
 - **Combo aliens** (2–3 per mix): two alien kinds fused into one, like a *Rhino-crawler* or an
   *Ice-monster*. They have a rainbow ring and both parents' powers mixed together (ice, water,
   regrowing, hiding and so on), but taps always work on them.
-- **Brand-new aliens** (1–2 per mix): **splitters** split into two little splitlings when beaten,
-  **phantoms** fade away every few seconds and nothing can hit them while they're faded, and
-  **medic bugs** heal the aliens next to them.
+- **Brand-new aliens** (3–4 per mix, from eight kinds):
+  - **Splitters** split into two little splitlings when beaten.
+  - **Phantoms** fade away every few seconds, and nothing can hit them while they're faded.
+  - **Medic bugs** heal the aliens next to them.
+  - **Bubble bugs** have a bubble that soaks up the first 3 hits.
+  - **Blinkers** teleport from one building to another.
+  - **Boom beetles** blow up when they reach a building, switching off everything around it for
+    8 seconds.
+  - **Gobblers** grow bigger and tougher every 7 seconds (up to 3 times).
+  - **Magpie bugs** are very fast and steal lots of supplies.
 - **Combo buildings** (2–3 per mix): two buildings in one, like a *Mining Greenhouse* or a *Dew
   Zapper*. Each does both jobs at half strength and costs half of each. The level's special goal
   is usually to build one.
@@ -192,7 +201,7 @@ Every Mix-Up also brings things no other level has:
   - **Bounce Pad**: every 5 seconds it flings the nearest alien back home, and the alien drops
     everything it stole.
   - **Crystal Tree**: grows 1 crystal every 20 seconds (up to 2 trees).
-  - **Knight Medic Tent**: knights and police within 3 tiles get a heart back every 3 seconds.
+  - **Knight Medic Tent**: knights and police within 3 tiles get a heart back every 30 seconds.
   - **Rainbow Fountain**: +10 happiness for 12 colonists and a little water.
   Half the time, the special goal is to build one of them.
 
