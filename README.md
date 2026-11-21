@@ -168,6 +168,34 @@ screen, saved on the device), and one day come home to free Earth.
     top an **X marks the spot**: drag the detector away and build a dig site there. Then the
     **Spider Queen** comes out (knights, police and taps only); beating her wins a second core and
     the Spider Folk as allies.
+41. **Earth: Homecoming**, 42. **The Flooded City**, 43. **The Last Stand**, 44. **The Red Dragon**
+    (Earth on the star map; open from the start): the mission comes home. Earth is held by
+    **black octopus aliens**:
+    - They take 30 hits, move very fast and can dodge an attack once or twice.
+    - Every time one knocks out a knight, police officer or ally, or smashes a building, it gets
+      stronger: +5 health and harder hits.
+
+    You can build almost anything from the whole game here. There are also **spawners**, one for
+    each ally you freed (Lizard, Blob, Rhino, Tree, Rock, Water, Ice and Spider):
+    - A spawner only works with a **Power Core** right next to it, and each core powers one
+      spawner.
+    - The cores you won on the mission are your supply, and recycling a core gives it back.
+    - A powered spawner makes up to 3 allies, one every 10 seconds.
+    - Lizards, blobs, rhinos, trees and rocks fight up close.
+    - Water squirters, ice throwers and web spitters shoot from a distance. Webs slow octopuses
+      down.
+
+    Level 44's boss is the **Red Dragon** (700 health):
+    - On the ground, knights and allies can fight it.
+    - When it flies, only zappers, wizards, taps and shooting allies can reach it.
+    - It spits fireballs: three hits burn a building down, and anyone standing where one lands
+      gets hurt.
+    - It brings more octopuses, and at half health it flies into the clouds and comes back
+      angrier.
+    - Beating it frees Earth and plays the ending.
+
+    The Earth levels sit after the bonus levels in the game's level list, so old saves keep their
+    numbers.
 
 **Bonus level: Random Mix-Up** (🎲 in level select, always open): a brand new random level every
 time. It mixes the look of one world (ground colours, sky, sunlight, temperature) with the land of
