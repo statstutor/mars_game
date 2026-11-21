@@ -389,7 +389,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 54;
+const BUILD = 55;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3567,14 +3567,14 @@ function tick(dt) {
       toast('Done: ' + g.text, 'good'); sfx('chime');
       let j = L.goals.findIndex((h, k) => !S.goalsDone[k] && h.path === g.path);
       if (j < 0) j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
-      if (j >= 0) { const n = L.goals[j]; say(n.who, PRAISE[n.who] + ' ' + n.hint, `hint-${S.level}-${j}`); }
+      if (j >= 0) { const n = L.goals[j], lv = S.level; say(n.who, PRAISE[n.who] + ' ' + n.hint, `hint-${S.level}-${j}`, false, () => S.level === lv && !S.goalsDone[j]); }
     }
   });
   // nudge with the next objective when nothing has happened for a while
   if (!S.won && S.time - S.lastProgress > 55 && S.time - S.lastNudge > 70 && !talking && !talkQ.length) {
     S.lastNudge = S.time;
     const j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
-    if (j >= 0) say(L.goals[j].who, L.goals[j].hint);
+    if (j >= 0) { const lv = S.level; say(L.goals[j].who, L.goals[j].hint, null, false, () => S.level === lv && !S.goalsDone[j]); }
   }
   const pathDone = L.paths ? L.paths.findIndex((_, pi) => L.goals.every((h, i) => h.path !== pi || S.goalsDone[i])) : (S.goalsDone.every(Boolean) ? 0 : -1);
   if (!S.won && pathDone >= 0) {
@@ -6179,6 +6179,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
+  sayStill = () => made.some(c => !c.gone && c.state !== 'bonked'); // its warnings only matter while it is around
   if (K.blob && Math.random() < 0.35) { // blobs often come out in pairs
     made.push({ ...made[0], x: hx + 0.25, y: hy + 0.2, loot: {}, seed: Math.random() * 10 });
     crits.push(made[1]);
@@ -6187,13 +6188,16 @@ function spawnCritter(kind = pickKind(), from = null) {
   if (K.shield) for (const c of made) c.shield = K.shield;
   if (K.octo) for (const c of made) { c.dodges = Math.random() < 0.5 ? 1 : 2; c.power = 0; }
   if (home && home.b === 'field') for (const c of made) { c.state = 'trapped'; c.htile = home; }
-  if (KIND_LINES[kind]) say(KIND_LINES[kind][0], KIND_LINES[kind][1], 'kind-' + kind);
+  sayStill = null;
+  const lv = S.level, alive = c => !c.gone && c.state !== 'bonked';
+  if (KIND_LINES[kind]) say(KIND_LINES[kind][0], KIND_LINES[kind][1], 'kind-' + kind, false,
+    () => S.level === lv && (crits.some(c => c.kind === kind && alive(c)) || burrowed.some(c => c.kind === kind)));
   const first = [
     ['kip', 'Uh oh. Something just climbed out of that crater, and it looks hungry. Quick, tap it to bonk it!'],
     ['kip', 'The critters are back, and there are more of them this time. Remember, tap to bonk!'],
     ['eng', 'Critters spotted near the craters. Bonk them, or let the zappers handle it.'],
   ][S.level];
-  if (first) say(first[0], first[1], 'crit1-' + S.level);
+  if (first) say(first[0], first[1], 'crit1-' + S.level, false, () => S.level === lv && crits.some(alive));
   return true;
 }
 // ---- Titan's holes: hurt rock monsters hide in them, and sometimes come back with a hit healed.
@@ -9764,7 +9768,7 @@ function showTitle() {
     closeModal();
     if (!talking && !talkQ.length) {
       const L = LEVELS[S.level], j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
-      if (j >= 0) say(L.goals[j].who, 'Welcome back! ' + L.goals[j].hint);
+      if (j >= 0) { const lv = S.level; say(L.goals[j].who, 'Welcome back! ' + L.goals[j].hint, null, false, () => S.level === lv && !S.goalsDone[j]); }
     }
   });
 }
@@ -10010,12 +10014,18 @@ function voiceLevel() {
 if (TTS) { assignVoices(); speechSynthesis.addEventListener?.('voiceschanged', assignVoices); }
 
 // key: say each keyed line once per save. force: allowed to start while a dialog is open.
-function say(who, text, key = null, force = false) {
+// still: checked again just before the line is spoken; if it is no longer true (the alien it
+// warns about is already beaten, the goal it asks for is already done), the line is dropped.
+let sayStill = null; // set for a moment while a new alien appears, so its warnings belong to it
+function say(who, text, key = null, force = false, still = null) {
   if (!S) return;
   if (key) { if (S.said[key]) return; S.said[key] = 1; dirty = true; }
   if ((talking && talking.text === text) || talkQ.some(l => l.text === text)) return;
-  talkQ.push({ who, text, force, shown: 0 });
+  if (!still) still = sayStill;
+  if (!still && S.boss && S.boss.state !== 'dead' && (S.boss.t || 0) < 0.5) { const b = S.boss; still = () => S.boss === b && b.state !== 'dead'; } // a boss's opening lines
+  talkQ.push({ who, text, force, shown: 0, still });
 }
+function dropStale() { while (talkQ.length && talkQ[0].still && !talkQ[0].still()) talkQ.shift(); }
 function hush() {
   if (talking) { try { talking.src && talking.src.stop(); } catch (e) {} if (talking.el) talking.el.pause(); }
   talkQ.length = 0; talking = null; talkGen++;
@@ -10091,6 +10101,7 @@ function talkUpdate(dt) {
     if (talking.safety && RT > talking.safety && talking.until === Infinity) talking.until = RT;
     if (RT > talking.until) { talking = null; if (!talkQ.length) { $('#talk').hidden = true; duck(false); } }
   }
+  if (!talking && talkQ.length) { dropStale(); if (!talkQ.length) { $('#talk').hidden = true; duck(false); } }
   if (!talking && talkQ.length && (!modalOpen || talkQ[0].force)) nextLine();
   if (talking) {
     let mouth;
