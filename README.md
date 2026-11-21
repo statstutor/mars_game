@@ -194,6 +194,18 @@ screen, saved on the device), and one day come home to free Earth.
       angrier.
     - Beating it frees Earth and plays the ending.
 
+    **Research works on Earth too.** Build **research labs** for science (each level starts with
+    30) and open the tech tree. Everything you research carries on to the next Earth level. The
+    usual branches are there (no colony rocket), plus a **Free Earth** branch you can only
+    research on Earth:
+    - **Harpoon Towers** (new building): 3-damage harpoons with a long range. They can hit the
+      dragon even when it flies.
+    - **Net Launchers** (new building): net an alien for 3 seconds, so it can't move or dodge.
+    - **Fireproof Roofs**: dragon fireballs only switch buildings off, never burn them down.
+    - **Mech Suits**: knights and police get 6 hearts.
+    - **Ally Armour**: spawned allies get +3 hearts, and spawners work twice as fast.
+    - **Core Forge** (new building): makes a new power core every 75 seconds, up to 3 per level.
+
     The Earth levels sit after the bonus levels in the game's level list, so old saves keep their
     numbers.
 

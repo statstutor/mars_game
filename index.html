@@ -389,7 +389,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 52;
+const BUILD = 53;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -553,6 +553,12 @@ const B = {
              desc: 'Bandages and hot soup. Knights and police within 3 tiles get 1 heart back every 30 seconds.' },
   fountain: { name: 'Rainbow Fountain', cost: { metal: 25, water: 25 }, on: ['plain', 'ore'], onText: 'Fountains need flat ground.', newMix: true, serve: 12, mood: 10, out: { water: 0.4 },
              desc: 'Water that sparkles in every colour. +10 happiness for 12 colonists, and +0.4 water/s.' },
+  harpoon: { name: 'Harpoon Tower', cost: { metal: 45 }, on: ['plain', 'ore'], onText: 'Harpoon towers need flat ground.', energy: -1,
+             desc: 'Fires a big harpoon every 2.5 seconds at the nearest alien within 3½ tiles: 3 damage. It can hit the dragon, even when it flies. Uses 1 energy/s.' },
+  netter:  { name: 'Net Launcher', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Net launchers need flat ground.', energy: -1,
+             desc: 'Every 6 seconds it throws a net over the nearest alien within 3 tiles. A netted alien is stuck for 3 seconds and can not dodge. Uses 1 energy/s.' },
+  cforge:  { name: 'Core Forge', cost: { metal: 80, crystals: 10 }, on: ['plain', 'ore'], onText: 'The core forge needs flat ground.', energy: -3, unique: true,
+             desc: 'A roaring furnace that builds a brand-new power core every 75 seconds, up to 3 per level. Uses 3 energy/s.' },
   pcore:   { name: 'Power Core', cost: { cores: 1 }, on: ['plain', 'ore'], onText: 'Power cores need flat ground.',
              desc: 'One of the power cores you collected on your mission. Put it right next to a spawner to switch it on. Each core powers one spawner.' },
   graveyard: { name: 'Graveyard', cost: { metal: 40 }, on: ['plain', 'ore'], onText: 'Graveyards need flat ground.', unique: true,
@@ -606,12 +612,12 @@ for (const [id, A] of Object.entries(ALLY)) B['sp_' + id] = { name: A.sname + ' 
 const WHERE = {
   solar: ['surface', 'sky'], mine: ['surface', 'under'], oven: ['surface'], shaft: ['surface'], icedig: ['surface'], fusion: ['surface'], detector: ['surface'], drill: ['surface'], factory: ['surface'], mirror: ['surface'], seeder: ['surface'],
   dig: ['surface'], tunnel: ['surface'], fishery: ['surface'], ranch: ['surface', 'sky'], coop: ['surface', 'sky'], pad: ['surface'], fuel: ['surface'],
-  cmine: ['under'], ccrafter: ['surface'], pcore: ['surface'], sp_lizards: ['surface'], sp_blobs: ['surface'], sp_rhinos: ['surface'], sp_trees: ['surface'], sp_rocks: ['surface'], sp_water: ['surface'], sp_ice: ['surface'], sp_spiders: ['surface'], goo: ['surface'], boing: ['surface'], ctree: ['surface'], medic: ['surface'], fountain: ['surface'], oredrill: ['surface', 'under'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
+  cmine: ['under'], ccrafter: ['surface'], pcore: ['surface'], harpoon: ['surface'], netter: ['surface'], cforge: ['surface'], sp_lizards: ['surface'], sp_blobs: ['surface'], sp_rhinos: ['surface'], sp_trees: ['surface'], sp_rocks: ['surface'], sp_water: ['surface'], sp_ice: ['surface'], sp_spiders: ['surface'], goo: ['surface'], boing: ['surface'], ctree: ['surface'], medic: ['surface'], fountain: ['surface'], oredrill: ['surface', 'under'], turbine: ['surface'], police: ['surface'], graveyard: ['surface'], field: ['surface'], wizhut: ['surface'], church: ['surface'], crafter: ['surface'], castle: ['surface'], lemon: ['surface'], lemonade: ['surface'], tower: ['surface', 'sky'], pipe: ['surface', 'sky'],
 };
 const LAYER_NAME = { surface: 'the surface', under: 'underground', sky: 'the sky islands' };
 
 // ---------------------------------------------------------------- tech tree
-const BRANCHES = [['farm', 'Farming', '#5fd38d'], ['def', 'Defence', '#ff7a45'], ['sci', 'Science', '#5cc8ff'], ['exp', 'Expansion', '#c9a7ff'], ['rkt', 'Rocketry', '#ffd166']];
+const BRANCHES = [['farm', 'Farming', '#5fd38d'], ['def', 'Defence', '#ff7a45'], ['sci', 'Science', '#5cc8ff'], ['exp', 'Expansion', '#c9a7ff'], ['rkt', 'Rocketry', '#ffd166'], ['earth', 'Free Earth', '#ff6b81']];
 const TECHS = [
   { id: 'husbandry', br: 'farm', name: 'Animal Husbandry', cost: 40, req: [], unlock: ['coop', 'ranch'], desc: 'Space chickens and Mars goats: coops and ranches make lots of food.' },
   { id: 'towers', br: 'farm', name: 'Water Towers', cost: 50, req: [], unlock: ['tower'], desc: 'A tower doubles the food of every farm within 2 tiles.' },
@@ -628,7 +634,14 @@ const TECHS = [
   { id: 'sky', br: 'exp', name: 'Sky Islands', cost: 180, req: ['reclaim', 'labs2'], desc: 'Anti-gravity platforms above the dust: solar there makes 60% more and ignores storms.' },
   { id: 'rocketry', br: 'rkt', name: 'Rocketry', cost: 70, req: [], unlock: ['fuel'], desc: 'Fuel plants turn water into rocket fuel.' },
   { id: 'padtech', br: 'rkt', name: 'Launch Pad', cost: 120, req: ['rocketry'], unlock: ['pad'], desc: 'A pad strong enough for a colony ship.' },
-  { id: 'colony', br: 'rkt', name: 'Colony Rocket', cost: 220, req: ['padtech', 'arc'], desc: 'Plans for a rocket that can carry settlers to another world.' },
+  { id: 'colony', br: 'rkt', name: 'Colony Rocket', cost: 220, req: ['padtech', 'arc'], marsOnly: true, desc: 'Plans for a rocket that can carry settlers to another world.' },
+  // only researched on Earth, in the fight against the octopuses and the dragon
+  { id: 'harpoon', br: 'earth', name: 'Harpoon Towers', cost: 60, req: [], unlock: ['harpoon'], earth: true, desc: 'Long-range towers that fire big harpoons: 3 damage, and they can hit the dragon even when it flies.' },
+  { id: 'nets', br: 'earth', name: 'Net Launchers', cost: 90, req: ['harpoon'], unlock: ['netter'], earth: true, desc: 'Throws a net over an alien: it is stuck for 3 seconds and can not dodge.' },
+  { id: 'fireproof', br: 'earth', name: 'Fireproof Roofs', cost: 120, req: ['harpoon'], earth: true, desc: 'Dragon fireballs can not burn buildings down any more. They only switch them off for a moment.' },
+  { id: 'mech', br: 'earth', name: 'Mech Suits', cost: 80, req: [], earth: true, desc: 'Robot armour for knights and police: 6 hearts instead of 4.' },
+  { id: 'allyarmor', br: 'earth', name: 'Ally Armour', cost: 70, req: [], earth: true, desc: 'Allies from spawners get 3 extra hearts, and spawners make them twice as fast.' },
+  { id: 'coreforge', br: 'earth', name: 'Core Forge', cost: 150, req: ['allyarmor'], unlock: ['cforge'], earth: true, desc: 'A furnace that builds brand-new power cores: one every 75 seconds, up to 3 per level.' },
 ];
 const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
 const lvlNum = i => LEVELS[i].num || i + 1;
@@ -641,6 +654,8 @@ function levelTools() {
   if (L.research) for (const t of TECHS) if (hasTech(t.id) && t.unlock) for (const u of t.unlock) if (!tools.includes(u)) tools.push(u);
   return [...tools, 'recycle'];
 }
+// Earth has its own branch, and no colony rocket (the colony already came home)
+const techHere = t => LEVELS[S.level].earth ? !t.marsOnly : !t.earth;
 function canResearch(t) { return !hasTech(t.id) && t.req.every(hasTech); }
 function learn(id) {
   const t = TECH[id];
@@ -652,6 +667,8 @@ function learn(id) {
     if (id === 'tunnels') makeUnder();
     if (id === 'sky') makeSky();
   }
+  if (id === 'mech') for (const k of knights) if (!k.ally && k.maxhp < 6) { k.maxhp = 6; k.hp += 2; }
+  if (id === 'allyarmor') for (const k of knights) if (k.ally && k.maxhp === ALLY[k.ally].hp) { k.maxhp += 3; k.hp += 3; }
   buildToolbar(); updateLayerTabs();
   const line = TECH_LINES[id];
   if (line) say(line[0], line[1], 'tech-' + id);
@@ -665,10 +682,16 @@ const TECH_LINES = {
   sky: ['eng', 'The sky islands are up! Solar arrays up there sit above the dust storms.'],
   colony: ['cmd', 'We have the plans for a colony rocket. Build a launch pad, then click it to start building the ship.'],
   drones: ['kip', 'Bonk drones! Tiny, angry, and on our side. Build a drone bay.'],
+  harpoon: ['eng', 'Harpoon towers are ready! They shoot a long way, and they can even hit the dragon in the air.'],
+  nets: ['kip', 'Net launchers! A netted octopus can not move and can not dodge. Then everyone piles on.'],
+  fireproof: ['eng', 'Fireproof roofs on everything. The dragon can switch our buildings off, but it can not burn them down any more.'],
+  mech: ['cmd', 'Mech suits for every knight and police officer. Six hearts each now.'],
+  allyarmor: ['kip', 'Ally armour! Our friends from the spawners are tougher now, and they come out twice as fast.'],
+  coreforge: ['eng', 'We worked out how to build our own power cores! Build a core forge, and it will make a new one every so often.'],
 };
 function showTree() {
-  const rows = BRANCHES.map(([br, name, col]) => {
-    const nodes = TECHS.filter(t => t.br === br).map(t => {
+  const rows = BRANCHES.filter(([br]) => TECHS.some(t => t.br === br && techHere(t))).map(([br, name, col]) => {
+    const nodes = TECHS.filter(t => t.br === br && techHere(t)).map(t => {
       const owned = hasTech(t.id), open = canResearch(t), afford = S.science >= t.cost;
       const state = owned ? 'owned' : open ? (afford ? 'ready' : 'open') : 'locked';
       const needs = t.req.filter(r => !hasTech(r)).map(r => TECH[r].name);
@@ -2937,12 +2960,12 @@ const MIX = LEVELS.findIndex(L => L.mixup);
 // every power core you won switches one on. They sit after the bonus levels in the list (so old
 // saves keep their numbers) but are numbered 41 to 44.
 const EARTH_TOOLS = ['solar', 'turbine', 'fusion', 'flower', 'mine', 'oredrill', 'gmine', 'drill', 'condenser', 'icedig', 'habitat', 'hover', 'greenhouse', 'garden', 'coop', 'ranch',
-  'restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain', 'lemon', 'lemonade', 'tower', 'kitchen', 'crafter', 'ccrafter', 'ctree', 'castle', 'police', 'wizhut', 'zapper', 'tesla',
+  'lab', 'restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain', 'lemon', 'lemonade', 'tower', 'kitchen', 'crafter', 'ccrafter', 'ctree', 'castle', 'police', 'wizhut', 'zapper', 'tesla',
   'dronebay', 'field', 'church', 'graveyard', 'goo', 'boing', 'medic', 'lantern', 'fuel', 'pad', 'recycle'];
 const spawnGoal = n => () => !canSpawn() ? n : Math.min(n, poweredSpawners() + Math.max(0, n - MISSION.cores.length));
 function earthLevel(o) {
   return Object.assign({
-    n: 12, offworld: true, earth: true, sky: 'earthwar', sun: 1, knights: true, wizards: true,
+    n: 12, offworld: true, earth: true, research: true, sky: 'earthwar', sun: 1, knights: true, wizards: true,
     planet: { temp: 15, press: 101, o2: 21 },
     tools: EARTH_TOOLS,
     pal: {
@@ -2963,7 +2986,7 @@ function earthLevel(o) {
 LEVELS.push(earthLevel({
   name: 'Earth: Homecoming', num: 41, seed: 307,
   map: { ice: 3, mountains: [[1, 1, 1.0], [10, 10, 0.8]], craters: [[3, 3], [9, 3], [2, 8]], ore: [[9, 7, 1.1], [5, 2, 0.9]], ruins: [], frost: [] },
-  start: { metal: 420, energy: 80, water: 80, food: 160, crystals: 10 },
+  start: { metal: 420, energy: 80, water: 80, food: 160, crystals: 10, science: 30 },
   prebuilt: [['habitat', 5, 9], ['habitat', 6, 9], ['solar', 4, 9], ['greenhouse', 7, 9], ['drill', 4, 10], ['castle', 6, 7]],
   critters: { every: [14, 20], max: 4, speed: 1, after: () => S.time > 40, mix: { octo: 1 } },
   goals: [
@@ -2991,7 +3014,7 @@ LEVELS.push(earthLevel({
 LEVELS.push(earthLevel({
   name: 'Earth: The Flooded City', num: 42, seed: 311,
   map: { ice: 2, mountains: [[2, 9, 1.0], [9, 1, 0.9], [6, 5, 0.5]], craters: [[2, 3], [9, 4], [4, 9], [10, 9]], ore: [[7, 9, 1.0], [3, 6, 0.9]], ruins: [], frost: [] },
-  start: { metal: 400, energy: 80, water: 80, food: 150, crystals: 10 },
+  start: { metal: 400, energy: 80, water: 80, food: 150, crystals: 10, science: 30 },
   prebuilt: [['habitat', 5, 9], ['habitat', 6, 10], ['solar', 4, 10], ['solar', 7, 10], ['greenhouse', 5, 10], ['castle', 6, 8]],
   critters: { every: [12, 17], max: 5, speed: 1, after: () => S.time > 30, mix: { octo: 1 } },
   goals: [
@@ -3017,7 +3040,7 @@ LEVELS.push(earthLevel({
 LEVELS.push(earthLevel({
   name: 'Earth: The Last Stand', num: 43, seed: 313,
   map: { ice: 3, mountains: [[1, 5, 0.9], [10, 6, 0.9]], craters: [[3, 2], [8, 2], [2, 9], [9, 9], [6, 4]], ore: [[5, 9, 1.0], [10, 2, 0.8]], ruins: [], frost: [] },
-  start: { metal: 420, energy: 90, water: 80, food: 160, crystals: 12 },
+  start: { metal: 420, energy: 90, water: 80, food: 160, crystals: 12, science: 30 },
   prebuilt: [['habitat', 5, 10], ['habitat', 7, 10], ['solar', 4, 10], ['solar', 8, 10], ['greenhouse', 6, 10], ['castle', 6, 8], ['zapper', 4, 8]],
   critters: { every: [10, 15], max: 6, speed: 1, after: () => S.time > 30, mix: { octo: 1 } },
   goals: [
@@ -3043,7 +3066,7 @@ LEVELS.push(earthLevel({
 LEVELS.push(earthLevel({
   name: 'Earth: The Red Dragon', num: 44, seed: 317, dragon: true, finale: true,
   map: { ice: 2, mountains: [[1, 1, 0.9], [10, 1, 0.8], [1, 10, 0.8]], craters: [[3, 4], [8, 3], [4, 8], [9, 8], [6, 5]], ore: [[10, 6, 1.0], [5, 2, 0.9]], ruins: [], frost: [] },
-  start: { metal: 450, energy: 90, water: 90, food: 170, crystals: 15 },
+  start: { metal: 450, energy: 90, water: 90, food: 170, crystals: 15, science: 30 },
   prebuilt: [['habitat', 5, 10], ['habitat', 7, 10], ['solar', 4, 10], ['solar', 8, 10], ['greenhouse', 6, 10], ['castle', 6, 9], ['wizhut', 9, 10]],
   critters: { every: [12, 17], max: 5, speed: 1, after: () => S.time > 30, mix: { octo: 1 } },
   goals: [
@@ -5243,6 +5266,7 @@ function dragonFire(b) {
     for (const k of knights) if (k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - tx, k.y - ty) < 0.9) hurtKnight(k, 2, { x: tx, y: ty });
     const t = tile && tile.b ? tile : null;
     if (!t) return;
+    if (hasTech('fireproof')) { t.off = Math.max(t.off || 0, 3); return; }
     t.burn = (t.burn || 0) + 1; t.off = Math.max(t.off || 0, 6);
     if (t.burn >= 3) {
       toast(`The dragon burned down the ${B[t.b].name.toLowerCase()}!`, 'bad');
@@ -6259,6 +6283,7 @@ function updateCritters(dt) {
     c.t += dt; c.hit = Math.max(0, c.hit - dt);
     c.goo = !(c.fly > 0) && goo.some(t => Math.hypot(c.x - t.gx - 0.5, c.y - t.gy - 0.5) <= 2.2);
     if (c.webT > 0) c.webT -= dt;
+    if (c.netT > 0 && c.state !== 'bonked') { c.netT -= dt; c.hit = Math.max(c.hit, 0); continue; }
     const K = KINDS[c.kind || 'basic'], speed = base * K.spd * (c.goo || c.webT > 0 ? 0.5 : 1);
     const tgt = S.tiles[c.ti];
     if (!tgt) { c.gone = true; continue; }
@@ -6376,6 +6401,7 @@ function updateCritters(dt) {
     } else if (c.state === 'bonked') { if (c.t > 0.9) c.gone = true; }
   }
   newBuildings(dt);
+  if (LEVELS[S.level].earth) earthTowers(dt);
   // zappers
   for (const t of S.tiles) {
     if (!t.b || (t.b !== 'zapper' && t.b !== 'tesla' && !(B[t.b] && B[t.b].zapHalf)) || t.off > 0) continue;
@@ -6476,13 +6502,54 @@ function newBuildingLine(b) {
   else if (b === 'medic') say('kip', 'A knight medic tent! Knights and police nearby get their hearts back. Put it near the castles.', 'nb-medic');
   else if (b === 'fountain') say('kip', 'A rainbow fountain! The colonists love it, and it makes a little water too.', 'nb-fountain');
 }
+// Earth's researched buildings: harpoon towers, net launchers and the core forge
+function earthTowers(dt) {
+  const boss = S.boss && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  for (const t of S.tiles) {
+    if (t.b !== 'harpoon' && t.b !== 'netter' && t.b !== 'cforge') continue;
+    if (t.off > 0 || (t.b !== 'cforge' && S.eff < 0.3)) continue;
+    t.cd = (t.cd ?? (t.b === 'cforge' ? 75 : 0)) - dt * (t.frozen ? FROZEN : 1) * (t.b === 'cforge' ? Math.min(1, S.eff) : 1);
+    if (t.cd > 0) continue;
+    const x = t.gx + 0.5, y = t.gy + 0.5, a = center(t), dist = c => Math.hypot(c.x - x, c.y - y);
+    if (t.b === 'cforge') {
+      t.cd = 75;
+      if ((S.forged || 0) >= 3) continue;
+      S.forged = (S.forged || 0) + 1; S.cores = (S.cores || 0) + 1; dirty = true;
+      fx.push({ kind: 'text', x: a.x, y: a.y - 50, text: '+1 power core', life: 1.5, max: 1.5, color: '#7ff7ff' });
+      burst(a.x, a.y - 30, 14, ['#7ff7ff', '#ffd166', '#ffffff']); sfx('relic');
+      say('eng', 'The core forge just made a brand-new power core! Put it next to a spawner.', 'forge1');
+      continue;
+    }
+    const range = t.b === 'harpoon' ? 3.5 : 3;
+    const prey = crits.filter(c => !c.gone && c.state !== 'bonked' && c.state !== 'emerge' && !(t.b === 'netter' && c.netT > 0) && dist(c) <= range).sort((p, q) => dist(p) - dist(q))[0];
+    if (prey) {
+      const to = critWorld(prey);
+      if (t.b === 'harpoon') {
+        fx.push({ kind: 'shot', x: a.x, y: a.y - 34, x2: to.x, y2: to.y - 10, life: 0.3, max: 0.3, color: '#e3e8f5', hit: () => { if (!prey.gone && prey.state !== 'bonked') bonk(prey, false, 3, false, 'ally'); } });
+        t.cd = 2.5; sfx('whoosh');
+      } else {
+        fx.push({ kind: 'shot', x: a.x, y: a.y - 26, x2: to.x, y2: to.y - 10, life: 0.4, max: 0.4, color: '#c9a27a', hit: () => {
+          if (prey.gone || prey.state === 'bonked') return;
+          prey.netT = 3; const w = critWorld(prey);
+          fx.push({ kind: 'text', x: w.x, y: w.y - 34, text: 'Netted!', life: 0.9, max: 0.9, color: '#ffd166' });
+        } });
+        t.cd = 6; sfx('pop');
+        say('kip', 'Got it in a net! It can not move or dodge for a few seconds. Everybody hit it now!', 'net1');
+      }
+    } else if (t.b === 'harpoon' && boss && Math.hypot(boss.x - x, boss.y - y) <= 4) {
+      const w = bossWorld();
+      fx.push({ kind: 'shot', x: a.x, y: a.y - 34, x2: w.x, y2: w.y - 40, life: 0.35, max: 0.35, color: '#e3e8f5', hit: () => hurtBoss(3) });
+      t.cd = 2.5; sfx('whoosh');
+    } else t.cd = 0.3;
+  }
+}
 const dmgMul = () => S && S.tiles.some(t => t.b === 'church') ? 2 : 1;
 const phased = c => KINDS[c.kind || 'basic'].phase && ((c.t + c.seed * 3) % 6) > 4.2;
 const zapProof = c => { const K = KINDS[c.kind || 'basic']; return phased(c) || K.immune || K.icy || K.spider || (K.lizard && !(c.fly > 0)); };
 function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
   if (c.state === 'bonked') return;
   if (phased(c)) return; // a faded phantom: it went right through
-  if (c.dodges > 0 && c.state !== 'bonked' && Math.random() < 0.3) { // a black octopus slips out of the way
+  if (c.dodges > 0 && c.state !== 'bonked' && !(c.netT > 0) && Math.random() < 0.3) { // a black octopus slips out of the way
     c.dodges--; c.hit = 0;
     const a = Math.random() * Math.PI * 2; c.x += Math.cos(a) * 0.3; c.y += Math.sin(a) * 0.3;
     const p = critWorld(c);
@@ -7959,6 +8026,42 @@ function drawBuildingOn(g, t) {
   if (L) for (const [x, y, r, col] of L) lights.push([c.x + x, c.y + y, r, col]);
 }
 // glow spots that show up at night: [x, y, radius, colour] relative to the tile centre
+DRAW.harpoon = (g, T, v) => {
+  shadow(g, 14, 6);
+  isoBox(g, 0, 4, 9, 4.5, 16, '#9aa0c4', '#757aa0', '#5d6186');
+  ell(g, 0, -13, 9, 4.5, '#5d6186');
+  g.save(); g.translate(0, -16); g.rotate(Math.sin(T * 0.8 + v * 5) * 0.4 - 0.3);
+  g.strokeStyle = '#8a5a3c'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(-10, 4); g.quadraticCurveTo(0, -4, 10, 4); g.stroke(); // the bow
+  g.fillStyle = '#e3e8f5'; g.fillRect(-1, -14, 2, 18); poly(g, [[-3, -14], [3, -14], [0, -19]]); // the harpoon
+  g.restore();
+};
+DRAW.netter = (g, T, v) => {
+  shadow(g, 14, 6);
+  isoBox(g, 0, 4, 12, 6, 7, '#c9a27a', '#a8806a', '#8a6a52');
+  g.save(); g.translate(0, -8); g.rotate(-0.5);
+  g.fillStyle = '#5d6186'; g.fillRect(-4, -14, 8, 14); ell(g, 0, -14, 4, 2, '#2a2550');
+  g.restore();
+  g.strokeStyle = 'rgba(255,230,180,0.8)'; g.lineWidth = 0.8;
+  for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(-8 + i * 3, -2); g.lineTo(-2 + i * 3, 2); g.stroke(); g.beginPath(); g.moveTo(-8 + i * 3, 2); g.lineTo(-2 + i * 3, -2); g.stroke(); }
+};
+DRAW.cforge = (g, T, v) => {
+  shadow(g, 18, 8);
+  isoBox(g, 0, 4, 15, 7.5, 14, '#6a5a7a', '#544468', '#3e3254');
+  g.fillStyle = '#3e3254'; g.fillRect(6, -34, 6, 18); ell(g, 9, -34, 3, 1.5, '#2a2040');
+  const glow = 0.6 + 0.4 * Math.sin(T * 5 + v * 4);
+  ell(g, -4, -4, 5, 4, `rgba(255,140,60,${glow})`); ell(g, -4, -4, 2.6, 2.2, '#ffd166');
+  ell(g, -2, -22, 5, 5, 'rgba(127,247,255,0.3)'); ell(g, -2, -22, 3, 3, '#7ff7ff');
+  for (let i = 0; i < 3; i++) { const ph = (T * 0.6 + i / 3) % 1; ell(g, 9 + Math.sin(i * 2 + T) * 2, -36 - ph * 16, 2 + ph * 3, 2 + ph * 3, `rgba(180,170,200,${0.5 * (1 - ph)})`); }
+};
+// a net thrown over a stuck alien
+function drawNet(g, c) {
+  const p = critWorld(c), K = KINDS[c.kind || 'basic'], r = 9 * (K.size || 1);
+  g.save(); g.translate(p.x, p.y - r * 0.9);
+  g.strokeStyle = 'rgba(255,230,180,0.9)'; g.lineWidth = 1;
+  g.beginPath(); g.ellipse(0, 0, r, r * 0.95, 0, 0, Math.PI * 2); g.stroke();
+  for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(i * r * 0.35, -r); g.lineTo(i * r * 0.35, r); g.stroke(); g.beginPath(); g.moveTo(-r, i * r * 0.35); g.lineTo(r, i * r * 0.35); g.stroke(); }
+  g.restore();
+}
 DRAW.pcore = (g, T, v, t) => {
   shadow(g, 13, 6);
   isoBox(g, 0, 4, 10, 5, 6, '#9aa0c4', '#757aa0', '#5d6186');
@@ -8495,8 +8598,8 @@ const knightCount = () => S.tiles.reduce((n, t) => n + (t.b === 'castle' ? t.kn 
 const copCount = () => S.tiles.reduce((n, t) => n + (t.b === 'police' ? t.kn || 0 : 0), 0);
 const isBarracks = b => b === 'castle' || b === 'police';
 function newAlly(t, i, id) {
-  const A = ALLY[id];
-  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, ally: id, hp: A.hp, maxhp: A.hp, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
+  const A = ALLY[id], hp = A.hp + (hasTech('allyarmor') ? 3 : 0);
+  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, ally: id, hp, maxhp: hp, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
 }
 const poweredSpawners = () => S.tiles.filter(t => B[t.b] && B[t.b].spawner && t.powered).length;
 const allyCount = () => knights.filter(k => k.ally).length;
@@ -8514,7 +8617,7 @@ function spawnerStep(t, dt, coreFor) {
   }
   if (!t.powered) { say('eng', 'That spawner has no power. Put a power core right next to it, on any side.', 'sp-off'); return; }
   if (t.kn >= ALLY_PER) return;
-  t.train = (t.train || 0) + dt / 10 * (t.frozen ? FROZEN : 1);
+  t.train = (t.train || 0) + dt / (hasTech('allyarmor') ? 5 : 10) * (t.frozen ? FROZEN : 1);
   if (t.train < 1) return;
   t.train = 0; t.kn++; dirty = true;
   knights.push(newAlly(t, have, id));
@@ -8566,7 +8669,8 @@ function drawAlly(g, k) {
   g.restore();
 }
 function newKnight(t, i) {
-  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, cop: t.b === 'police', hp: 4, maxhp: 4, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
+  const hp = hasTech('mech') ? 6 : 4;
+  return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, cop: t.b === 'police', hp, maxhp: hp, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
 }
 function updateKnights(dt) {
   // each power core switches on one spawner next to it
@@ -8710,7 +8814,7 @@ function drawCop(g, k) {
   g.save(); g.translate(p.x, p.y);
   if (k.state === 'heal') g.globalAlpha = 0.55;
   ell(g, 0, 1, 5.5, 2.2, 'rgba(70,16,24,0.25)');
-  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - 1.5) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
+  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - (k.maxhp - 1) / 2) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
   g.scale(1.25 * k.face, 1.25);
   const by = -6 - bob, blue = k.hit > 0 ? '#ffffff' : k.state === 'hurt' ? '#7d849e' : '#2f4fb8';
   const st = moving ? Math.sin(k.t * 12 + k.seed) * 1.2 : 0;
@@ -8746,7 +8850,7 @@ function drawKnight(g, k) {
   g.save(); g.translate(p.x, p.y);
   if (k.state === 'heal') g.globalAlpha = 0.55;
   ell(g, 0, 1, 5.5, 2.2, 'rgba(70,16,24,0.25)');
-  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - 1.5) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
+  if (k.hp < k.maxhp && k.state !== 'heal') for (let i = 0; i < k.maxhp; i++) ell(g, (i - (k.maxhp - 1) / 2) * 3.6, -24, 1.3, 1.3, i < k.hp ? '#7ff7a8' : 'rgba(255,255,255,0.25)');
   g.scale(1.25 * k.face, 1.25);
   const by = -6 - bob, steel = k.hit > 0 ? '#ffffff' : k.state === 'hurt' ? '#a3a7bd' : '#e3e8f5', dark = '#7d849e';
   g.fillStyle = dark;
@@ -9347,7 +9451,7 @@ function render() {
     if (t.b) drawBuildingOn(ctx, t);
     if (t.shaft) { const c = center(t); ell(ctx, 0 + c.x, c.y, 16, 7, 'rgba(255,210,150,0.28)'); ctx.fillStyle = 'rgba(255,210,150,0.12)'; ctx.fillRect(c.x - 9, c.y - 70, 18, 70); }
     if (ub && ub.has(t)) for (const c of ub.get(t)) drawCritter(ctx, c);
-    const cs = surf && byTile.get(t); if (cs) for (const c of cs) (c.wiz ? drawWizard : c.ally ? drawAlly : c.cop ? drawCop : c.home ? drawKnight : drawCritter)(ctx, c);
+    const cs = surf && byTile.get(t); if (cs) for (const c of cs) { (c.wiz ? drawWizard : c.ally ? drawAlly : c.cop ? drawCop : c.home ? drawKnight : drawCritter)(ctx, c); if (c.netT > 0) drawNet(ctx, c); }
   }
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
   if (surf && S.voidCrystal) drawVoidCrystal(ctx);
@@ -9854,7 +9958,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 5598b671 55a248b0 56339282 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b0d32200 b114a3e3 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b5560844 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f0487f74 f06aaf8a f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 492a5a38 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 5598b671 55a248b0 56339282 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 6177d955 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a77aa56 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b03c0124 b0d32200 b114a3e3 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b5560844 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbb8d745 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbcb2f61 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 da96dd04 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f02933c3 f0487f74 f06aaf8a f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
