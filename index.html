@@ -389,7 +389,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 53;
+const BUILD = 54;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -588,7 +588,7 @@ const FARMS = ['greenhouse', 'coop', 'ranch', 'fishery'];
 const homeSize = b => b === 'hover' ? 10 : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : 0;
 const popCap = () => ALL().reduce((n, t) => n + homeSize(t.b), 0);
 const wetFarms = () => ALL().filter(t => FARMS.includes(t.b) && t.wet).length;
-const hasTech = id => !!(S.techs && S.techs.includes(id));
+const hasTech = id => !!(S.techs && S.techs.includes(id)) || !!(S && LEVELS[S.level].earth && EARTH_BASE_TECHS.includes(id));
 const curTiles = () => S.view === 'under' ? S.under : S.view === 'sky' ? S.sky : S.tiles;
 const nestsLeft = () => ALL().filter(t => t.type === 'nest').length;
 const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain'];
@@ -654,8 +654,8 @@ function levelTools() {
   if (L.research) for (const t of TECHS) if (hasTech(t.id) && t.unlock) for (const u of t.unlock) if (!tools.includes(u)) tools.push(u);
   return [...tools, 'recycle'];
 }
-// Earth has its own branch, and no colony rocket (the colony already came home)
-const techHere = t => LEVELS[S.level].earth ? !t.marsOnly : !t.earth;
+// Earth only shows its own Free Earth branch: the rest is already researched there
+const techHere = t => LEVELS[S.level].earth ? !!t.earth : !t.earth; // on Earth you already know everything else
 function canResearch(t) { return !hasTech(t.id) && t.req.every(hasTech); }
 function learn(id) {
   const t = TECH[id];
@@ -2962,10 +2962,13 @@ const MIX = LEVELS.findIndex(L => L.mixup);
 const EARTH_TOOLS = ['solar', 'turbine', 'fusion', 'flower', 'mine', 'oredrill', 'gmine', 'drill', 'condenser', 'icedig', 'habitat', 'hover', 'greenhouse', 'garden', 'coop', 'ranch',
   'lab', 'restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain', 'lemon', 'lemonade', 'tower', 'kitchen', 'crafter', 'ccrafter', 'ctree', 'castle', 'police', 'wizhut', 'zapper', 'tesla',
   'dronebay', 'field', 'church', 'graveyard', 'goo', 'boing', 'medic', 'lantern', 'fuel', 'pad', 'recycle'];
+// Earth starts with all the usual research, except the colony rocket (the colony already came home)
+// and the three that reshape the map (more land, the underground and sky islands)
+const EARTH_BASE_TECHS = ['husbandry', 'towers', 'irrigation', 'fish', 'crops', 'arc', 'drones', 'shields', 'labs2', 'geo', 'rocketry', 'padtech'];
 const spawnGoal = n => () => !canSpawn() ? n : Math.min(n, poweredSpawners() + Math.max(0, n - MISSION.cores.length));
 function earthLevel(o) {
   return Object.assign({
-    n: 12, offworld: true, earth: true, research: true, sky: 'earthwar', sun: 1, knights: true, wizards: true,
+    n: 12, offworld: true, earth: true, research: true, baseTechs: EARTH_BASE_TECHS, sky: 'earthwar', sun: 1, knights: true, wizards: true,
     planet: { temp: 15, press: 101, o2: 21 },
     tools: EARTH_TOOLS,
     pal: {

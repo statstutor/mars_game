@@ -195,9 +195,10 @@ screen, saved on the device), and one day come home to free Earth.
     - Beating it frees Earth and plays the ending.
 
     **Research works on Earth too.** Build **research labs** for science (each level starts with
-    30) and open the tech tree. Everything you research carries on to the next Earth level. The
-    usual branches are there (no colony rocket), plus a **Free Earth** branch you can only
-    research on Earth:
+    30) and open the tech tree. On Earth you already own all the usual research, except the
+    colony rocket and the three techs that reshape the map (Land Reclamation, Deep Tunnels and
+    Sky Islands). So the tree shows only the **Free Earth** branch, and what you research there
+    carries on to the next Earth level:
     - **Harpoon Towers** (new building): 3-damage harpoons with a long range. They can hit the
       dragon even when it flies.
     - **Net Launchers** (new building): net an alien for 3 seconds, so it can't move or dodge.
