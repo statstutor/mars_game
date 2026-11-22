@@ -168,11 +168,14 @@ body.cramped #tip.idle { display: none; }
 #talk { position: fixed; left: 16px; bottom: 200px; z-index: 9; width: min(410px, calc(100% - 32px)); display: grid; grid-template-columns: 60px 1fr; gap: 12px; align-items: start; padding: 12px 14px 13px; cursor: pointer; animation: pop .25s ease-out; }
 #talk canvas { width: 60px; height: 60px; display: block; }
 #talk .who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-right: 44px; }
+#talk:has(#talk-all:not([hidden])) .who { padding-right: 112px; }
 #talk .who b { font: 600 16px var(--display); }
 #talk .who small { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 #talk p { margin: 3px 0 0; font-size: 14px; line-height: 1.45; min-height: 2.9em; }
 #talk .skip { position: absolute; right: 8px; top: 8px; border: 0; background: rgba(255, 255, 255, 0.08); color: var(--muted); font: 700 11px var(--body); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
 #talk .skip:hover { color: var(--ink); }
+#talk .skip.all { right: 58px; color: var(--sun); }
+#talk .skip[hidden] { display: none; }
 #talk .skip:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
 .chip.needs { display: grid; grid-template-columns: auto 46px; gap: 2px 6px; align-items: center; padding: 5px 12px; border-radius: 16px; }
 .chip.needs span { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
@@ -383,6 +386,7 @@ body.cramped #tip.idle { display: none; }
   <canvas id="talk-face" width="120" height="120" aria-hidden="true"></canvas>
   <div><div class="who"><b id="talk-name"></b><small id="talk-role"></small></div><p id="talk-text"></p></div>
   <button class="skip" id="talk-skip" title="Skip (Enter)">Skip</button>
+  <button class="skip all" id="talk-all" title="Stop everyone talking (Shift+Enter)" hidden>Skip all</button>
 </div>
 <div id="modal" hidden></div>
 <button id="to-levels" hidden title="Level select">☰ Levels</button>
@@ -398,7 +402,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 62;
+const BUILD = 63;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -10281,6 +10285,7 @@ function talkUpdate(dt) {
     if (talking.safety && RT > talking.safety && talking.until === Infinity) talking.until = RT;
     if (RT > talking.until) { talking = null; if (!talkQ.length) { $('#talk').hidden = true; duck(false); } }
   }
+  $('#talk-all').hidden = !talkQ.length; // only when more lines are waiting
   if (!talking && talkQ.length) { dropStale(); if (!talkQ.length) { $('#talk').hidden = true; duck(false); } }
   if (!talking && talkQ.length && (!modalOpen || talkQ[0].force)) nextLine();
   if (talking) {
@@ -10413,6 +10418,8 @@ function toggleVoice() {
   toast(prefs.sfx ? 'Sound and voices on' : 'Sound and voices off (subtitles stay)');
 }
 $('#talk').addEventListener('click', skipLine);
+// Skip all: stop this line and everyone waiting to talk after it
+$('#talk-all').addEventListener('click', (e) => { e.stopPropagation(); hush(); sfx('tick'); });
 
 // ---------------------------------------------------------------- autosave
 const SAVE_KEY = 'mmb-save-v2';
@@ -10828,7 +10835,7 @@ addEventListener('keydown', e => {
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'm' || e.key === 'M') toggleMusic();
   else if (e.key === 'v' || e.key === 'V') toggleVoice();
-  else if (e.key === 'Enter' && talking) skipLine();
+  else if (e.key === 'Enter' && talking) { if (e.shiftKey) hush(); else skipLine(); }
   else if (/^[0-9]$/.test(e.key)) { const n = levelTools()[(+e.key + 9) % 10]; if (n) selectTool(tool === n ? null : n); }
   else if ((e.key === 'r' || e.key === 'R') && LEVELS[S.level].research) showTree();
 });
