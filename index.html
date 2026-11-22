@@ -403,7 +403,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 66;
+const BUILD = 67;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4385,7 +4385,13 @@ function showRocket() {
 // the mission to free Earth starts with the invasion cutscene on Venus
 // Earth is the end of the mission: it opens once Pluto is done (or if Earth was already reached before this rule)
 const earthOpen = () => !!(WORLDS_DONE.pluto || WORLDS_DONE.earth || WORLDS_DONE.earth2 || WORLDS_DONE.earth3 || WORLDS_DONE.earth4);
-const missionKnown = () => store.get('mmb-invaded', false) || MISSION.cores.length > 0 || MISSION.allies.length > 0 || (S && LEVELS[S.level].earth);
+// the mission is known once the Venus invasion has played, or once the player has got anywhere past
+// Venus (games from before the game remembered the cutscene count too)
+const VENUS1 = 12;
+const pastVenus = li => li != null && LEVELS[li] && li >= VENUS1 && !LEVELS[li].bonus && !LEVELS[li].mixup && !LEVELS[li].tutorial && !LEVELS[li].under;
+const missionKnown = () => store.get('mmb-invaded', false) || MISSION.cores.length > 0 || MISSION.allies.length > 0
+  || Object.keys(WORLDS_DONE).some(k => WORLDS_DONE[k] && WORLDS[k] && pastVenus(WORLDS[k].level))
+  || (S && pastVenus(S.level)) || (() => { const d = readSave(); return !!(d && pastVenus(d.S.level)); })();
 function opensNow(k, anyDone) {
   const w = WORLDS[k];
   if (!w.after) return true;
