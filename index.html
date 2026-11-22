@@ -361,7 +361,7 @@ body.cramped #tip.idle { display: none; }
   </header>
 
   <footer class="bottom">
-    <div id="tip" class="card"></div>
+    <div id="tip" class="card"><button class="tip-x" id="tip-x" type="button" title="Close" aria-label="Close this box">✕</button><div id="tip-body"></div></div>
     <div class="bar">
       <div class="card" id="layers" hidden aria-label="Map layer">
         <button data-view="sky" id="layer-sky" hidden>Sky</button>
@@ -402,7 +402,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 63;
+const BUILD = 64;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3221,7 +3221,15 @@ function tutArrow() {
   el.hidden = false; el.classList.toggle('up', up);
   el.style.left = x + 'px'; el.style.top = y + 'px';
 }
-(function tutLoop() { try { tutArrow(); } catch (e) {} requestAnimationFrame(tutLoop); })();
+// keep the building description box clear of the crew's talk box, so both show and its ✕ can be tapped
+function liftTip() {
+  const tip = $('#tip'), talk = $('#talk');
+  tip.style.marginBottom = '';
+  if (talk.hidden || tip.classList.contains('closed') || getComputedStyle(tip).display === 'none') return;
+  const a = tip.getBoundingClientRect(), b = talk.getBoundingClientRect();
+  if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) tip.style.marginBottom = Math.ceil(a.bottom - b.top + 8) + 'px';
+}
+(function tutLoop() { try { tutArrow(); } catch (e) {} try { liftTip(); } catch (e) {} requestAnimationFrame(tutLoop); })();
 function showTutorialDone() {
   const L = LEVELS[S.level];
   store.set('mmb-tut-done', true);
@@ -9702,16 +9710,19 @@ function selectTool(name) {
 // It stays closed until a building is picked again.
 let tipClosed = false;
 function showTip(preview) {
-  const el = $('#tip');
-  if (tipClosed && !preview) { el.classList.add('closed'); return; }
-  el.classList.remove('closed');
+  const box = $('#tip');
+  if (tipClosed && !preview) { box.classList.add('closed'); return; }
+  box.classList.remove('closed');
   showTipText(preview);
-  if (el.innerHTML.trim() && !el.querySelector('.tip-x')) el.insertAdjacentHTML('afterbegin', '<button class="tip-x" type="button" title="Close" aria-label="Close this box">✕</button>');
 }
-document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#tip .tip-x')) { e.stopPropagation(); tipClosed = true; showTip(); sfx('tick'); } }, true);
+// The ✕ is never redrawn (only the text beside it is), and it reacts as soon as a finger touches
+// it, so a tap always lands even though the text updates many times a second.
+const closeTip = (e) => { e.preventDefault(); e.stopPropagation(); if (tipClosed) return; tipClosed = true; showTip(); sfx('tick'); };
+$('#tip-x').addEventListener('pointerdown', closeTip);
+$('#tip-x').addEventListener('click', closeTip);
 function showTipText(preview) {
-  const el = $('#tip');
-  el.classList.remove('idle');
+  const box = $('#tip'), el = $('#tip-body');
+  box.classList.remove('idle');
   const name = preview || tool;
   if (name) {
     const d = B[name];
@@ -9742,7 +9753,7 @@ function showTipText(preview) {
     return;
   }
   el.innerHTML = '<span class="muted">Pick a building below (or press 1–9, 0), then click a tile on the map. Tap critters to bonk them. Right-click or Esc to cancel.</span>';
-  el.classList.add('idle');
+  box.classList.add('idle');
 }
 
 function buildGoals() {
