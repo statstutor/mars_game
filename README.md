@@ -37,7 +37,8 @@ screen or a critter. The steps cover:
 - **Space travel**: a fuel plant, a launch pad, and the star map.
 
 It doesn't mention the mission to free Earth, which starts with the invasion on Venus. It ends by
-offering to start Level 1. Earth stays off the star map until that invasion has happened.
+offering to start Level 1. Earth (on the star map, and Levels 41–44 in level select) stays hidden
+until that invasion has happened.
 
 1. **Touchdown**: power, metal, water and food, two habitats, and the first warming. Critters
    and dust storms appear.

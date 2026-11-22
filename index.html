@@ -398,7 +398,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 61;
+const BUILD = 62;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -9864,7 +9864,7 @@ function showTitle() {
       <button class="lvl ten" data-l="9"><span class="n">10</span><span><b>Europa: The Shell King</b><small>Three castles, nine knights, and the Shell-beast King.</small></span><span class="go">Play</span></button>
       <button class="lvl eleven" data-l="10"><span class="n">11</span><span><b>Moonbase Lemonade</b><small>Earth’s Moon: lemonade stands and five-headed aliens.</small></span><span class="go">Play</span></button>
       <button class="lvl twelve" data-l="11"><span class="n">12</span><span><b>The Five-Head Chief</b><small>Knock off his heads one at a time, before they grow back.</small></span><span class="go">Play</span></button>
-      <button class="lvl thirteen" data-l="12"><span class="n">13</span><span><b>Venus: The Invasion</b><small>Earth is invaded. The mission begins on scorching Venus.</small></span><span class="go">Play</span></button>
+      <button class="lvl thirteen" data-l="12"><span class="n">13</span><span><b>Venus: The Invasion</b><small>Scorching hot Venus: volcanoes, lava and lizard people.</small></span><span class="go">Play</span></button>
       <button class="lvl fourteen" data-l="13"><span class="n">14</span><span><b>Venus: Lava Fields</b><small>Lizard people, crafters and the second power core.</small></span><span class="go">Play</span></button>
       <button class="lvl fifteen" data-l="14"><span class="n">15</span><span><b>Venus: Lizard Caves</b><small>Right on top of the lizards’ home. Third power core.</small></span><span class="go">Play</span></button>
       <button class="lvl sixteen" data-l="15"><span class="n">16</span><span><b>Venus: The Lizard King</b><small>Beat the king, free his people, gain your first allies.</small></span><span class="go">Play</span></button>
@@ -9893,10 +9893,10 @@ function showTitle() {
       <button class="lvl nep" data-l="39"><span class="n">38</span><span><b>Neptune: Triton’s Shadow</b><small>Under the backwards moon, the ice aliens gather.</small></span><span class="go">Play</span></button>
       <button class="lvl nep2" data-l="40"><span class="n">39</span><span><b>Neptune: The Ice Giant</b><small>The boss of all the ice aliens climbs out of the ice.</small></span><span class="go">Play</span></button>
       <button class="lvl plu" data-l="41"><span class="n">40</span><span><b>Pluto: The Hidden Core</b><small>Fusion reactors, spider aliens, a metal detector and the Spider Queen.</small></span><span class="go">Play</span></button>
-      <button class="lvl earth" data-l="${EARTH[0]}"><span class="n">41</span><span><b>Earth: Homecoming</b><small>Home at last. Black octopus aliens, spawners and power cores.</small></span><span class="go">Play</span></button>
+${missionKnown() ? `      <button class="lvl earth" data-l="${EARTH[0]}"><span class="n">41</span><span><b>Earth: Homecoming</b><small>Home at last. Black octopus aliens, spawners and power cores.</small></span><span class="go">Play</span></button>
       <button class="lvl earth" data-l="${EARTH[1]}"><span class="n">42</span><span><b>Earth: The Flooded City</b><small>Octopuses in the streets. Never let one win a fight.</small></span><span class="go">Play</span></button>
       <button class="lvl earth" data-l="${EARTH[2]}"><span class="n">43</span><span><b>Earth: The Last Stand</b><small>Every octopus on Earth is coming.</small></span><span class="go">Play</span></button>
-      <button class="lvl earth2" data-l="${EARTH[3]}"><span class="n">44</span><span><b>Earth: The Red Dragon</b><small>The final battle: free Earth from the Red Dragon.</small></span><span class="go">Play</span></button>
+      <button class="lvl earth2" data-l="${EARTH[3]}"><span class="n">44</span><span><b>Earth: The Red Dragon</b><small>The final battle: free Earth from the Red Dragon.</small></span><span class="go">Play</span></button>` : ''}
     </div>`);
   $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl mix" data-l="${MIX}"><span class="n">🎲</span><span><b>Bonus: Random Mix-Up</b><small>A brand new random level every time: any world, any aliens, any boss.</small></span><span class="go">Play</span></button>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);
