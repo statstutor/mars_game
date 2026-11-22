@@ -266,7 +266,7 @@ or Queen Skyla). Finishing it lets you keep one Zorp-tech upgrade for the rest o
 fly back to the game you left. The upgrade works on every level, and every level's intro reminds
 you which one you have:
 - **Solar Flower seeds**: every power building makes 50% more power.
-- **Tesla coils**: every zapper zaps one more critter at once.
+- **Tesla coils**: every zapper zaps two more critters at once.
 - **Gloop drills**: everything that digs metal digs 50% more.
 - **Hover homes**: habitats hold 6 colonists and hover habitats hold 12.
 

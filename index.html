@@ -395,7 +395,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 57;
+const BUILD = 58;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3956,7 +3956,7 @@ function goGlorp() {
 const PERKS = {
   // a gift lasts for the whole game, and works on every building of its kind, on every world
   flower: { name: 'Solar Flower seeds', desc: 'Every power building makes 50% more power: solar arrays, turbines, fusion reactors and the rest.' },
-  tesla: { name: 'Tesla coils', desc: 'Every zapper zaps one more critter at once.' },
+  tesla: { name: 'Tesla coils', desc: 'Every zapper zaps two more critters at once.' },
   gloop: { name: 'Gloop drills', desc: 'Everything that digs metal digs 50% more: mines, ore drills and the rest.' },
   hover: { name: 'Hover homes', desc: 'Habitats hold 6 colonists instead of 4, and hover habitats hold 12.' },
 };
@@ -6557,7 +6557,7 @@ function updateCritters(dt) {
     t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1) * (t.frozen ? FROZEN : 1);
     if (t.cd > 0) continue;
     const tesla = t.b === 'tesla', arc = hasTech('arc');
-    const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = (tesla ? 3 : 1) + (PERK === 'tesla' ? 1 : 0);
+    const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = (tesla ? 3 : 1) + (PERK === 'tesla' ? 2 : 0);
     const inRange = crits.filter(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range);
     const prey = inRange.filter(c => !zapProof(c)).slice(0, chain);
     const shell = !prey.length && inRange[0];
