@@ -321,7 +321,7 @@ body.cramped #tip.idle { display: none; }
         </div>
         <div class="chip" id="chip-cores" title="Power cores you can still place next to spawners. You win them on the other planets." hidden>
           <span class="ic" style="background:#7ff7ff"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="#1a1238" stroke-width="2"/></svg></span>
-          <span class="tx"><b id="v-cores">0</b><small>power cores</small></span>
+          <span class="tx"><b id="v-cores">0</b><small id="r-cores">power cores</small></span>
         </div>
         <div class="chip" id="chip-crystals" title="Alien crystals: critters drop them when bonked. Traders love them." hidden>
           <span class="ic" style="background:#c9a7ff"><svg viewBox="0 0 24 24"><path d="M12 2 19 9l-7 13L5 9z"/></svg></span>
@@ -395,7 +395,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 58;
+const BUILD = 59;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -6550,7 +6550,7 @@ function updateCritters(dt) {
     } else if (c.state === 'bonked') { if (c.t > 0.9) c.gone = true; }
   }
   newBuildings(dt);
-  if (LEVELS[S.level].earth) earthTowers(dt);
+  if (LEVELS[S.level].earth) { S.cores = coresLeft(); earthTowers(dt); }
   // zappers
   for (const t of S.tiles) {
     if (!t.b || (t.b !== 'zapper' && t.b !== 'tesla' && !(B[t.b] && B[t.b].zapHalf)) || t.off > 0) continue;
@@ -8750,6 +8750,10 @@ function newAlly(t, i, id) {
   const A = ALLY[id], hp = A.hp + (hasTech('allyarmor') ? 3 : 0);
   return { x: t.gx + 0.5, y: t.gy + 0.9, home: t, i, ally: id, hp, maxhp: hp, state: 'guard', t: 0, cd: 0, swing: 0, hit: 0, face: 1, seed: Math.random() * 10, tgt: null };
 }
+// power cores on Earth: every core won on the mission, plus any the Core Forge made, minus the ones
+// already placed on the map. Worked out fresh each time, so cores won since the level started count too.
+const coresTotal = () => MISSION.cores.length + (S.forged || 0);
+const coresLeft = () => Math.max(0, coresTotal() - count('pcore'));
 const poweredSpawners = () => S.tiles.filter(t => B[t.b] && B[t.b].spawner && t.powered).length;
 const allyCount = () => knights.filter(k => k.ally).length;
 // can this player use spawners at all? (they need a freed ally and a power core)
@@ -9761,7 +9765,8 @@ function updateUI() {
   $('#chip-fuel').hidden = !(hasTech('rocketry') || S.fuel > 0);
   $('#v-fuel').textContent = Math.floor(S.fuel);
   $('#v-crystals').textContent = Math.floor(S.crystals);
-  $('#chip-cores').hidden = !L.earth; if (L.earth) $('#v-cores').textContent = S.cores || 0;
+  $('#chip-cores').hidden = !L.earth;
+  if (L.earth) { S.cores = coresLeft(); $('#v-cores').textContent = S.cores; $('#r-cores').textContent = `left of ${coresTotal()}`; }
   const meter = (id, v) => { const m = $(id); m.style.width = v + '%'; m.style.background = v > 60 ? 'var(--leaf)' : v > 30 ? 'var(--sun)' : 'var(--warn)'; };
   meter('#m-fed', S.fed); meter('#m-hyd', S.hyd); meter('#m-mood', S.mood);
   $('#chip-needs').title = `Fed ${Math.round(S.fed)}% · Water ${Math.round(S.hyd)}% · Happiness ${Math.round(S.mood)}% (heading for ${Math.round(S.moodTarget ?? S.mood)}%)`;
