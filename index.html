@@ -403,7 +403,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 67;
+const BUILD = 68;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -5422,7 +5422,7 @@ function maybeDragon(L) {
 }
 function spawnDragon() {
   const crater = S.tiles.filter(t => t.basin).sort((a, b) => Math.hypot(a.gx - S.n / 2, a.gy - S.n / 2) - Math.hypot(b.gx - S.n / 2, b.gy - S.n / 2))[0] || S.tiles[0];
-  S.boss = { kind: 'dragon', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 700, maxhp: 700, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 12, atk: 2, flyT: 7, fly: 0, flying: false, fireT: 3, hs: crater.h };
+  S.boss = { kind: 'dragon', x: crater.gx + 0.5, y: crater.gy + 0.5, hp: 620, maxhp: 620, state: 'emerge', t: 0, spot: 0, spotT: 0, spawnT: 12, atk: 2, flyT: 7, fly: 0, flying: false, fireT: 3, hs: crater.h };
   shake = RM ? 0 : 18; sfx('boom'); sfx('roar');
   toast('THE RED DRAGON has landed!', 'bad');
   say('cmd', 'There it is. The Red Dragon, the boss of the whole invasion. Beat it, and Earth is free.', 'dragon1');
@@ -5466,9 +5466,9 @@ function dragonStep(b, dt) {
   if (b.fly > 0) { b.fly -= dt; if (b.fly <= 0) b.flying = false; }
   else { b.flyT -= dt; if (b.flyT <= 0) { b.fly = 6; b.flying = true; b.flyT = 8 + Math.random() * 4; say('eng', 'The dragon is flying! Knights can not reach it up there. Zappers, wizards, taps and allies that shoot still can.', 'dragon-fly'); } }
   b.spawnT -= dt;
-  if (b.spawnT <= 0) { if (crits.filter(c => c.state !== 'bonked').length < 8) spawnCritter('octo', tileAt(clamp(Math.floor(b.x), 0, S.n - 1), clamp(Math.floor(b.y), 0, S.n - 1))); b.spawnT = b.enraged ? 12 : 16; }
+  if (b.spawnT <= 0) { if (crits.filter(c => c.state !== 'bonked').length < 8) spawnCritter('octo', tileAt(clamp(Math.floor(b.x), 0, S.n - 1), clamp(Math.floor(b.y), 0, S.n - 1))); b.spawnT = b.enraged ? 14 : 18; }
   b.fireT -= dt;
-  if (b.fireT <= 0) { b.fireT = (b.flying ? 1.6 : 3.5) * (b.enraged ? 0.75 : 1); dragonFire(b); }
+  if (b.fireT <= 0) { b.fireT = (b.flying ? 1.9 : 4) * (b.enraged ? 0.8 : 1); dragonFire(b); }
   b.atk -= dt;
   const near = b.flying ? [] : knights.filter(k => k.state !== 'hurt' && k.state !== 'heal' && Math.hypot(k.x - b.x, k.y - b.y) < 1.9);
   if (b.atk <= 0 && near.length) {

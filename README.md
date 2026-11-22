@@ -198,7 +198,7 @@ screen, saved on the device), and one day come home to free Earth.
     - Water squirters, ice throwers and web spitters shoot from a distance. Webs slow octopuses
       down.
 
-    Level 44's boss is the **Red Dragon** (700 health):
+    Level 44's boss is the **Red Dragon** (620 health):
     - On the ground, knights and allies can fight it.
     - When it flies, only zappers, wizards, taps and shooting allies can reach it.
     - It spits fireballs: three hits burn a building down, and anyone standing where one lands
