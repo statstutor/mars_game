@@ -395,7 +395,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 56;
+const BUILD = 57;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -591,7 +591,7 @@ const B = {
 const ALL = () => (S.under || S.sky) ? S.tiles.concat(S.under || [], S.sky || []) : S.tiles;
 const count = type => ALL().reduce((n, t) => n + (t.b === type ? 1 : 0), 0);
 const FARMS = ['greenhouse', 'coop', 'ranch', 'fishery'];
-const homeSize = b => b === 'hover' ? 10 : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : 0;
+const homeSize = b => b === 'hover' ? (PERK === 'hover' ? 12 : 10) : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : 0;
 const popCap = () => ALL().reduce((n, t) => n + homeSize(t.b), 0);
 const wetFarms = () => ALL().filter(t => FARMS.includes(t.b) && t.wet).length;
 const hasTech = id => !!(S.techs && S.techs.includes(id)) || !!(S && LEVELS[S.level].earth && EARTH_BASE_TECHS.includes(id));
@@ -3532,8 +3532,9 @@ function tick(dt) {
     if (t.off > 0) t.off = Math.max(0, t.off - dt);
     if (!t.b || t.off > 0) continue;
     const e = B[t.b].energy || 0, fz = t.frozen ? FROZEN : 1;
-    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1) * (PERK === 'flower' ? 1.5 : 1) * fz;
-    else if (e > 0) prod += e * fz; else cons -= e;
+    const gift = PERK === 'flower' ? 1.5 : 1;
+    if (t.b === 'solar') prod += e * (t.layer === 'sky' ? skySun : sun) * (bonus.solar || 1) * gift * fz;
+    else if (e > 0) prod += e * gift * fz; else cons -= e;
   }
   updateWater();
   const avail = S.energy + prod * dt, need = cons * dt;
@@ -3550,7 +3551,7 @@ function tick(dt) {
     const d = B[t.b], eff = S.eff * (t.frozen ? FROZEN : 1); // frozen buildings on Uranus work slowly
     if (d.out) {
       const farm = FARMS.includes(t.b) ? (t.wet ? 2 : 1) * cropBoost : 1;
-      metal += (d.out.metal || 0) * eff * work * (bonus.metal || 1) * (t.b === 'mine' && PERK === 'gloop' ? 1.5 : 1);
+      metal += (d.out.metal || 0) * eff * work * (bonus.metal || 1) * (PERK === 'gloop' ? 1.5 : 1);
       water += (d.out.water || 0) * eff * work * (bonus.water || 1);
       food += (d.out.food || 0) * eff * work * (bonus.food || 1) * farm;
     }
@@ -3953,10 +3954,11 @@ function goGlorp() {
 
 // ---------------------------------------------------------------- Planet Glorp: the festival
 const PERKS = {
-  flower: { name: 'Solar Flower seeds', desc: 'Solar arrays make 50% more power.' },
-  tesla: { name: 'Tesla coils', desc: 'Zappers zap two critters at once.' },
-  gloop: { name: 'Gloop drills', desc: 'Mines dig 50% more metal.' },
-  hover: { name: 'Hover homes', desc: 'Habitats hold 6 colonists instead of 4.' },
+  // a gift lasts for the whole game, and works on every building of its kind, on every world
+  flower: { name: 'Solar Flower seeds', desc: 'Every power building makes 50% more power: solar arrays, turbines, fusion reactors and the rest.' },
+  tesla: { name: 'Tesla coils', desc: 'Every zapper zaps one more critter at once.' },
+  gloop: { name: 'Gloop drills', desc: 'Everything that digs metal digs 50% more: mines, ore drills and the rest.' },
+  hover: { name: 'Hover homes', desc: 'Habitats hold 6 colonists instead of 4, and hover habitats hold 12.' },
 };
 let bots = [];
 function updateGlorp(dt) {
@@ -4226,12 +4228,12 @@ function showGlorpDone() {
     <h2>The Glorp Festival!</h2>
     <p>The kitchen cooked a feast, the twins bounced until they fell over, Baby Zuzu slept through the fireworks, and the party crasher went home with nothing. The Zorp family has a gift for you: <b>take one piece of Zorp-tech home</b>. It works in every level.</p>
     <div class="perks">${Object.entries(PERKS).map(([id, p]) => `<button class="perk ${PERK === id ? 'on' : ''}" data-id="${id}"><b>${p.name}</b><small>${p.desc}</small></button>`).join('')}</div>
-    <p class="small-note" id="perk-note">${PERK ? 'You can swap your upgrade any time you finish this level.' : 'Pick one.'}</p>
+    <p class="small-note" id="perk-note">${PERK ? 'It works on every level for the rest of the game. You can swap it any time you finish this level.' : 'Pick one. It works on every level for the rest of the game.'}</p>
     <div class="row">${back ? '<button class="btn" id="fly-home">Fly back home</button>' : ''}<button class="btn alt" id="glorp-menu">Level select</button></div>`);
   $('#modal').querySelectorAll('.perk').forEach(b => b.addEventListener('click', () => {
     PERK = b.dataset.id; store.set('mmb-perk', PERK); sfx('chime');
     $('#modal').querySelectorAll('.perk').forEach(x => x.classList.toggle('on', x === b));
-    $('#perk-note').textContent = `${PERKS[PERK].name}: yours to keep.`;
+    $('#perk-note').textContent = `${PERKS[PERK].name}: yours to keep, on every level for the rest of the game.`;
   }));
   if (back) $('#fly-home').addEventListener('click', flyHome);
   $('#glorp-menu').addEventListener('click', showTitle);
@@ -6555,7 +6557,7 @@ function updateCritters(dt) {
     t.cd = (t.cd || 0) - dt * S.eff * (S.bonus.zap || 1) * (t.frozen ? FROZEN : 1);
     if (t.cd > 0) continue;
     const tesla = t.b === 'tesla', arc = hasTech('arc');
-    const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = tesla ? 3 : PERK === 'tesla' ? 2 : 1;
+    const range = tesla || arc ? 3.2 : 2.3, dmg = tesla || arc ? 2 : 1, chain = (tesla ? 3 : 1) + (PERK === 'tesla' ? 1 : 0);
     const inRange = crits.filter(c => c.state !== 'bonked' && Math.hypot(c.x - (t.gx + 0.5), c.y - (t.gy + 0.5)) <= range);
     const prey = inRange.filter(c => !zapProof(c)).slice(0, chain);
     const shell = !prey.length && inRange[0];
@@ -9884,7 +9886,7 @@ function showTitle() {
     $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl cont" id="go-home"><span class="n">⌂</span><span><b>Back to your Mars game</b><small>Level ${home.S.level + 1}: ${LEVELS[home.S.level].name}, as you left it before visiting Glorp</small></span><span class="go">Return</span></button>`);
     $('#go-home').addEventListener('click', () => { audioInit(); flyHome(); });
   }
-  if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">Zorp-tech upgrade: ${PERKS[PERK].name}</p>`);
+  if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">🎁 Zorp-tech upgrade (every level): ${PERKS[PERK].name}</p>`);
   if (MISSION.cores.length || MISSION.allies.length) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note"><b style="color:#ff9b9b">Mission: Free Earth</b> · Power cores: ${MISSION.cores.length} · Allies: ${MISSION.allies.length}${store.get('mmb-earth-free', false) ? ' · <b style="color:#7ff7a8">Earth is free!</b>' : ''}</p>`);
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
   onTitle = true; levelsBtn();
@@ -9934,6 +9936,7 @@ function showBrief() {
     <h2>${br.title}</h2>
     ${br.body.map(p => `<p>${p}</p>`).join('')}
     <p class="fact">${br.fact}</p>
+    ${PERK ? `<p class="small-note">🎁 Your Zorp-tech is working here too: <b>${PERKS[PERK].name}</b>. ${PERKS[PERK].desc}</p>` : ''}
     <div class="row"><button class="btn" id="go">Start building</button><button class="btn alt" id="menu">Level select</button></div>`);
   $('#go').addEventListener('click', closeModal);
   $('#menu').addEventListener('click', showTitle);

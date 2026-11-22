@@ -262,8 +262,13 @@ earns a friendship heart, and rare Golden Crystals (from bonks, digs, nests and 
 worth 3 hearts as a gift. At 20 hearts Zorp flies you home to meet Mrs. Zorp, the twins Zib
 and Zab, and Baby Zuzu. Build super-powered Zorp-tech for the Glorp Festival, survive the
 meteor storms and chase off a random party crasher (the Grumble Worm, Blorg the rival trader
-or Queen Skyla). Finishing it lets you keep one Zorp-tech upgrade in every level, then fly
-back to the game you left.
+or Queen Skyla). Finishing it lets you keep one Zorp-tech upgrade for the rest of the game, then
+fly back to the game you left. The upgrade works on every level, and every level's intro reminds
+you which one you have:
+- **Solar Flower seeds**: every power building makes 50% more power.
+- **Tesla coils**: every zapper zaps one more critter at once.
+- **Gloop drills**: everything that digs metal digs 50% more.
+- **Hover homes**: habitats hold 6 colonists and hover habitats hold 12.
 
 Research from Levels 4 and 5 carries into the next level when you finish them.
 
