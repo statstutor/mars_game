@@ -145,6 +145,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.sat2 .n { background: #7cc15a; } .lvl.sat2 .go { color: #9bd77c; }
 .lvl.mix .n { background: linear-gradient(135deg, #ff7a45, #c9a7ff 50%, #5cc8ff); } .lvl.mix .go { color: #ffd166; }
 .lvl.plu .n { background: #e8d4bc; color: #4e3e30; } .lvl.plu .go { color: #f0dcc8; }
+.lvl.locked { opacity: 0.5; cursor: default; }
 .lvl.earth .n { background: #5fa852; color: #ffffff; } .lvl.earth .go { color: #9fe08a; }
 .lvl.earth2 .n { background: #e03a3a; color: #ffffff; box-shadow: 0 0 0 2px #ffd166 inset; } .lvl.earth2 .go { color: #ff9b7a; }
 .lvl.nep .n { background: #3f6fd8; } .lvl.nep .go { color: #9fc0ff; }
@@ -402,7 +403,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 64;
+const BUILD = 65;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4309,7 +4310,7 @@ const WORLDS = {
   blackhole: { get level() { return LEVELS.findIndex(L => L.voidLevel); }, name: 'The Black Hole', icon: 'blackhole', sys: 'blackhole', fuel: 300, needs: ['engines', 'shield'], after: 'titan2', blurb: 'Bonus level: a black hole has opened past Saturn. Nobody knows where it leads.' },
   titan:   { level: 30, name: 'Titan', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'saturn5', blurb: 'Saturn’s biggest moon: thick orange air, methane rain, and rock monsters.' },
   titan2:  { level: 31, name: 'Titan: The Rock Giant', icon: 'titan', sys: 'saturn', body: 'titan', fuel: 160, needs: ['engines', 'shield'], after: 'titan', blurb: 'Something huge is rumbling under Titan’s ice.' },
-  earth:  { get level() { return EARTH[0]; }, name: 'Earth', icon: 'earth', sys: 'earth', body: 'earthhome', fuel: 300, needs: ['engines', 'shield'], blurb: 'Home. Taken over by black octopus aliens. Bring every ally and power core you have, and free it.' },
+  earth:  { get level() { return EARTH[0]; }, name: 'Earth', icon: 'earth', sys: 'earth', body: 'earthhome', fuel: 300, needs: ['engines', 'shield'], after: 'pluto', blurb: 'Home. Taken over by black octopus aliens. Bring every ally and power core you have, and free it.' },
   earth2: { get level() { return EARTH[1]; }, name: 'Earth: The Flooded City', icon: 'earth', sys: 'earth', body: 'earthhome', fuel: 300, needs: ['engines', 'shield'], after: 'earth', blurb: 'The octopuses flooded the old city.' },
   earth3: { get level() { return EARTH[2]; }, name: 'Earth: The Last Stand', icon: 'earth', sys: 'earth', body: 'earthhome', fuel: 300, needs: ['engines', 'shield'], after: 'earth2', blurb: 'Every octopus on Earth is coming.' },
   earth4: { get level() { return EARTH[3]; }, name: 'Earth: The Red Dragon', icon: 'earth', sys: 'earth', body: 'earthhome', fuel: 300, needs: ['engines', 'shield'], after: 'earth3', blurb: 'The final battle against the leader of the invasion.' },
@@ -4377,11 +4378,14 @@ function showRocket() {
 // Every planet and moon is open from the start: farther ones just take more fuel. Inside one world
 // its levels still go in order (Venus 1 before Venus 2), and the black hole only opens after Titan.
 // the mission to free Earth starts with the invasion cutscene on Venus
+// Earth is the end of the mission: it opens once Pluto is done (or if Earth was already reached before this rule)
+const earthOpen = () => !!(WORLDS_DONE.pluto || WORLDS_DONE.earth || WORLDS_DONE.earth2 || WORLDS_DONE.earth3 || WORLDS_DONE.earth4);
 const missionKnown = () => store.get('mmb-invaded', false) || MISSION.cores.length > 0 || MISSION.allies.length > 0 || (S && LEVELS[S.level].earth);
 function opensNow(k, anyDone) {
   const w = WORLDS[k];
   if (!w.after) return true;
   if (k === 'blackhole') return !!WORLDS_DONE[w.after];
+  if (k === 'earth') return earthOpen(); // the last stop: only after Pluto
   const sameWorld = (WORLDS[w.after].body || w.after) === (w.body || k);
   return !sameWorld || !!WORLDS_DONE[w.after] || !!WORLDS_DONE[k] || anyDone;
 }
@@ -9908,10 +9912,13 @@ function showTitle() {
       <button class="lvl nep" data-l="39"><span class="n">38</span><span><b>Neptune: Triton’s Shadow</b><small>Under the backwards moon, the ice aliens gather.</small></span><span class="go">Play</span></button>
       <button class="lvl nep2" data-l="40"><span class="n">39</span><span><b>Neptune: The Ice Giant</b><small>The boss of all the ice aliens climbs out of the ice.</small></span><span class="go">Play</span></button>
       <button class="lvl plu" data-l="41"><span class="n">40</span><span><b>Pluto: The Hidden Core</b><small>Fusion reactors, spider aliens, a metal detector and the Spider Queen.</small></span><span class="go">Play</span></button>
-${missionKnown() ? `      <button class="lvl earth" data-l="${EARTH[0]}"><span class="n">41</span><span><b>Earth: Homecoming</b><small>Home at last. Black octopus aliens, spawners and power cores.</small></span><span class="go">Play</span></button>
+${missionKnown() ? (earthOpen() ? `      <button class="lvl earth" data-l="${EARTH[0]}"><span class="n">41</span><span><b>Earth: Homecoming</b><small>Home at last. Black octopus aliens, spawners and power cores.</small></span><span class="go">Play</span></button>
       <button class="lvl earth" data-l="${EARTH[1]}"><span class="n">42</span><span><b>Earth: The Flooded City</b><small>Octopuses in the streets. Never let one win a fight.</small></span><span class="go">Play</span></button>
       <button class="lvl earth" data-l="${EARTH[2]}"><span class="n">43</span><span><b>Earth: The Last Stand</b><small>Every octopus on Earth is coming.</small></span><span class="go">Play</span></button>
-      <button class="lvl earth2" data-l="${EARTH[3]}"><span class="n">44</span><span><b>Earth: The Red Dragon</b><small>The final battle: free Earth from the Red Dragon.</small></span><span class="go">Play</span></button>` : ''}
+      <button class="lvl earth2" data-l="${EARTH[3]}"><span class="n">44</span><span><b>Earth: The Red Dragon</b><small>The final battle: free Earth from the Red Dragon.</small></span><span class="go">Play</span></button>` : `      <button class="lvl earth locked" disabled><span class="n">41</span><span><b>Earth: Homecoming</b><small>🔒 Finish Pluto first to unlock.</small></span><span class="go">Locked</span></button>
+      <button class="lvl earth locked" disabled><span class="n">42</span><span><b>Earth: The Flooded City</b><small>🔒 Finish Pluto first to unlock.</small></span><span class="go">Locked</span></button>
+      <button class="lvl earth locked" disabled><span class="n">43</span><span><b>Earth: The Last Stand</b><small>🔒 Finish Pluto first to unlock.</small></span><span class="go">Locked</span></button>
+      <button class="lvl earth2 locked" disabled><span class="n">44</span><span><b>Earth: The Red Dragon</b><small>🔒 Finish Pluto first to unlock.</small></span><span class="go">Locked</span></button>`) : ''}
     </div>`);
   $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl mix" data-l="${MIX}"><span class="n">🎲</span><span><b>Bonus: Random Mix-Up</b><small>A brand new random level every time: any world, any aliens, any boss.</small></span><span class="go">Play</span></button>`);
   if (store.get('mmb-glorp', false)) $('#modal .levels').insertAdjacentHTML('beforeend', `<button class="lvl bonus" data-l="${GLORP}"><span class="n">★</span><span><b>Planet Glorp</b><small>Bonus: Zorp’s home planet and the Glorp Festival.</small></span><span class="go">Visit</span></button>`);

@@ -182,7 +182,7 @@ screen, saved on the device), and one day come home to free Earth.
     **Spider Queen** comes out (knights, police and taps only); beating her wins a second core and
     the Spider Folk as allies.
 41. **Earth: Homecoming**, 42. **The Flooded City**, 43. **The Last Stand**, 44. **The Red Dragon**
-    (Earth on the star map; open from the start): the mission comes home. Earth is held by
+    (Earth on the star map; unlocks after Pluto): the mission comes home. Earth is held by
     **black octopus aliens**:
     - They take 30 hits, move very fast and can dodge an attack once or twice.
     - Every time one knocks out a knight, police officer or ally, or smashes a building, it gets
