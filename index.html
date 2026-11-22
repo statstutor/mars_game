@@ -70,6 +70,9 @@ body.cramped #tip.idle { display: none; }
 
 .bottom { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
 #tip { pointer-events: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(560px, calc(100vw - 32px)); padding: 10px 14px; font-size: 13px; line-height: 1.45; z-index: 2; }
+#tip.closed { display: none; }
+#tip .tip-x { pointer-events: auto; float: right; margin: -4px -6px 4px 10px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.12); color: var(--ink); font: 700 13px/26px var(--body); cursor: pointer; }
+#tip .tip-x:hover { background: rgba(255,255,255,0.25); }
 #tip strong { font-family: var(--display); font-weight: 600; font-size: 15px; display: block; }
 #tip .bad { color: var(--warn); font-weight: 800; }
 #tip .muted { color: var(--muted); }
@@ -395,7 +398,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 59;
+const BUILD = 60;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -9682,13 +9685,24 @@ function buildToolbar() {
 }
 
 function selectTool(name) {
-  tool = name;
+  tool = name; tipClosed = false; // picking a building shows its description again
   document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === name));
   showTip();
   sfx('tick');
 }
 
+// The description box can be closed with its ✕ if it is in the way (say, hiding an alien).
+// It stays closed until a building is picked again.
+let tipClosed = false;
 function showTip(preview) {
+  const el = $('#tip');
+  if (tipClosed && !preview) { el.classList.add('closed'); return; }
+  el.classList.remove('closed');
+  showTipText(preview);
+  if (el.innerHTML.trim() && !el.querySelector('.tip-x')) el.insertAdjacentHTML('afterbegin', '<button class="tip-x" type="button" title="Close" aria-label="Close this box">✕</button>');
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#tip .tip-x')) { e.stopPropagation(); tipClosed = true; showTip(); sfx('tick'); } }, true);
+function showTipText(preview) {
   const el = $('#tip');
   el.classList.remove('idle');
   const name = preview || tool;
