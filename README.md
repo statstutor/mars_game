@@ -36,7 +36,8 @@ screen or a critter. The steps cover:
 - **Defending**: tapping critters, zappers, a castle and its knights, and a wizard hut.
 - **Space travel**: a fuel plant, a launch pad, and the star map.
 
-It ends by mentioning power cores and allies, then offers to start Level 1.
+It doesn't mention the mission to free Earth, which starts with the invasion on Venus. It ends by
+offering to start Level 1. Earth stays off the star map until that invasion has happened.
 
 1. **Touchdown**: power, metal, water and food, two habitats, and the first warming. Critters
    and dust storms appear.

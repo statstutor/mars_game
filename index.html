@@ -398,7 +398,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 60;
+const BUILD = 61;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3157,8 +3157,6 @@ LEVELS.push({
       who: 'eng', hint: 'And a launch pad, so the rocket has somewhere to take off from.' },
     { text: 'Tap the launch pad', get: () => S.tutMap ? 1 : 0, target: 1, point: { tile: 'pad' },
       who: 'kip', hint: 'Tap the launch pad to open the star map. It shows every world you can fly to, and how much fuel each trip needs. Far trips need rocket upgrades too. Close it when you are done.' },
-    { text: 'Learn about the mission', get: () => tutTimed() ? 1 : 0, target: 1,
-      who: 'cmd', hint: 'One last thing. On other worlds, beating big bosses wins power cores and alien friends. Collect them all, because one day we will need them to free Earth.' },
   ],
   intro: [['kip', 'Hi! I am Bebop, the survey robot. This is Training Camp, where you can practise everything. Just follow the yellow arrow!']],
   outro: [['kip', 'You did it! You know everything you need. Now go and make Mars blue!']],
@@ -4270,7 +4268,7 @@ const WORLDS = {
   europa: { level: 8, name: 'Europa', icon: 'europa', sys: 'jupiter', body: 'europa', fuel: 300, needs: ['engines', 'shield'], blurb: 'Jupiter’s ice moon, through the deadly radiation belts.' },
   king:   { level: 9, name: 'The Shell King', icon: 'europa', sys: 'jupiter', body: 'europa', fuel: 300, needs: ['engines', 'shield'], after: 'europa', blurb: 'Back to Europa, where something huge is waking under the ice.' },
   moon:   { level: 10, name: 'The Moon', icon: 'moon', sys: 'earth', body: 'luna', fuel: 300, needs: ['engines', 'shield'], after: 'king', blurb: 'Earth’s own Moon. Lemonade stands, and aliens with five heads.' },
-  venus:  { level: 12, name: 'Venus', icon: 'venus', sys: 'venus', body: 'venus', fuel: 300, needs: ['engines', 'shield'], after: 'chief', blurb: 'Scorching hot and full of volcanoes. Lizard people live here. The mission to free Earth starts now.' },
+  venus:  { level: 12, name: 'Venus', icon: 'venus', sys: 'venus', body: 'venus', fuel: 300, needs: ['engines', 'shield'], after: 'chief', blurb: 'Scorching hot and full of volcanoes. Lizard people live here.' },
   venus2: { level: 13, name: 'Venus: Lava Fields', icon: 'venus', sys: 'venus', body: 'venus', fuel: 300, needs: ['engines', 'shield'], after: 'venus', blurb: 'Rivers of lava, and a power core hidden in the rocks.' },
   venus3: { level: 14, name: 'Venus: Lizard Caves', icon: 'venus', sys: 'venus', body: 'venus', fuel: 300, needs: ['engines', 'shield'], after: 'venus2', blurb: 'The lizard people’s home, right under the volcanoes.' },
   venus4: { level: 15, name: 'Venus: The Lizard King', icon: 'venus', sys: 'venus', body: 'venus', fuel: 300, needs: ['engines', 'shield'], after: 'venus3', blurb: 'Face the Lizard King, and free his people.' },
@@ -4366,6 +4364,8 @@ function showRocket() {
 }
 // Every planet and moon is open from the start: farther ones just take more fuel. Inside one world
 // its levels still go in order (Venus 1 before Venus 2), and the black hole only opens after Titan.
+// the mission to free Earth starts with the invasion cutscene on Venus
+const missionKnown = () => store.get('mmb-invaded', false) || MISSION.cores.length > 0 || MISSION.allies.length > 0 || (S && LEVELS[S.level].earth);
 function opensNow(k, anyDone) {
   const w = WORLDS[k];
   if (!w.after) return true;
@@ -4379,7 +4379,9 @@ function showStarMap() {
   const R_ = S.rocket, here = hereWorld();
   // one card per world: a world with several levels (Europa, the Moon, Venus) shows only its next level
   const groups = new Map();
-  for (const [k, w] of Object.entries(WORLDS)) { const g = w.body || k; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k); }
+  for (const [k, w] of Object.entries(WORLDS)) {
+    if (w.body === 'earthhome' && !missionKnown()) continue; // Earth stays a secret until the invasion at Venus
+    const g = w.body || k; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k); }
   // every world always gets a card; one that isn't unlocked yet says what to finish first
   const picks = [];
   for (const [g, keys] of groups) {
@@ -5761,6 +5763,7 @@ function gainAlly(id, name) {
   toast(`NEW ALLY: ${name} joined the mission to free Earth!`, 'good'); sfx('win');
 }
 function showInvasion(then) {
+  store.set('mmb-invaded', true); // from now on the player knows about the mission to free Earth
   openModal(`<span class="eyebrow" style="color:#ff6b81">Meanwhile, back home…</span>
     <canvas id="inv" width="960" height="460" style="width:100%;border-radius:16px;background:#07051a"></canvas>
     <p id="inv-cap" style="min-height:3.2em">A message arrives from Earth…</p>
