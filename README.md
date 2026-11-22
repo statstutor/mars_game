@@ -27,6 +27,17 @@ so only new or changed lines are recorded. Click the crew card or press `Enter` 
 
 ## Levels
 
+**Tutorial: Training Camp** (first in level select; offered the first time someone starts Level 1):
+a small practice level where Bebop the robot walks you through 22 steps in order. A bouncing
+yellow arrow points at what to tap next: a building button, a tile on the map, a part of the
+screen or a critter. The steps cover:
+- **The basics**: picking and placing buildings, power, metal, water and food, habitats, reading
+  the supplies, the goal list and the colonist meters, recycling, and pausing.
+- **Defending**: tapping critters, zappers, a castle and its knights, and a wizard hut.
+- **Space travel**: a fuel plant, a launch pad, and the star map.
+
+It ends by mentioning power cores and allies, then offers to start Level 1.
+
 1. **Touchdown**: power, metal, water and food, two habitats, and the first warming. Critters
    and dust storms appear.
 2. **Thicken the Sky**: mirror links, comets and gas factories; crater lakes, lichen, two alien

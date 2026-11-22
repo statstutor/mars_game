@@ -157,6 +157,11 @@ body.cramped #tip.idle { display: none; }
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
 .lvl.cont .n { background: var(--leaf); font-size: 16px; }
 .lvl.cont .go { color: var(--leaf); }
+#tut-arrow { position: fixed; z-index: 12; width: 34px; height: 41px; margin-left: -17px; margin-top: -47px; pointer-events: none; animation: tutbob 0.7s ease-in-out infinite alternate; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.5)); }
+#tut-arrow svg { width: 100%; height: 100%; fill: #ffd166; stroke: #1a1238; stroke-width: 2.5; }
+#tut-arrow.up { margin-top: 6px; } #tut-arrow.up svg { transform: rotate(180deg); }
+@keyframes tutbob { from { translate: 0 0; } to { translate: 0 -10px; } }
+.lvl.tut .n { background: #ffd166; color: #1a1238; } .lvl.tut .go { color: #ffd166; }
 #talk { position: fixed; left: 16px; bottom: 200px; z-index: 9; width: min(410px, calc(100% - 32px)); display: grid; grid-template-columns: 60px 1fr; gap: 12px; align-items: start; padding: 12px 14px 13px; cursor: pointer; animation: pop .25s ease-out; }
 #talk canvas { width: 60px; height: 60px; display: block; }
 #talk .who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-right: 44px; }
@@ -370,6 +375,7 @@ body.cramped #tip.idle { display: none; }
 </div>
 
 <div id="toasts" aria-live="polite"></div>
+<div id="tut-arrow" hidden aria-hidden="true"><svg viewBox="0 0 40 48"><path d="M13 2h14v22h11L20 46 2 24h11z"/></svg></div>
 <div id="talk" class="card" hidden aria-live="polite">
   <canvas id="talk-face" width="120" height="120" aria-hidden="true"></canvas>
   <div><div class="who"><b id="talk-name"></b><small id="talk-role"></small></div><p id="talk-text"></p></div>
@@ -389,7 +395,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 55;
+const BUILD = 56;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -646,7 +652,7 @@ const TECHS = [
 const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
 const lvlNum = i => LEVELS[i].num || i + 1;
 // how a level is named on screen: bonus levels (Glorp, the black hole) say so instead of a number
-const lvlName = i => LEVELS[i].bonus || LEVELS[i].voidLevel || LEVELS[i].mixup ? 'Bonus level' : 'Level ' + lvlNum(i);
+const lvlName = i => LEVELS[i].tutorial ? 'Tutorial' : LEVELS[i].bonus || LEVELS[i].voidLevel || LEVELS[i].mixup ? 'Bonus level' : 'Level ' + lvlNum(i);
 // buildings shown in the toolbar: the level's own list plus whatever research has unlocked
 function levelTools() {
   const L = LEVELS[S.level], tools = L.tools.filter(n => n !== 'recycle');
@@ -3093,6 +3099,136 @@ LEVELS.push(earthLevel({
     fact: '<b>Home sweet home:</b> Earth is the only place in the universe where we know life exists. So far!' },
 }));
 const EARTH = LEVELS.map((L, i) => L.earth ? i : -1).filter(i => i >= 0);
+
+// ---------------------------------------------------------------- the tutorial: Training Camp
+// A small practice level. Its goals are steps that go strictly in order, and an arrow points at
+// what to tap next (a building button, a tile on the map, a part of the screen, or a critter).
+const tutTimed = () => S.tutT > 3 && !talking && !talkQ.length; // a "just look" step: done once the crew has finished talking
+LEVELS.push({
+  name: 'Training Camp', tutorial: true, seed: 5, n: 9, knights: true, wizards: true,
+  map: { ice: 2.2, mountains: [[7, 1, 1.0]], craters: [[1, 6], [7, 7]], ore: [[5, 3, 1.3]], ruins: [] },
+  start: { metal: 500, energy: 40, water: 40, food: 60 },
+  planet: { temp: -63, press: 0.6, o2: 0.13 },
+  tools: ['solar', 'mine', 'drill', 'greenhouse', 'habitat', 'zapper', 'castle', 'wizhut', 'fuel', 'pad', 'recycle'],
+  prebuilt: [],
+  goals: [
+    { text: 'Pick the Solar Array', get: () => tool === 'solar' || count('solar') ? 1 : 0, target: 1, point: { tool: 'solar' },
+      who: 'kip', hint: 'First, tap the Solar Array button in the building bar at the bottom of the screen. Follow the yellow arrow!' },
+    { text: 'Put down a solar array', get: () => count('solar'), target: 1, point: { tool: 'solar', tile: ['plain'] },
+      who: 'kip', hint: 'Now tap an empty, flat tile on the map, where the arrow is pointing. Solar arrays make power.' },
+    { text: 'Build 3 solar arrays', get: () => count('solar'), target: 3, point: { tool: 'solar', tile: ['plain'] },
+      who: 'eng', hint: 'Most buildings need power to work. Build two more solar arrays.' },
+    { text: 'Build a mine on purple ore', get: () => count('mine'), target: 1, point: { tool: 'mine', tile: ['ore'] },
+      who: 'eng', hint: 'Metal is what we build with. Pick the Mine, and put it on the purple crystals. That is ore.' },
+    { text: 'Build an ice drill on ice', get: () => count('drill'), target: 1, point: { tool: 'drill', tile: ['ice'] },
+      who: 'bot', hint: 'Water comes from ice. Pick the Ice Drill and put it on the white ice.' },
+    { text: 'Build a greenhouse', get: () => count('greenhouse'), target: 1, point: { tool: 'greenhouse', tile: ['plain'] },
+      who: 'bot', hint: 'Colonists need food, and greenhouses grow it. Build one.' },
+    { text: 'Build a habitat', get: () => count('habitat'), target: 1, point: { tool: 'habitat', tile: ['plain'] },
+      who: 'cmd', hint: 'Now a home. A habitat dome gives four colonists somewhere to live.' },
+    { text: 'Look at your supplies', get: () => tutTimed() ? 1 : 0, target: 1, point: { el: '#chip-energy + .chip' },
+      who: 'kip', hint: 'See the numbers at the top? That is your power, metal, water and food. The small number under each one says if it is going up or down. If something runs low, build more of what makes it.' },
+    { text: 'Look at the goal list', get: () => tutTimed() ? 1 : 0, target: 1, point: { el: '#goals' },
+      who: 'kip', hint: 'The box in the top corner shows your goals. In a real level, finish all of them to win.' },
+    { text: 'Check on your colonists', get: () => tutTimed() ? 1 : 0, target: 1, point: { el: '#chip-needs' },
+      who: 'bot', hint: 'This shows whether your colonists are fed, have water, and are happy. Restaurants, cafés and parks make them happier.' },
+    { text: 'Recycle a building', get: () => S.tutRecycled ? 1 : 0, target: 1, point: { tool: 'recycle', tile: 'built' },
+      who: 'eng', hint: 'Built something in the wrong place? Pick Recycle, at the end of the building bar, then tap a building. You get half its metal back. Try it now.' },
+    { text: 'Pause, then carry on', get: () => S.tutPaused && !paused ? 1 : 0, target: 1, point: { el: '#btn-pause' },
+      who: 'kip', hint: 'This button pauses the game. Press it once to pause, and again to carry on. The button next to it makes the game go faster.' },
+    { text: 'Tap the critter', get: () => S.bonks - (S.tutB0 || 0), target: 1, point: { crit: true }, critters: 1,
+      who: 'kip', hint: 'Uh oh, a critter climbed out of the crater! Critters steal our supplies. Tap it to bonk it!' },
+    { text: 'Build a zapper', get: () => count('zapper'), target: 1, point: { tool: 'zapper', tile: ['plain', 'ore'] },
+      who: 'eng', hint: 'Zappers bonk critters for you, all by themselves. Build one near your buildings. They need power.' },
+    { text: 'Build a castle', get: () => count('castle'), target: 1, point: { tool: 'castle', tile: ['plain', 'ore'] },
+      who: 'cmd', hint: 'Some aliens are too tough for zappers. A castle trains knights, who guard everything around it.' },
+    { text: 'Train a knight', get: () => knightCount(), target: 1, point: { tile: 'castle' },
+      who: 'cmd', hint: 'Knights take a few seconds to train, and each one eats five food. Wait for your first knight to march out.' },
+    { text: 'Build a wizard hut', get: () => count('wizhut'), target: 1, point: { tool: 'wizhut', tile: ['plain', 'ore'] },
+      who: 'kip', hint: 'Wizards zap two aliens at once with magic. Build a wizard hut.' },
+    { text: 'Beat 3 critters', get: () => S.bonks - (S.tutB0 || 0), target: 3, point: { crit: true }, critters: 3,
+      who: 'cmd', hint: 'Here come three critters! Your zapper, knight and wizards will fight them, and you can tap them too.' },
+    { text: 'Build a fuel plant', get: () => count('fuel'), target: 1, point: { tool: 'fuel', tile: ['plain', 'ore'] },
+      who: 'eng', hint: 'Now, space travel! Rockets need fuel. A fuel plant turns water into rocket fuel.' },
+    { text: 'Build a launch pad', get: () => count('pad'), target: 1, point: { tool: 'pad', tile: ['plain', 'ore'] },
+      who: 'eng', hint: 'And a launch pad, so the rocket has somewhere to take off from.' },
+    { text: 'Tap the launch pad', get: () => S.tutMap ? 1 : 0, target: 1, point: { tile: 'pad' },
+      who: 'kip', hint: 'Tap the launch pad to open the star map. It shows every world you can fly to, and how much fuel each trip needs. Far trips need rocket upgrades too. Close it when you are done.' },
+    { text: 'Learn about the mission', get: () => tutTimed() ? 1 : 0, target: 1,
+      who: 'cmd', hint: 'One last thing. On other worlds, beating big bosses wins power cores and alien friends. Collect them all, because one day we will need them to free Earth.' },
+  ],
+  intro: [['kip', 'Hi! I am Bebop, the survey robot. This is Training Camp, where you can practise everything. Just follow the yellow arrow!']],
+  outro: [['kip', 'You did it! You know everything you need. Now go and make Mars blue!']],
+  brief: {
+    eyebrow: 'Tutorial', title: 'Training Camp',
+    body: ['A quick practice run. Bebop the robot will show you how to build a colony, keep it running, fight off critters and get ready for space travel.', 'Follow the <b>yellow arrow</b>: it points at what to tap next. Each step waits for you, so take your time.'],
+    fact: '<b>Red planet:</b> Mars is red because its dust is full of iron oxide. That is rust!',
+  },
+  done: { title: 'Training complete!', body: 'You know how to build, defend, and get ready for space. Time to make Mars blue!',
+    fact: '<b>Real missions:</b> robots like Curiosity and Perseverance are driving around Mars right now, studying its rocks.' },
+});
+const TUT = LEVELS.findIndex(L => L.tutorial);
+// the empty tile the arrow suggests for this step (kept until it gets built on)
+function tutTile(want) {
+  let t = S.tiles[S.tutTile];
+  const ok = t => t && (want === 'built' ? !!t.b && t.b !== 'zhouse' : typeof want === 'string' ? t.b === want : !t.b && want.includes(t.type) && !t.basin);
+  if (ok(t)) return t;
+  const c = S.n / 2;
+  t = S.tiles.filter(ok).sort((a, b) => Math.hypot(a.gx - c, a.gy - c) - Math.hypot(b.gx - c, b.gy - c))[0] || null;
+  S.tutTile = t ? S.tiles.indexOf(t) : -1;
+  return t;
+}
+// runs every tick in the tutorial: notices a new step, and keeps a critter around for the critter steps
+function tutStep(L, dt) {
+  const j = L.goals.findIndex((_, k) => !S.goalsDone[k]);
+  if (j !== S.tutStep) { S.tutStep = j; S.tutT = 0; S.tutB0 = S.bonks; S.tutTile = -1; S.tutSpawned = 0; return; }
+  S.tutT += dt;
+  const g = L.goals[j];
+  if (g && g.critters && S.tutT > 1.5) { // let critters out one at a time, and send another if one ran off
+    const live = crits.filter(c => c.state !== 'bonked' && !c.gone).length, left = g.target - (S.bonks - S.tutB0);
+    if (live < Math.min(left, 2) && S.tutSpawned < g.critters + 4 && spawnCritter('basic')) { S.tutSpawned++; const c = crits[crits.length - 1]; c.slow = true; }
+  }
+}
+// the bouncing yellow arrow
+let tutRing = null;
+function tutArrow() {
+  const el = $('#tut-arrow');
+  tutRing = null;
+  if (!S || !LEVELS[S.level].tutorial || modalOpen || S.won) { el.hidden = true; return; }
+  const L = LEVELS[S.level], g = L.goals[S.tutStep], pt = g && g.point;
+  if (!pt) { el.hidden = true; return; }
+  let x = null, y = null, up = false;
+  const cv = $('#c').getBoundingClientRect(), onMap = (wx, wy) => [cv.left + view.x + wx * view.s, cv.top + view.y + wy * view.s];
+  if (pt.tool && tool !== pt.tool) {
+    const b = $('#tool-' + pt.tool);
+    if (b) { if (!b.dataset.seen) { b.scrollIntoView({ block: 'nearest', inline: 'center' }); b.dataset.seen = 1; } const r = b.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top; }
+  } else if (pt.tile) {
+    const t = tutTile(pt.tile);
+    if (t) { const c = center(t); [x, y] = onMap(c.x, c.y - 22); tutRing = t; }
+  } else if (pt.el) {
+    const e = document.querySelector(pt.el);
+    if (e && e.offsetParent) { const r = e.getBoundingClientRect(); x = r.left + r.width / 2; if (r.top < 90) { y = r.bottom; up = true; } else y = r.top; }
+  } else if (pt.crit) {
+    const c = crits.find(c => c.state !== 'bonked' && !c.gone);
+    if (c) { const p = critWorld(c); [x, y] = onMap(p.x, p.y - 22); }
+  }
+  if (x == null) { el.hidden = true; return; }
+  el.hidden = false; el.classList.toggle('up', up);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+(function tutLoop() { try { tutArrow(); } catch (e) {} requestAnimationFrame(tutLoop); })();
+function showTutorialDone() {
+  const L = LEVELS[S.level];
+  store.set('mmb-tut-done', true);
+  sfx('win');
+  for (const [w, txt] of L.outro) say(w, txt, null, true);
+  openModal(`<span class="eyebrow" style="color:var(--leaf)">Tutorial complete</span>
+    <h2>${L.done.title}</h2><p>${L.done.body}</p><p class="fact">${L.done.fact}</p>
+    <div class="row"><button class="btn" id="tut-l1">Start Level 1: Touchdown</button><button class="btn alt" id="tut-stay">Keep practising</button><button class="btn alt" id="menu">Level select</button></div>`);
+  $('#tut-l1').addEventListener('click', () => startLevel(0));
+  $('#tut-stay').addEventListener('click', closeModal);
+  $('#menu').addEventListener('click', showTitle);
+}
 // What can go into a mix
 const MIX_ALIENS = { armor: 'armoured critters', zippy: 'zippy critters', brute: 'brutes', shell: 'shell-beasts', fivehead: 'five-headed aliens', lizard: 'lizard people',
   blob: 'green blobs', rhino: 'alien rhinos', rock: 'rock monsters', tree: 'tree aliens', shadow: 'black aliens', water: 'water aliens', ice: 'ice aliens', spider: 'spider aliens' };
@@ -3147,7 +3283,7 @@ const MIX_FACTS = [
 ];
 function applyMix(seed) {
   const L = LEVELS[MIX], r = rng(seed), pick = (a) => a[Math.floor(r() * a.length)];
-  const pool = LEVELS.map((x, i) => i).filter(i => !LEVELS[i].bonus && !LEVELS[i].mixup && !LEVELS[i].under && !LEVELS[i].earth);
+  const pool = LEVELS.map((x, i) => i).filter(i => !LEVELS[i].bonus && !LEVELS[i].mixup && !LEVELS[i].under && !LEVELS[i].earth && !LEVELS[i].tutorial);
   const look = LEVELS[pick(pool)], land = LEVELS[pick(pool)];
   const diff = pick(['Easy', 'Medium', 'Hard']), D = { Easy: 0, Medium: 1, Hard: 2 }[diff];
   // clear everything a previous mix may have set
@@ -3561,7 +3697,10 @@ function tick(dt) {
   S.planet.o2 = Math.min(21, S.planet.o2 + lichenTiles() * 0.0006 * dt);
 
   // goals
+  if (L.tutorial) tutStep(L, dt);
+  const firstOpen = L.goals.findIndex((_, k) => !S.goalsDone[k]);
   L.goals.forEach((g, i) => {
+    if (L.tutorial && i !== firstOpen) return; // tutorial steps go in order
     if (!S.goalsDone[i] && g.get() >= g.target) {
       S.goalsDone[i] = true; S.lastProgress = S.time;
       toast('Done: ' + g.text, 'good'); sfx('chime');
@@ -4199,6 +4338,7 @@ const rocketReady = () => {
 };
 function showRocket() {
   const L = LEVELS[S.level], mars = !L.offworld, R_ = S.rocket;
+  if (L.tutorial) { S.tutMap = true; return showStarMap(); } // in the tutorial, the pad just shows the star map
   if (R_ && R_.launched) return showArrival(R_.dest || 'phobos');
   let body = '', btn = '';
   if (mars && !hasTech('colony')) body = 'The pad is ready, but we don’t have plans for a colony rocket yet. Research <b>Colony Rocket</b> in the rocketry branch.';
@@ -6896,7 +7036,7 @@ function place(name, t) {
     if (B[t.b].cost.cores) { S.cores = (S.cores || 0) + B[t.b].cost.cores; toast('The power core is back in your pocket.'); }
     t.b = null;
     burst(c.x, c.y - 8, 14, ['#ffd166', '#b8afd8', '#ffffff']);
-    toast(`Recycled for ${refund} metal`); sfx('pop');
+    toast(`Recycled for ${refund} metal`); sfx('pop'); S.tutRecycled = true;
     return;
   }
   if (name === 'comet') {
@@ -9463,6 +9603,10 @@ function render() {
   if (surf && typeof drawBoss === 'function') drawBoss(ctx);
   if (surf && S.voidCrystal) drawVoidCrystal(ctx);
   if (surf && tornados.length) drawTornados(ctx);
+  if (tutRing && S.view === 'surface') { // the tile the tutorial wants you to tap
+    const c = center(tutRing), pu = 0.6 + 0.4 * Math.sin(RT * 6);
+    ctx.strokeStyle = `rgba(255,209,102,${pu})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(c.x, c.y, 26, 13, 0, 0, Math.PI * 2); ctx.stroke();
+  }
   if (hover && !tool) {
     const c = center(hover);
     ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
@@ -9682,6 +9826,7 @@ function showTitle() {
     </div>
     <div class="levels">
       ${cont ? `<button class="lvl cont" id="continue"><span class="n">▶</span><span><b>Continue</b><small>${lvlName(cont.S.level)}: ${LEVELS[cont.S.level].name} · Sol ${Math.floor(cont.S.time / 10) + 1} · saved ${ago(cont.savedAt)}</small></span><span class="go">Resume</span></button>` : ''}
+      <button class="lvl tut" data-l="${TUT}"><span class="n">?</span><span><b>Tutorial: Training Camp</b><small>New here? Learn how to play, step by step.</small></span><span class="go">Learn</span></button>
       <button class="lvl" data-l="0"><span class="n">1</span><span><b>Touchdown</b><small>Land, build a base, start the warming.</small></span><span class="go">Play</span></button>
       <button class="lvl two" data-l="1"><span class="n">2</span><span><b>Thicken the Sky</b><small>Mirrors, comets, lakes, lichen and strange ruins.</small></span><span class="go">Play</span></button>
       <button class="lvl three" data-l="2"><span class="n">3</span><span><b>Boomtown</b><small>Settlers, restaurants, night raids and alien visitors.</small></span><span class="go">Play</span></button>
@@ -9751,6 +9896,15 @@ function showTitle() {
       startLevel(li);
     };
     // starting a level replaces the autosave, so check first (Glorp keeps the home game aside instead)
+    if (li === 0 && !cont && !store.get('mmb-tut-offered', false) && !store.get('mmb-tut-done', false) && !(+store.get('mmb-best', 0))) {
+      store.set('mmb-tut-offered', true);
+      openModal(`<span class="eyebrow" style="color:#ffd166">First time on Mars?</span><h2>Want a quick tutorial?</h2>
+        <p>Bebop the robot can show you how to play, step by step, in a little practice level. It only takes a few minutes. You can always find it later in level select.</p>
+        <div class="row"><button class="btn" id="tut-yes">Yes, show me!</button><button class="btn alt" id="tut-no">No thanks, start Level 1</button></div>`);
+      $('#tut-yes').addEventListener('click', () => startLevel(TUT));
+      $('#tut-no').addEventListener('click', go);
+      return;
+    }
     if (cont && li !== GLORP && !cont.S.won) {
       const C = LEVELS[cont.S.level];
       openModal(`<span class="eyebrow">Start a new level?</span><h2>Replace your saved game?</h2>
@@ -9854,6 +10008,7 @@ function showComplete() {
   if (LEVELS[S.level].voidLevel) return showVoidDone();
   if (LEVELS[S.level].mixup) return showMixDone();
   if (LEVELS[S.level].finale) return showEarthFreed();
+  if (LEVELS[S.level].tutorial) return showTutorialDone();
   const L = LEVELS[S.level], d = L.donePaths ? L.donePaths[S.winPath || 0] : L.done;
   if (L.paths && S.winPath === 0) return showArrival((S.rocket && S.rocket.dest) || 'phobos');
   // Europa part 1 leads straight on to part 2: same moon, no rocket needed
@@ -9965,7 +10120,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2c0684b8 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 492a5a38 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53e9d19c 5472dd4d 54738ed0 550bd446 555236a1 5598b671 55a248b0 56339282 563fc364 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 6177d955 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7dfc2c27 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a77aa56 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b4f1ee4 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d6ce3f9 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b014fba3 b03c0124 b0d32200 b114a3e3 b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b5560844 b583a480 b5ef7b7f b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbb8d745 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7310a3a c7bf8338 c8af3800 c8d8e3d9 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbcb2f61 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 d00d15a9 d0764a7a d0d50703 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 da96dd04 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e1b7c297 e1f65969 e233cd11 e2a2fffd e2e7889c e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f02933c3 f0487f74 f06aaf8a f07c4b9a f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 0191842a 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 06602666 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10a76668 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25ba9aba 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 290b0f40 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2b8059e0 2c0684b8 2c0f94f0 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d12c925 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30a99f14 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 319216c3 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35438afe 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 3767a97c 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d64e1d8 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40e91fdc 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44a1de24 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 4840dbbd 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 492a5a38 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b6b2f6d 4b983c1d 4b9890ea 4bb8b851 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e575524 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 518c71ea 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53b338b0 53e9d19c 5472dd4d 54738ed0 5477ba0c 550bd446 5540022a 555236a1 5598b671 55a248b0 56339282 563fc364 5641cbc8 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5742211c 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5a9acd83 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5cfc89b4 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 6177d955 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ea7eee 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6463b826 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 686dc348 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 764f044f 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 789ebf12 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7de59d3b 7dfc2c27 7e3d0006 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8364b030 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8772983a 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a77aa56 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 915a566f 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 967fe7e2 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98bf4815 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b054f94 9b4f1ee4 9b5118a1 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d5540f6 9d6ce3f9 9d7a1137 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a06d9708 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a692a1b5 a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a93818ae a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab057a47 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b0076331 b014fba3 b03c0124 b0d32200 b114a3e3 b17bbfff b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b3e2b2c7 b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b4f2e8e0 b5560844 b583a480 b5df5df4 b5ef7b7f b5f48782 b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbb8d745 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd88f2d5 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bf34404a bf5a8b95 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7247dfe c7310a3a c7bf8338 c8af3800 c8d8e3d9 c8db89a1 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbcb2f61 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 cfba6b3a d00d15a9 d0764a7a d0d50703 d10f3826 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 da96dd04 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df5574a9 df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e12c7f82 e1b7c297 e1f65969 e233cd11 e262888f e2a2fffd e2e7889c e309c25d e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e6477192 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f02933c3 f0487f74 f06aaf8a f07c4b9a f0d8b101 f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f23b1964 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffc7af77 ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -10652,7 +10807,7 @@ addEventListener('keydown', e => {
   else if (/^[0-9]$/.test(e.key)) { const n = levelTools()[(+e.key + 9) % 10]; if (n) selectTool(tool === n ? null : n); }
   else if ((e.key === 'r' || e.key === 'R') && LEVELS[S.level].research) showTree();
 });
-function togglePause() { paused = !paused; const b = $('#btn-pause'); b.textContent = paused ? '▶' : '❚❚'; b.classList.toggle('on', paused); }
+function togglePause() { paused = !paused; if (paused && S) S.tutPaused = true; const b = $('#btn-pause'); b.textContent = paused ? '▶' : '❚❚'; b.classList.toggle('on', paused); }
 $('#btn-pause').addEventListener('click', togglePause);
 $('#btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $('#btn-speed').textContent = speed + '×'; $('#btn-speed').classList.toggle('on', speed > 1); });
 function syncAudioButtons() {
