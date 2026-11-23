@@ -89,6 +89,19 @@ body.cramped #tip.idle { display: none; }
 .tool kbd { position: absolute; top: 4px; left: 7px; font: 700 10px var(--body); color: var(--muted); }
 .tool .cd { position: absolute; inset: 0; border-radius: 11px; background: rgba(18, 14, 43, 0.7); display: grid; place-items: center; font: 600 18px var(--display); }
 .controls { pointer-events: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 4px; padding: 6px; align-content: center; }
+.ctl.book { grid-column: 1 / -1; width: auto; order: 9; font-size: 12px; }
+.bk-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 4px; }
+.bk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 42vw), 1fr)); gap: 10px; margin: 8px 0 12px; }
+.bk-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 3px; }
+.bk-card canvas { width: 100%; height: auto; aspect-ratio: 240 / 190; border-radius: 10px; background: radial-gradient(circle at 50% 70%, rgba(255,255,255,0.08), rgba(0,0,0,0) 70%); }
+.bk-card b { font: 600 16px var(--display); }
+.bk-card .bk-n { color: var(--leaf); font-weight: 800; font-size: 11px; }
+.bk-unknown .bk-n { color: var(--muted); }
+.bk-card dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 4px 0 0; font-size: 12px; }
+.bk-card dt { color: var(--muted); font-weight: 800; }
+.bk-card dd { margin: 0; }
+.bk-card p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.bk-h3 { font: 600 16px var(--display); margin: 6px 0 0; color: #c9a7ff; }
 .ctl { width: 40px; height: 34px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, 0.07); color: var(--ink); font: 600 13px var(--display); cursor: pointer; }
 .ctl:hover { background: rgba(255, 255, 255, 0.14); }
 .ctl.on { background: var(--mars); color: #24102a; }
@@ -375,6 +388,7 @@ body.cramped #tip.idle { display: none; }
         <button class="ctl" id="btn-pause" title="Pause (Space)">❚❚</button>
         <button class="ctl" id="btn-speed" title="Game speed">1×</button>
         <button class="ctl" id="btn-music" title="Music: on (M)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 20 2v13.2a3.3 3.3 0 1 1-2-3V6.6l-7 1.6v9a3.3 3.3 0 1 1-2-3z"/></svg></button>
+        <button class="ctl book" id="btn-book" title="Alien Book">📖 Aliens</button>
         <button class="ctl" id="btn-sound" title="Sound effects: on" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-4.5v15L7 15H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
     </div>
@@ -403,7 +417,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 68;
+const BUILD = 69;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3649,6 +3663,7 @@ function tick(dt) {
   if (L.chief) maybeChief(L);
   if (L.lizardKing) maybeLizardKing(L);
   if (L.dragon) maybeDragon(L);
+  bookBosses();
   if (L.wizards) updateWizards(dt);
   if (L.robot) maybeRobot(L);
   if (L.tornado || tornados.length) updateTornados(dt, L);
@@ -4110,6 +4125,7 @@ function drawWorm(g) {
   if (w.state !== 'dead') bar(g, gnd.x, gnd.y - 140, w.hp / w.maxhp, 'GRUMBLE WORM');
 }
 function bar(g, x, y, f, label) {
+  if (bookDrawing) return; // no health bars in the Alien Book's pictures
   g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(x - 60, y, 120, 10);
   g.fillStyle = '#ff6b81'; g.fillRect(x - 59, y + 1, 118 * clamp(f, 0, 1), 8);
   g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText(label, x, y - 6);
@@ -4271,6 +4287,191 @@ function flyHome() {
   if (!d) return showTitle();
   loadSave(d); closeModal();
   say('zorp', 'Home sweet home. Zorp will visit again soon, friends!', 'home1');
+}
+
+
+// ---------------------------------------------------------------- the Alien Book
+// Every alien and boss in the game, with what it does, its health, what hurts it and where it lives.
+// Beating one adds it to the book (kept for the whole game). Ones not beaten yet show as a dark
+// mystery shape. Every different combo alien from Random Mix-Up gets its own page.
+const ALIEN_INFO = {
+  basic:    { name: 'Critter', hurt: 'Everything: taps, zappers, drones, knights and wizards', does: 'A cheeky little Mars native. It sneaks up to buildings and steals supplies.' },
+  armor:    { name: 'Armoured critter', hurt: 'Everything', does: 'A critter with a tough shell, so it takes two hits.' },
+  zippy:    { name: 'Zippy critter', hurt: 'Everything', does: 'Super fast, but one hit and it is gone.' },
+  sneaky:   { name: 'Sneaky critter', hurt: 'Everything', does: 'Almost invisible until it gets close to a building.' },
+  brute:    { name: 'Brute', hurt: 'Everything', does: 'Big, slow and greedy. It steals more than any other critter.' },
+  burrower: { name: 'Tunnel critter', hurt: 'Everything', does: 'Lives in the caves under Mars. Each one is born with 2 to 5 health.' },
+  shell:    { name: 'Shell-beast', hurt: 'Only knights and police', does: 'Zaps, drones and taps bounce right off its shell.' },
+  shellbig: { name: 'Giant shell-beast', hurt: 'Only knights and police', does: 'A huge shell-beast. If it chews on a building long enough, it smashes it flat.' },
+  fivehead: { name: 'Five-headed alien', hurt: 'Everything', does: 'Every hit knocks off a head, but if you leave it alone, its heads grow back.' },
+  lizard:   { name: 'Lizard person', hurt: 'Taps and wizards always. Knights only on the ground. Zappers only while it flies', does: 'Hops up into the air for two seconds every so often.' },
+  blob:     { name: 'Blob', hurt: 'Taps, zappers and wizards (knights sink into the goo)', does: 'Ten hits of wobbly goo. Blobs often come in pairs.' },
+  rhino:    { name: 'Alien rhino', hurt: 'Only knights and police', does: 'Its hide is so thick that zaps and taps do nothing.' },
+  tree:     { name: 'Tree alien', hurt: 'Only knights and police', does: 'Its bark is so thick that only a knight’s sword can chop it.' },
+  rock:     { name: 'Rock monster', hurt: 'Zappers, wizards and taps (knights bounce off)', does: 'When it gets badly hurt, it hides in a hole to heal.' },
+  shadow:   { name: 'Black alien', hurt: 'Everything', does: 'Lives by the black hole. A beaten one vanishes into thin air.' },
+  water:    { name: 'Water alien', hurt: 'Only zappers and wizards', does: 'Taps and knights just splash right through it.' },
+  ice:      { name: 'Ice alien', hurt: 'Taps, knights and wizards (zaps bounce off)', does: 'A walking block of ice. Beaten ones turn into ice cubes.' },
+  spider:   { name: 'Spider alien', hurt: 'Knights, police and taps (zaps and magic bounce off)', does: 'Eight legs, lots of eyes and nineteen hits.' },
+  octo:     { name: 'Black octopus', hurt: 'Everything, but it can dodge once or twice', does: 'Very fast. Every time it beats a guard or smashes a building, it gets stronger.' },
+  splitter: { name: 'Splitter', hurt: 'Everything', does: 'When you beat it, it splits into two little splitlings.' },
+  splitling:{ name: 'Splitling', hurt: 'Everything', does: 'A tiny, fast piece of a splitter.' },
+  ghost:    { name: 'Phantom', hurt: 'Everything, but only while you can see it', does: 'Fades away every few seconds, and nothing can touch it while it is faded.' },
+  healer:   { name: 'Medic bug', hurt: 'Everything', does: 'Heals the aliens around it. Beat it first!' },
+  bubble:   { name: 'Bubble bug', hurt: 'Everything, once its bubble pops', does: 'Its bubble soaks up the first three hits.' },
+  blinker:  { name: 'Blinker', hurt: 'Everything', does: 'Teleports from one building to another.' },
+  boomer:   { name: 'Boom beetle', hurt: 'Everything', does: 'Blows up when it reaches a building, switching off everything around it.' },
+  grower:   { name: 'Gobbler', hurt: 'Everything', does: 'Grows bigger and tougher every few seconds. Beat it while it is small.' },
+  magpie:   { name: 'Magpie bug', hurt: 'Everything', does: 'Very fast, and steals lots of supplies.' },
+};
+const BOSS_INFO = {
+  queen:       { name: 'The Critter Queen', hp: 90, where: 'Mars', hurt: 'Taps (best on her glowing crystal), zappers and drones', does: 'Climbs out of a crater and attacks the colony rocket.' },
+  king:        { name: 'The Shell-beast King', hp: 160, where: 'Europa', hurt: 'Only knights', does: 'Breaks through the ice and marches on the castles.' },
+  chief:       { name: 'The Five-Head Chief', hp: 60, where: 'The Moon', hurt: 'Taps on the glowing head, and zappers', does: 'Knock off his heads one at a time, before they grow back.' },
+  lizard:      { name: 'The Lizard King', hp: 380, where: 'Venus', hurt: 'Taps and wizards. Knights on the ground, zappers while he flies', does: 'Crawls out of the lava and flies now and then.' },
+  robot:       { name: 'Mega-Blobber 3000', hp: 350, where: 'Mercury', hurt: 'Taps, zappers and wizards', does: 'The robot that makes the blobs. Knock off its armour plates, then hit the core.' },
+  storm:       { name: 'The Great Red Spot', hp: 320, where: 'Jupiter', hurt: 'Taps, zappers and wizards', does: 'The biggest storm in the solar system wakes up and throws things.' },
+  elder:       { name: 'The Elder Tree', hp: 500, where: 'Saturn', hurt: 'Only knights and police', does: 'A giant tree alien that walks across Saturn’s rings.' },
+  golem:       { name: 'The Rock Giant', hp: 450, where: 'Titan', hurt: 'Zappers, wizards and taps', does: 'When it gets hurt, it digs into a hole to heal.' },
+  shadow:      { name: 'The Shadow King', hp: 500, where: 'The Unknown Planet', hurt: 'Everything', does: 'The biggest black alien, with the escape crystal glowing inside.' },
+  tide:        { name: 'The Great Wave', hp: 420, where: 'Uranus', hurt: 'Only zappers and wizards', does: 'Every big hit splashes off a new water alien.' },
+  icegiant:    { name: 'The Ice Giant', hp: 450, where: 'Neptune', hurt: 'Taps, knights and wizards (zaps bounce off)', does: 'The boss of all the ice aliens.' },
+  spiderqueen: { name: 'The Spider Queen', hp: 460, where: 'Pluto', hurt: 'Knights, police and taps', does: 'Goes for the castles first.' },
+  dragon:      { name: 'The Red Dragon', hp: 620, where: 'Earth', hurt: 'On the ground: everything. Flying: zappers, wizards, taps and allies that shoot', does: 'The leader of the invasion. It flies and spits fireballs.' },
+  worm:        { name: 'The Grumble Worm', hp: 45, where: 'Planet Glorp', hurt: 'Taps and zappers, while it is up', does: 'A party crasher that pops up out of the ground.' },
+  blorg:       { name: 'Blorg the rival trader', hp: 40, where: 'Planet Glorp', hurt: 'Taps and zappers', does: 'A grumpy trader who flies in to spoil the festival.' },
+  cousin:      { name: 'Queen Skyla', hp: 70, where: 'Planet Glorp', hurt: 'Taps, zappers and drones', does: 'Swoops from building to building, chewing them up.' },
+};
+const BOOK_ORDER = ['basic', 'armor', 'zippy', 'sneaky', 'brute', 'burrower', 'shell', 'shellbig', 'fivehead', 'lizard', 'blob', 'rhino', 'tree', 'rock', 'shadow', 'water', 'ice', 'spider', 'octo',
+  'splitter', 'splitling', 'ghost', 'healer', 'bubble', 'blinker', 'boomer', 'grower', 'magpie'];
+const BOSS_FLAGS = [['queenDefeated', 'queen'], ['kingDefeated', 'king'], ['chiefDefeated', 'chief'], ['lizardKingDefeated', 'lizard'], ['robotDefeated', 'robot'], ['stormDefeated', 'storm'],
+  ['elderDefeated', 'elder'], ['golemDefeated', 'golem'], ['shadowKingDefeated', 'shadow'], ['tideDefeated', 'tide'], ['iceGiantDefeated', 'icegiant'], ['spiderQueenDefeated', 'spiderqueen'], ['dragonDefeated', 'dragon']];
+let BOOK = store.get('mmb-book', null);
+// where each alien lives, worked out from the levels themselves
+function placeName(li) {
+  const L = LEVELS[li];
+  if (L.mixup) return 'Random Mix-Up'; if (L.bonus) return 'Planet Glorp'; if (L.voidLevel) return 'The Unknown Planet'; if (L.under) return 'Under Mars'; if (L.earth) return 'Earth';
+  const w = WORLDS[LEVEL_WORLD[li]];
+  if (w) return w.body && BODY_NAME[w.body] ? BODY_NAME[w.body].replace(/^the /, 'The ') : w.name.split(':')[0];
+  return 'Mars';
+}
+function alienPlaces(kind) {
+  const set = [];
+  LEVELS.forEach((L, li) => { const m = L.critters && L.critters.mix; if (!L.mixup && !L.tutorial && m && m[kind]) { const n = placeName(li); if (!set.includes(n)) set.push(n); } });
+  if (kind === 'shellbig' && !set.includes('Europa')) set.push('Europa');
+  if (!set.length) set.push('Random Mix-Up');
+  return set;
+}
+// existing games get credit for what they have already done
+function bookSeed() {
+  const b = { aliens: {}, bosses: {}, combos: {} };
+  const done = Object.keys(WORLDS_DONE).filter(k => WORLDS_DONE[k] && WORLDS[k]).map(k => WORLDS[k].level);
+  const best = +store.get('mmb-best', 0) || 0;
+  for (let li = 0; li < Math.min(best, 6); li++) done.push(li);
+  for (const li of done) { const L = LEVELS[li]; const m = L && L.critters && L.critters.mix; if (m) for (const k of Object.keys(m)) if (ALIEN_INFO[k]) b.aliens[k] = Math.max(b.aliens[k] || 0, 1); }
+  const allyBoss = { lizards: 'lizard', blobs: 'robot', rhinos: 'storm', trees: 'elder', rocks: 'golem', water: 'tide', ice: 'icegiant', spiders: 'spiderqueen' };
+  for (const a of MISSION.allies) if (allyBoss[a]) b.bosses[allyBoss[a]] = 1;
+  if (WORLDS_DONE.king) b.bosses.king = 1; if (WORLDS_DONE.chief) b.bosses.chief = 1; if (WORLDS_DONE.blackhole || MISSION.cores.includes('void')) b.bosses.shadow = 1;
+  if (WORLDS_DONE.earth4) b.bosses.dragon = 1;
+  return b;
+}
+function ensureBook() { if (!BOOK) { BOOK = bookSeed(); store.set('mmb-book', BOOK); } return BOOK; }
+function bookSave(what) { store.set('mmb-book', BOOK); if (what) toast(`New in your Alien Book: ${what}! 📖`, 'good'); }
+function bookAlien(c) {
+  ensureBook();
+  const K = KINDS[c.kind || 'basic'];
+  if (K.combo) {
+    const key = K.parents.join('+'), first = !BOOK.combos[key];
+    BOOK.combos[key] = { n: ((BOOK.combos[key] || {}).n || 0) + 1, name: K.name, parents: K.parents };
+    bookSave(first && K.name);
+    return;
+  }
+  const k = c.kind || 'basic';
+  if (!ALIEN_INFO[k]) return;
+  const first = !BOOK.aliens[k];
+  BOOK.aliens[k] = (BOOK.aliens[k] || 0) + 1;
+  bookSave(first && ALIEN_INFO[k].name);
+}
+// bosses: noticed from the level's "defeated" flags
+function bookBosses() {
+  ensureBook();
+  for (const [f, id] of BOSS_FLAGS) if (S[f] && !S['book_' + id]) { S['book_' + id] = 1; const first = !BOOK.bosses[id]; BOOK.bosses[id] = (BOOK.bosses[id] || 0) + 1; bookSave(first && BOSS_INFO[id].name); }
+  if (S.crasherBeaten && S.crasher && !S.book_crasher && BOSS_INFO[S.crasher]) { S.book_crasher = 1; const id = S.crasher, first = !BOOK.bosses[id]; BOOK.bosses[id] = (BOOK.bosses[id] || 0) + 1; bookSave(first && BOSS_INFO[id].name); }
+}
+// drawing a page's picture: a pretend alien or boss, drawn the same way as in the game
+const bookCombos = {};
+let bookDrawing = false;
+function bookDraw(cnv, entry, t) {
+  const g = cnv.getContext('2d'), W = cnv.width, H = cnv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+  const known = entry.known;
+  bookDrawing = true;
+  try {
+    if (entry.boss) {
+      const id = entry.id, sc = { storm: 0.7, elder: 0.75, king: 0.75, dragon: 0.62, spiderqueen: 1.35, icegiant: 1.05, tide: 1.15, golem: 1.05, shadow: 1.1, robot: 0.6, chief: 0.68, lizard: 0.8, queen: 0.78, cousin: 0.9, worm: 0.85, blorg: 1.3 }[id] || 0.7;
+      if (id === 'worm' || id === 'blorg') {
+        const saved = id === 'worm' ? S.worm : S.blorg;
+        const fake = id === 'worm' ? { hp: 1, maxhp: 1, state: 'up', t: t, x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, ti: -1 } : { hp: 1, maxhp: 1, x: 0.5, y: 0.5, state: 'fly', t: t, ti: -1, botT: 9 };
+        if (id === 'worm') S.worm = fake; else S.blorg = fake;
+        const p = id === 'blorg' ? blorgWorld() : { x: 0, y: (1) * 16 - (S.tiles[0].h || 1) * HZ };
+        g.translate(W / 2, H * (id === 'blorg' ? 0.55 : 0.8)); g.scale(sc * 1.4, sc * 1.4); g.translate(-p.x, -p.y);
+        try { id === 'worm' ? drawWorm(g) : drawBlorg(g); } finally { if (id === 'worm') S.worm = saved; else S.blorg = saved; }
+      } else {
+        const saved = S.boss;
+        const fake = { kind: id === 'queen' ? undefined : id, x: 0.5, y: 0.5, hp: 1, maxhp: 1, state: 'walk', t: t, spot: Math.floor(t / 2) % 3, face: 1, heads: [1, 1, 1, 1, 1], plates: [1, 1, 1, 1], core: 1, hs: S.tiles[0].h, lift: 0, flying: false, enraged: false, hit: 0, book: true };
+        S.boss = fake;
+        try { const w = bossWorld(); g.translate(W / 2, H * 0.86); g.scale(sc, sc); g.translate(-w.x, -w.y); drawBoss(g); } finally { S.boss = saved; }
+      }
+    } else {
+      let kind = entry.id;
+      if (entry.combo) { if (!bookCombos[entry.key]) { const id = 'book_' + entry.key.replace('+', '_'); makeComboAlien(id, ...entry.parents); bookCombos[entry.key] = id; } kind = bookCombos[entry.key]; }
+      const K = KINDS[kind];
+      if (!entry.col) entry.col = K.combo ? (K.col || [kindCol(K.drawAs)])[0] : kindCol(kind);
+      const c = { book: true, x: 0.5, y: 0.5, hx: 0.5, hy: 0.5, kind, col: entry.col, state: 'walk', t, seed: 1.3, hp: K.octo ? 30 : 1, maxhp: K.octo ? 30 : 1, hit: 0, face: 1, loot: {}, fighting: 0, grown: 0, shield: K.shield ? 3 : 0, power: 0 };
+      const p = critWorld(c), sc = 3.6 / Math.max(1, (K.size || 1) * 0.8);
+      g.translate(W / 2, H * 0.82); g.scale(sc, sc); g.translate(-p.x, -p.y);
+      drawCritter(g, c);
+    }
+  } catch (e) { /* a picture that can't be drawn just stays empty */ }
+  bookDrawing = false;
+  if (!known) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = '#0d0920'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; }
+}
+const aAn = (name, cap) => { const w = name.toLowerCase(), art = /^[aeiou]/.test(w) ? 'an' : 'a'; return (cap ? art[0].toUpperCase() + art.slice(1) : art) + ' ' + w; };
+function showBook(tab = 'aliens') {
+  ensureBook();
+  const aliens = BOOK_ORDER.map(id => ({ id, info: ALIEN_INFO[id], known: !!BOOK.aliens[id], n: BOOK.aliens[id] || 0, hp: KINDS[id].hp, hpText: KINDS[id].hpRange ? KINDS[id].hpRange.join('–') : KINDS[id].hp, where: alienPlaces(id) }));
+  const combos = Object.entries(BOOK.combos).map(([key, v]) => {
+    const [a, b] = v.parents, A = KINDS[a], Bk = KINDS[b];
+    return { key, combo: true, parents: v.parents, known: true, n: v.n, info: { name: v.name, hurt: 'Taps always work, plus whatever hurts either parent', does: `${aAn(ALIEN_INFO[a].name, true)} and ${aAn(ALIEN_INFO[b].name)} mixed together, with both of their powers.` },
+      hpText: Math.max(5, Math.round((A.hp + Bk.hp) / 2 * 1.1)), where: ['Random Mix-Up'] };
+  });
+  const bosses = Object.entries(BOSS_INFO).map(([id, info]) => ({ id, boss: true, info, known: !!BOOK.bosses[id], n: BOOK.bosses[id] || 0, hpText: info.hp, where: [info.where] }));
+  const list = tab === 'bosses' ? bosses : aliens;
+  const card = (e, i) => e.known
+    ? `<div class="bk-card"><canvas width="240" height="190" data-i="${i}"></canvas><b>${e.info.name}</b><small class="bk-n">Beaten ×${e.n}</small>
+        <dl><dt>Health</dt><dd>${e.hpText}</dd><dt>Hurt by</dt><dd>${e.info.hurt}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
+    : `<div class="bk-card bk-unknown"><canvas width="240" height="190" data-i="${i}"></canvas><b>???</b><small class="bk-n">Not beaten yet</small><p>Found on: ${e.where.join(', ')}</p></div>`;
+  const all = tab === 'bosses' ? bosses : aliens.concat(combos);
+  const nA = aliens.filter(e => e.known).length, nB = bosses.filter(e => e.known).length;
+  openModal(`<span class="eyebrow" style="color:#c9a7ff">📖 Alien Book</span>
+    <h2>${tab === 'bosses' ? 'Bosses' : 'Aliens'}</h2>
+    <div class="bk-tabs"><button class="btn ${tab === 'aliens' ? '' : 'alt'}" id="bk-aliens">Aliens · ${nA}/${aliens.length}</button><button class="btn ${tab === 'bosses' ? '' : 'alt'}" id="bk-bosses">Bosses · ${nB}/${bosses.length}</button></div>
+    <p class="small-note">Beat an alien to add it to your book. Dark ones are still a mystery.</p>
+    <div class="bk-grid">${list.map(card).join('')}</div>
+    ${tab === 'aliens' ? `<h3 class="bk-h3">Combo aliens from Random Mix-Up · ${combos.length} found</h3><div class="bk-grid">${combos.length ? combos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Beat a combo alien in Random Mix-Up and it gets its own page here.</p>'}</div>` : ''}
+    <div class="row"><button class="btn alt" id="bk-close">Back to the colony</button></div>`, true);
+  $('#bk-aliens').addEventListener('click', () => showBook('aliens'));
+  $('#bk-bosses').addEventListener('click', () => showBook('bosses'));
+  $('#bk-close').addEventListener('click', closeModal);
+  const cnvs = [...document.querySelectorAll('.bk-card canvas')];
+  const t0 = performance.now();
+  const frame = () => {
+    if (!cnvs.length || !document.body.contains(cnvs[0])) return;
+    const t = (performance.now() - t0) / 1000;
+    for (const c of cnvs) { const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) continue; bookDraw(c, all[+c.dataset.i], t); }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 
 // ---------------------------------------------------------------- the colony rocket
@@ -4811,7 +5012,7 @@ function drawBoss(g) {
   if (b.kind === 'chief') { drawChief(g, b, w, k * 1.15, alpha); return; }
   if (b.kind === 'storm') {
     drawStorm(g, b, w, k, alpha);
-    if (b.state !== 'dead' && b.state !== 'emerge') {
+    if (!b.book && b.state !== 'dead' && b.state !== 'emerge') {
       const top = w.y - 40 * k - 50 * k;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#ff8a5c'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4821,7 +5022,7 @@ function drawBoss(g) {
   }
   if (b.kind === 'robot') {
     drawRobot(g, b, w, k * 1.15, alpha);
-    if (b.state !== 'dead' && b.state !== 'emerge') {
+    if (!b.book && b.state !== 'dead' && b.state !== 'emerge') {
       const top = w.y - 132 * k * 1.15;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = b.plates.some(p => p > 0) ? '#c9cee8' : '#7be06a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4837,7 +5038,7 @@ function drawBoss(g) {
     g.scale(kk * (b.face || 1), kk);
     drawDragon(g, b, step);
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 95 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 70, top, 140, 10);
       g.fillStyle = '#ff6a2a'; g.fillRect(w.x - 69, top + 1, 138 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4853,7 +5054,7 @@ function drawBoss(g) {
     g.scale(kk * (b.face || 1), kk);
     drawLizardBody(g, b.enraged ? '#4fae8c' : '#3f9a4a', step, b.flying, b.hit > 0, true);
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 100 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4870,7 +5071,7 @@ function drawBoss(g) {
     g.scale(kk * (b.face || 1), kk);
     drawSpiderBody(g, b.enraged ? '#8a2a5a' : '#5a3a7a', b.t, b.state === 'walk', b.hit > 0, b.enraged, true);
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 24 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#c9a7ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4886,7 +5087,7 @@ function drawBoss(g) {
     g.scale(kk * (b.face || 1), kk);
     drawIceBody(g, b.enraged ? '#a8d8ff' : '#dff6ff', b.state === 'walk' ? Math.sin(b.t * 4) * 1.2 : 0, b.hit > 0, b.enraged, true);
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 40 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#bdf3ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4902,7 +5103,7 @@ function drawBoss(g) {
     g.scale(kk * (b.face || 1), kk);
     drawWaterBody(g, b.enraged ? '#3f8fd8' : '#5cc8ff', b.t, b.hit > 0, b.enraged, true);
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 30 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#5cc8ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4919,7 +5120,7 @@ function drawBoss(g) {
     drawShadowBody(g, b.state === 'walk' ? Math.sin(b.t * 4) * 1.5 : 0, b.hit > 0, true, b.enraged);
     g.fillStyle = '#c9a7ff'; for (const [x, y] of [[-2.5, -22.5], [1, -23.5], [4.5, -22.5]]) poly(g, [[x - 1, y + 1], [x, y - 2.4], [x + 1, y + 1]]); // a dark crown
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 32 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#c9a7ff'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4936,7 +5137,7 @@ function drawBoss(g) {
     drawRockBody(g, b.enraged ? '#9a6a50' : '#7a6f66', b.state === 'walk' || b.state === 'todig' ? Math.sin(b.t * 4) * 1.4 : 0, b.hit > 0, false, b.enraged);
     g.fillStyle = '#ffd166'; for (const [x, y] of [[-3, -19.5], [0, -20.5], [3, -19.5]]) poly(g, [[x - 1, y + 1], [x, y - 2.2], [x + 1, y + 1]]); // a crown of crystals
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 24 * kk;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#ffb35c'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4951,7 +5152,7 @@ function drawBoss(g) {
     drawTreeBody(g, b.enraged ? '#c9a13a' : '#3f9a4a', b.state === 'walk' ? Math.sin(b.t * 4) * 2 : 0, b.hit > 0, false, b.enraged);
     g.fillStyle = '#ffd166'; for (const [x, y] of [[-6, -38], [5, -40], [0, -44], [9, -31], [-9, -31]]) ell(g, x, y, 1.2, 1.2, '#ffd166'); // glowing fruit
     g.restore();
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 120 * k;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#7cc15a'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4961,7 +5162,7 @@ function drawBoss(g) {
   }
   if (b.kind === 'king') {
     drawKing(g, b, w, k, alpha);
-    if (b.state !== 'dead') {
+    if (!b.book && b.state !== 'dead') {
       const top = w.y - 100 * QS;
       g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
       g.fillStyle = '#ff6b81'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -4993,7 +5194,7 @@ function drawBoss(g) {
     g.fillStyle = '#e6feff'; poly(g, [[sx_, sy_ - walk - 9], [sx_ + 6, sy_ - walk], [sx_, sy_ - walk]]);
   }
   g.restore();
-  if (b.state !== 'dead') {
+  if (!b.book && b.state !== 'dead') {
     const top = w.y - 112 * QS;
     g.fillStyle = 'rgba(20,14,43,0.8)'; g.fillRect(w.x - 60, top, 120, 10);
     g.fillStyle = '#ff6b81'; g.fillRect(w.x - 59, top + 1, 118 * clamp(b.hp / b.maxhp, 0, 1), 8);
@@ -5351,7 +5552,7 @@ function drawChief(g, b, w, k, alpha) {
   drawFiveBody(g, b.heads.map(h => h > 0), '#7a52d8', step, b.state === 'dead' || b.state === 'emerge' ? -1 : b.spot, b.hit > 0, true);
   g.fillStyle = '#ffd166'; poly(g, [[-16, -60], [-11, -60], [12, -26], [7, -26]]); // chief's sash
   g.restore();
-  if (b.state !== 'dead') {
+  if (!b.book && b.state !== 'dead') {
     const top = w.y - 112 * k;
     g.fillStyle = '#ffffff'; g.font = '600 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('FIVE-HEAD CHIEF', w.x, top - 6);
     b.heads.forEach((h, i) => { ell(g, w.x + (i - 2) * 18, top + 6, 7, 7, 'rgba(20,14,43,0.8)'); if (h > 0) ell(g, w.x + (i - 2) * 18, top + 6, 5.5 * (0.4 + 0.6 * h / 12), 5.5 * (0.4 + 0.6 * h / 12), i === b.spot ? '#7ff7ff' : '#ffd7b8'); });
@@ -6338,6 +6539,7 @@ function pickKind() {
   return 'basic';
 }
 const graveHp = hp => hp > 1 && S.tiles.some(t => t.b === 'graveyard') ? hp - 1 : hp;
+function kindCol(kind) { const K = KINDS[kind]; return K.col ? K.col[Math.floor(Math.random() * K.col.length)] : kind === 'spider' ? ['#5a3a7a', '#4a3a6a', '#6a3a5a'][Math.floor(Math.random() * 3)] : kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff'; }
 function spawnCritter(kind = pickKind(), from = null) {
   const K = KINDS[kind];
   if ((K.combo || K.name) && S.said && LEVELS[S.level].mixup && !S.said['new-' + kind]) { S.said['new-' + kind] = 1; toast(`New in this mix: ${K.combo ? 'a ' + K.name : K.name}!`, 'bad'); }
@@ -6350,7 +6552,7 @@ function spawnCritter(kind = pickKind(), from = null) {
   else { const e = Math.random() * N; [hx, hy] = Math.random() < 0.5 ? [e, N - 0.3] : [N - 0.3, e]; }
   const tgt = targets[Math.floor(Math.random() * targets.length)];
   const hp0 = K.hpRange ? K.hpRange[0] + Math.floor(Math.random() * (K.hpRange[1] - K.hpRange[0] + 1)) : K.hp;
-  const col = K.col ? K.col[Math.floor(Math.random() * K.col.length)] : kind === 'spider' ? ['#5a3a7a', '#4a3a6a', '#6a3a5a'][Math.floor(Math.random() * 3)] : kind === 'ice' ? ['#dff6ff', '#c4e8ff', '#e8f0ff'][Math.floor(Math.random() * 3)] : kind === 'water' ? ['#5cc8ff', '#4fb0f0', '#7fd8ff'][Math.floor(Math.random() * 3)] : kind === 'shadow' ? '#120e1c' : kind === 'rock' ? ['#8a7a6a', '#7a6f66', '#9a8670'][Math.floor(Math.random() * 3)] : kind === 'tree' ? ['#5fbf6a', '#7cc15a', '#4fae8c'][Math.floor(Math.random() * 3)] : kind === 'burrower' ? ['#c98a5a', '#a8806a', '#b8946a'][Math.floor(Math.random() * 3)] : kind === 'rhino' ? ['#8a7fa8', '#7a8aa8', '#9a8a9e'][Math.floor(Math.random() * 3)] : kind === 'blob' ? ['#7be06a', '#5fd38d', '#a6e85a'][Math.floor(Math.random() * 3)] : kind === 'lizard' ? ['#5fbf6a', '#4fae8c', '#7cc15a'][Math.floor(Math.random() * 3)] : kind === 'fivehead' ? ['#e0607e', '#5cc8ff', '#5fd38d', '#ffb35c', '#b79bff'][Math.floor(Math.random() * 5)] : kind === 'shell' ? '#5f86a8' : kind === 'shellbig' ? '#8a5fc0' : kind === 'brute' ? '#e0607e' : kind === 'zippy' ? '#ffd166' : kind === 'sneaky' ? '#9fe7ff' : Math.random() < 0.5 ? '#7fe0c4' : '#b79bff';
+  const col = kindCol(kind);
   crits.push({ x: hx, y: hy, hx, hy, ti: S.tiles.indexOf(tgt), state: 'emerge', t: 0, loot: {}, face: 1,
                kind, hp: graveHp(hp0), maxhp: graveHp(hp0), hit: 0, col, seed: Math.random() * 10 });
   const made = [crits[crits.length - 1]];
@@ -6819,6 +7021,7 @@ function bonk(c, zapped = false, dmg = 1, knight = false, src = '') {
     return;
   }
   c.state = 'bonked'; c.t = 0;
+  bookAlien(c);
   if (KINDS[c.kind || 'basic'].splits) {
     const home = critTile(c);
     for (let i = 0; i < 2; i++) if (spawnCritter('splitling', home)) { const n = crits[crits.length - 1]; n.x = c.x + (i ? 0.3 : -0.3); n.y = c.y; n.state = 'walk'; }
@@ -8428,7 +8631,7 @@ function octoStronger(c, what) {
 }
 function drawOcto(g, c, k, walking) {
   const pw = Math.min(c.power || 0, 5), s = k * (1 + pw * 0.08);
-  if (c.state !== 'bonked') {
+  if (c.state !== 'bonked' && !c.book) {
     const w = 30 * s;
     g.fillStyle = 'rgba(20,14,43,0.85)'; g.fillRect(-w / 2, -30 * s, w, 4);
     g.fillStyle = '#c9a7ff'; g.fillRect(-w / 2 + 1, -30 * s + 1, (w - 2) * clamp(c.hp / c.maxhp, 0, 1), 2);
@@ -9071,7 +9274,7 @@ function drawCritter(g, c) {
   alpha *= critAlpha(c);
   const K = KINDS[c.kind || 'basic'];
   if (K.combo) { // a combo alien: drawn as one parent, in the other's colours, on a rainbow ring
-    if (c.state !== 'bonked') {
+    if (c.state !== 'bonked' && !c.book) {
       g.save(); g.translate(p.x, p.y); g.globalAlpha = alpha * 0.8;
       g.strokeStyle = `hsl(${(RT * 120 + c.seed * 40) % 360},90%,65%)`; g.lineWidth = 2;
       g.beginPath(); g.ellipse(0, 1, 9 * K.size, 3.6 * K.size, 0, 0, Math.PI * 2); g.stroke();
@@ -10448,6 +10651,7 @@ function toggleVoice() {
   toast(prefs.sfx ? 'Sound and voices on' : 'Sound and voices off (subtitles stay)');
 }
 $('#talk').addEventListener('click', skipLine);
+$('#btn-book').addEventListener('click', () => { if (S) { audioInit(); showBook(); } });
 // Skip all: stop this line and everyone waiting to talk after it
 $('#talk-all').addEventListener('click', (e) => { e.stopPropagation(); hush(); sfx('tick'); });
 

@@ -274,6 +274,23 @@ you which one you have:
 
 Research from Levels 4 and 5 carries into the next level when you finish them.
 
+## Alien Book
+
+The **📖 Aliens** button (bottom right, next to pause and sound) opens the Alien Book on any level.
+It has two sections, **Aliens** (28 kinds) and **Bosses** (16). Each page has a moving picture of
+the alien, drawn the same way as in the game, plus:
+- its health
+- what hurts it
+- where it lives (worked out from the levels themselves)
+- what it does
+- how many times you've beaten it
+
+Beating an alien adds it to the book and pops up a message; the book is kept for the whole game.
+Aliens you haven't beaten yet show as a dark mystery shape with "???" and where to find them.
+Every different combo alien you beat in Random Mix-Up gets its own page under the aliens. The
+first time the book opens, games that already have progress get credit for the aliens on worlds
+they've finished and the bosses whose allies they've freed.
+
 ## Colony life
 
 - **Food and water**: every colonist eats and drinks. The Fed and Water meters drop when
