@@ -89,7 +89,6 @@ body.cramped #tip.idle { display: none; }
 .tool kbd { position: absolute; top: 4px; left: 7px; font: 700 10px var(--body); color: var(--muted); }
 .tool .cd { position: absolute; inset: 0; border-radius: 11px; background: rgba(18, 14, 43, 0.7); display: grid; place-items: center; font: 600 18px var(--display); }
 .controls { pointer-events: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 4px; padding: 6px; align-content: center; }
-.ctl.book { grid-column: 1 / -1; width: auto; order: 9; font-size: 12px; }
 .bk-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 4px; }
 .bk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 42vw), 1fr)); gap: 10px; margin: 8px 0 12px; }
 .bk-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 3px; }
@@ -388,7 +387,6 @@ body.cramped #tip.idle { display: none; }
         <button class="ctl" id="btn-pause" title="Pause (Space)">❚❚</button>
         <button class="ctl" id="btn-speed" title="Game speed">1×</button>
         <button class="ctl" id="btn-music" title="Music: on (M)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 20 2v13.2a3.3 3.3 0 1 1-2-3V6.6l-7 1.6v9a3.3 3.3 0 1 1-2-3z"/></svg></button>
-        <button class="ctl book" id="btn-book" title="Alien Book">📖 Aliens</button>
         <button class="ctl" id="btn-sound" title="Sound effects: on" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-4.5v15L7 15H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
     </div>
@@ -417,7 +415,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 69;
+const BUILD = 70;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4401,7 +4399,13 @@ function bookBosses() {
 // drawing a page's picture: a pretend alien or boss, drawn the same way as in the game
 const bookCombos = {};
 let bookDrawing = false;
+let bookS = null; // a little map to draw on when the book is opened from level select
 function bookDraw(cnv, entry, t) {
+  const realS = S;
+  if (!S || !S.tiles) { if (!bookS) bookS = newState(TUT); S = bookS; }
+  try { bookDrawOn(cnv, entry, t); } finally { S = realS; }
+}
+function bookDrawOn(cnv, entry, t) {
   const g = cnv.getContext('2d'), W = cnv.width, H = cnv.height;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
   const known = entry.known;
@@ -4459,10 +4463,10 @@ function showBook(tab = 'aliens') {
     <p class="small-note">Beat an alien to add it to your book. Dark ones are still a mystery.</p>
     <div class="bk-grid">${list.map(card).join('')}</div>
     ${tab === 'aliens' ? `<h3 class="bk-h3">Combo aliens from Random Mix-Up · ${combos.length} found</h3><div class="bk-grid">${combos.length ? combos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Beat a combo alien in Random Mix-Up and it gets its own page here.</p>'}</div>` : ''}
-    <div class="row"><button class="btn alt" id="bk-close">Back to the colony</button></div>`, true);
+    <div class="row"><button class="btn alt" id="bk-close">Back to level select</button></div>`, true);
   $('#bk-aliens').addEventListener('click', () => showBook('aliens'));
   $('#bk-bosses').addEventListener('click', () => showBook('bosses'));
-  $('#bk-close').addEventListener('click', closeModal);
+  $('#bk-close').addEventListener('click', showTitle);
   const cnvs = [...document.querySelectorAll('.bk-card canvas')];
   const t0 = performance.now();
   const frame = () => {
@@ -10144,6 +10148,9 @@ ${missionKnown() ? (earthOpen() ? `      <button class="lvl earth" data-l="${EAR
     $('#modal .levels').insertAdjacentHTML('afterbegin', `<button class="lvl cont" id="go-home"><span class="n">⌂</span><span><b>Back to your Mars game</b><small>Level ${home.S.level + 1}: ${LEVELS[home.S.level].name}, as you left it before visiting Glorp</small></span><span class="go">Return</span></button>`);
     $('#go-home').addEventListener('click', () => { audioInit(); flyHome(); });
   }
+  { const nA = Object.keys(ensureBook().aliens).length, nB = Object.keys(BOOK.bosses).length;
+    $('#modal .levels').insertAdjacentHTML('afterend', `<div class="row"><button class="btn alt" id="open-book">📖 Alien Book · ${nA} aliens, ${nB} bosses</button></div>`);
+    $('#open-book').addEventListener('click', () => { audioInit(); showBook(); }); }
   if (PERK) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note">🎁 Zorp-tech upgrade (every level): ${PERKS[PERK].name}</p>`);
   if (MISSION.cores.length || MISSION.allies.length) $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note"><b style="color:#ff9b9b">Mission: Free Earth</b> · Power cores: ${MISSION.cores.length} · Allies: ${MISSION.allies.length}${store.get('mmb-earth-free', false) ? ' · <b style="color:#7ff7a8">Earth is free!</b>' : ''}</p>`);
   $('#modal .sheet').insertAdjacentHTML('beforeend', `<p class="small-note" style="text-align:right">Build ${BUILD}</p>`);
@@ -10651,7 +10658,6 @@ function toggleVoice() {
   toast(prefs.sfx ? 'Sound and voices on' : 'Sound and voices off (subtitles stay)');
 }
 $('#talk').addEventListener('click', skipLine);
-$('#btn-book').addEventListener('click', () => { if (S) { audioInit(); showBook(); } });
 // Skip all: stop this line and everyone waiting to talk after it
 $('#talk-all').addEventListener('click', (e) => { e.stopPropagation(); hush(); sfx('tick'); });
 

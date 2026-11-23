@@ -276,7 +276,7 @@ Research from Levels 4 and 5 carries into the next level when you finish them.
 
 ## Alien Book
 
-The **📖 Aliens** button (bottom right, next to pause and sound) opens the Alien Book on any level.
+The **📖 Alien Book** button in level select (under the list of levels) opens the Alien Book.
 It has two sections, **Aliens** (28 kinds) and **Bosses** (16). Each page has a moving picture of
 the alien, drawn the same way as in the game, plus:
 - its health
