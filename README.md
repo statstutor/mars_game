@@ -277,7 +277,7 @@ Research from Levels 4 and 5 carries into the next level when you finish them.
 ## Alien Book
 
 The **📖 Alien Book** button in level select (under the list of levels) opens the Alien Book.
-It has two sections, **Aliens** (28 kinds) and **Bosses** (16). Each page has a moving picture of
+It has three sections: **Aliens** (28 kinds), **Bosses** (16) and **Buildings** (72). Each alien and boss page has a moving picture of
 the alien, drawn the same way as in the game, plus:
 - its health
 - what hurts it
@@ -290,6 +290,19 @@ Aliens you haven't beaten yet show as a dark mystery shape with "???" and where 
 Every different combo alien you beat in Random Mix-Up gets its own page under the aliens. The
 first time the book opens, games that already have progress get credit for the aliens on worlds
 they've finished and the bosses whose allies they've freed.
+
+**Buildings** works the same way, but a building is added the first time you place one. Each page
+has a moving picture of the building and:
+- what it's called and what it does
+- **how many** to build in a level (like "1 for every 8 colonists", or "Just 1" for buildings
+  you can only have one of)
+- what it costs and where you can build it
+- how many you've built
+
+Buildings you haven't placed yet are dark shapes. Every different combo building you place in
+Random Mix-Up gets its own page under the buildings. The first time the Buildings section opens,
+older games get credit for the buildings their finished levels asked for and the ones on their
+saved map.
 
 ## Colony life
 

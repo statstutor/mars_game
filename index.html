@@ -415,7 +415,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 70;
+const BUILD = 71;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -3291,7 +3291,7 @@ function makeComboBuilding(id, a, b) {
   const name = `${COMBO_WORD[a]} ${Bb.name}`;
   B[id] = { name, cost, on, onText: `${name}s need ${on.join(' or ')}.`, energy: Math.round(half(A.energy, Bb.energy) * 10) / 10 || undefined,
     out: Object.keys(out).length ? out : undefined, drinks: half(A.drinks, Bb.drinks) || undefined, zapHalf: a === 'zapper' || b === 'zapper' || undefined,
-    desc: `A mixed-up building: it does the jobs of a ${A.name.toLowerCase()} AND a ${Bb.name.toLowerCase()}, each at half strength.` };
+    desc: `A mixed-up building: it does the jobs of a ${A.name.toLowerCase()} AND a ${Bb.name.toLowerCase()}, each at half strength.`, parents: [a, b] };
   WHERE[id] = ['surface'];
   DRAW[id] = (g, T, v, t) => {
     g.save(); g.translate(-7, 3); g.scale(0.72, 0.72); DRAW[a](g, T, v, t); g.restore();
@@ -4344,6 +4344,91 @@ const BOOK_ORDER = ['basic', 'armor', 'zippy', 'sneaky', 'brute', 'burrower', 's
   'splitter', 'splitling', 'ghost', 'healer', 'bubble', 'blinker', 'boomer', 'grower', 'magpie'];
 const BOSS_FLAGS = [['queenDefeated', 'queen'], ['kingDefeated', 'king'], ['chiefDefeated', 'chief'], ['lizardKingDefeated', 'lizard'], ['robotDefeated', 'robot'], ['stormDefeated', 'storm'],
   ['elderDefeated', 'elder'], ['golemDefeated', 'golem'], ['shadowKingDefeated', 'shadow'], ['tideDefeated', 'tide'], ['iceGiantDefeated', 'icegiant'], ['spiderQueenDefeated', 'spiderqueen'], ['dragonDefeated', 'dragon']];
+// Buildings section: placing a building for the first time adds it. Each page says how many of it
+// a level usually wants (a colonist eats 0.06 food/s and drinks 0.06 water/s, a habitat holds 4).
+const BUILD_TIPS = {
+  solar: 'Lots! Each one powers about 3 buildings. Build more whenever the power runs short.',
+  mine: '2 to 4 to start, then more when you need lots of metal.',
+  drill: '1 for every 4 habitats or so. Add another when the water runs low.',
+  habitat: 'Enough for everyone: each one holds 4 colonists. The goals say how many people you need.',
+  factory: '2 or 3. They use lots of power, so build solar arrays first.',
+  mirror: '1 to 3. Each one warms Mars twice as fast as a gas factory.',
+  seeder: '1 or 2 is plenty, because lichen spreads by itself.',
+  greenhouse: '1 for every 3 habitats. Twice as good next to a water tower.',
+  restaurant: '1 for every 8 colonists.',
+  cafe: '1 for every 10 colonists.',
+  clinic: '1 for every 12 colonists.',
+  arcade: '1 for every 10 colonists.',
+  park: '1 for every 12 colonists.',
+  zapper: '2 to 4, spread out between your buildings. Each one guards 2 tiles around it.',
+  oven: 'Enough to keep every building warm. Each one warms 9 tiles, so build in groups around it.',
+  fusion: '1 or 2 can power a whole colony.',
+  detector: '1 is enough (you can have 2).',
+  icedig: '1 or 2. Each one leaves a pond that keeps giving water.',
+  shaft: 'Just 1: it opens the warm caves underneath.',
+  tunnel: '1 to open the underground, then 1 on any hole a rock monster likes to hide in.',
+  dig: '1 on every glowing ruin.',
+  lab: '2 or 3, so research goes quickly.',
+  coop: '2 to 4, next to a water tower.',
+  ranch: '1 to 3, next to a water tower. They drink a lot.',
+  fishery: '1 on every lake you can spare.',
+  tower: '1 in the middle of each group of farms.',
+  pipe: 'As many as it takes to reach far-away farms.',
+  dronebay: '1 or 2. Each one guards 4 tiles around it.',
+  geo: '1 on every steaming vent you can find.',
+  cmine: '1 on every crystal cave.',
+  fuel: '2 or 3, so the rocket fills up faster.',
+  pad: 'Just 1. That is the most you can have.',
+  flower: 'Lots! It is the best power on Planet Glorp.',
+  gmine: '2 or 3 on the ore.',
+  gpump: '1 or 2 in the goo pools.',
+  garden: '2 or 3 to feed all the guests.',
+  hover: 'Enough beds for every festival guest.',
+  tesla: '2 or 3 to keep the party crashers away.',
+  kitchen: 'Just 1. That is the most you can have.',
+  bounce: 'Just 1. That is the most you can have.',
+  nappod: 'Just 1. That is the most you can have.',
+  lantern: 'At least 4. Zorp loves them.',
+  castle: '1 near every group of buildings. Shell-beast levels often want 2 or 3.',
+  lemon: '1 or 2, within 2 tiles of your lemonade stands.',
+  lemonade: '2 to 4, each next to a water tower and a lemon grove.',
+  ccrafter: '3 (that is the most), for the most crystals.',
+  oredrill: '2 or 3 on purple ore.',
+  turbine: 'Lots, like solar arrays. Each one powers about 6 buildings.',
+  police: '1 or 2 near your buildings.',
+  goo: '1 or 2 where the aliens come in.',
+  boing: '1 or 2 close to the buildings aliens like to chew.',
+  ctree: '2. That is the most you can grow.',
+  medic: '1 next to each castle or police station.',
+  fountain: '1 for every 12 colonists.',
+  harpoon: '3 or 4 around the colony.',
+  netter: '2 or 3, close to the harpoon towers.',
+  cforge: 'Just 1. That is the most you can have.',
+  pcore: '1 right next to each spawner.',
+  graveyard: 'Just 1. That is the most you can have.',
+  field: '1 over each crater the aliens climb out of.',
+  wizhut: '1 or 2.',
+  condenser: '1 or 2.',
+  church: 'Just 1. That is the most you can have.',
+  crafter: '1 is enough.',
+  spawner: '1 of each kind you have, with a power core next to each one.',
+};
+const bookBuildingIds = () => Object.keys(B).filter(id => !B[id].ability && id !== 'zhouse' && !/^(mixb|bookb_)/.test(id));
+const buildTip = id => BUILD_TIPS[id] || (B[id].spawner ? BUILD_TIPS.spawner : B[id].unique ? 'Just 1. That is the most you can have.' : B[id].max ? `Up to ${B[id].max}.` : 'As many as you need.');
+// where each building can be built, worked out from the levels (and the research they offer)
+function buildingPlaces(id) {
+  const d = B[id];
+  if (d.spawner || id === 'pcore') return ['Earth'];
+  if (d.newMix) return ['Random Mix-Up'];
+  const tech = TECHS.find(t => t.unlock && t.unlock.includes(id)), set = [];
+  LEVELS.forEach((L, li) => {
+    if (L.mixup || L.tutorial) return;
+    const here = L.tools.includes(id) || (tech && L.research && (tech.earth ? !!L.earth : !L.earth));
+    if (here) { const n = placeName(li); if (!set.includes(n)) set.push(n); }
+  });
+  if (!set.length) set.push('Random Mix-Up');
+  return set.length > 8 ? ['Nearly every world'] : set;
+}
 let BOOK = store.get('mmb-book', null);
 // where each alien lives, worked out from the levels themselves
 function placeName(li) {
@@ -4371,9 +4456,48 @@ function bookSeed() {
   for (const a of MISSION.allies) if (allyBoss[a]) b.bosses[allyBoss[a]] = 1;
   if (WORLDS_DONE.king) b.bosses.king = 1; if (WORLDS_DONE.chief) b.bosses.chief = 1; if (WORLDS_DONE.blackhole || MISSION.cores.includes('void')) b.bosses.shadow = 1;
   if (WORLDS_DONE.earth4) b.bosses.dragon = 1;
+  b.buildings = bookSeedBuildings(done); b.bcombos = {};
   return b;
 }
-function ensureBook() { if (!BOOK) { BOOK = bookSeed(); store.set('mmb-book', BOOK); } return BOOK; }
+// buildings: credit the ones finished levels asked you to build, and the ones on the saved map
+function bookSeedBuildings(done) {
+  const b = {}, ids = bookBuildingIds();
+  const add = (id, n = 1) => { if (ids.includes(id)) b[id] = Math.max(b[id] || 0, n); };
+  for (const li of done) {
+    const L = LEVELS[li]; if (!L || !L.goals) continue;
+    for (const g of L.goals) { const src = String(g.get); for (const m of src.matchAll(/count\('(\w+)'\)/g)) add(m[1]); if (/S\.pop\b/.test(src)) add('habitat'); }
+  }
+  const maps = [];
+  if (S && S.tiles) maps.push(S); else { const d = readSave(); if (d) maps.push(d.S); }
+  for (const s of maps) {
+    const n = {};
+    for (const t of s.tiles.concat(s.under || [], s.sky || [])) if (t && t.b) n[t.b] = (n[t.b] || 0) + 1;
+    for (const [id, k] of Object.entries(n)) add(id, k);
+  }
+  return b;
+}
+function ensureBook() {
+  if (!BOOK) { BOOK = bookSeed(); store.set('mmb-book', BOOK); }
+  if (!BOOK.buildings) { // books from before the buildings section
+    const done = Object.keys(WORLDS_DONE).filter(k => WORLDS_DONE[k] && WORLDS[k]).map(k => WORLDS[k].level);
+    for (let li = 0; li < Math.min(+store.get('mmb-best', 0) || 0, 6); li++) done.push(li);
+    BOOK.buildings = bookSeedBuildings(done); BOOK.bcombos = BOOK.bcombos || {}; store.set('mmb-book', BOOK);
+  }
+  return BOOK;
+}
+function bookBuilding(id) {
+  ensureBook();
+  const d = B[id]; if (!d || d.ability) return;
+  if (d.parents) {
+    const key = d.parents.join('+'), first = !BOOK.bcombos[key];
+    BOOK.bcombos[key] = { n: ((BOOK.bcombos[key] || {}).n || 0) + 1, name: d.name, parents: d.parents };
+    return bookSave(first && d.name);
+  }
+  if (!bookBuildingIds().includes(id)) return;
+  const first = !BOOK.buildings[id];
+  BOOK.buildings[id] = (BOOK.buildings[id] || 0) + 1;
+  bookSave(first && d.name);
+}
 function bookSave(what) { store.set('mmb-book', BOOK); if (what) toast(`New in your Alien Book: ${what}! 📖`, 'good'); }
 function bookAlien(c) {
   ensureBook();
@@ -4411,7 +4535,14 @@ function bookDrawOn(cnv, entry, t) {
   const known = entry.known;
   bookDrawing = true;
   try {
-    if (entry.boss) {
+    if (entry.building) {
+      let id = entry.id;
+      if (entry.combo) { if (!bookCombos['b:' + entry.key]) { const bid = 'bookb_' + entry.parents.join('_'); makeComboBuilding(bid, ...entry.parents); bookCombos['b:' + entry.key] = bid; } id = bookCombos['b:' + entry.key]; }
+      const sc = { castle: 2.3, turbine: 2.0, cforge: 2.1, wizhut: 2.6, church: 2.3 }[id] || 2.9;
+      g.translate(W / 2, H * 0.78); g.scale(sc, sc);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; poly(g, [[0, -14], [28, 0], [0, 14], [-28, 0]]);
+      DRAW[id](g, t, 0.3);
+    } else if (entry.boss) {
       const id = entry.id, sc = { storm: 0.7, elder: 0.75, king: 0.75, dragon: 0.62, spiderqueen: 1.35, icegiant: 1.05, tide: 1.15, golem: 1.05, shadow: 1.1, robot: 0.6, chief: 0.68, lizard: 0.8, queen: 0.78, cousin: 0.9, worm: 0.85, blorg: 1.3 }[id] || 0.7;
       if (id === 'worm' || id === 'blorg') {
         const saved = id === 'worm' ? S.worm : S.blorg;
@@ -4450,22 +4581,39 @@ function showBook(tab = 'aliens') {
       hpText: Math.max(5, Math.round((A.hp + Bk.hp) / 2 * 1.1)), where: ['Random Mix-Up'] };
   });
   const bosses = Object.entries(BOSS_INFO).map(([id, info]) => ({ id, boss: true, info, known: !!BOOK.bosses[id], n: BOOK.bosses[id] || 0, hpText: info.hp, where: [info.where] }));
-  const list = tab === 'bosses' ? bosses : aliens;
-  const card = (e, i) => e.known
+  const blds = bookBuildingIds().map(id => ({ id, building: true, info: { name: B[id].name, does: B[id].desc }, known: !!BOOK.buildings[id], n: BOOK.buildings[id] || 0,
+    cost: costText(B[id].cost), tip: buildTip(id), where: buildingPlaces(id) }));
+  const bcombos = Object.entries(BOOK.bcombos).map(([key, v]) => {
+    const [a, b] = v.parents;
+    return { key, building: true, combo: true, parents: v.parents, known: true, n: v.n, info: { name: v.name, does: `It does the jobs of ${aAn(B[a].name)} AND ${aAn(B[b].name)}, each at half strength.` },
+      cost: 'Half of each', tip: 'Usually 1 (the level’s special goal often asks for one).', where: ['Random Mix-Up'] };
+  });
+  const list = tab === 'bosses' ? bosses : tab === 'buildings' ? blds : aliens;
+  const extra = tab === 'buildings' ? bcombos : tab === 'aliens' ? combos : [];
+  const card = (e, i) => e.building
+    ? (e.known
+      ? `<div class="bk-card"><canvas width="240" height="190" data-i="${i}"></canvas><b>${e.info.name}</b><small class="bk-n">Built ×${e.n}</small>
+        <dl><dt>How many</dt><dd>${e.tip}</dd><dt>Costs</dt><dd>${e.cost || 'Free'}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
+      : `<div class="bk-card bk-unknown"><canvas width="240" height="190" data-i="${i}"></canvas><b>???</b><small class="bk-n">Not built yet</small><p>Found on: ${e.where.join(', ')}</p></div>`)
+    : e.known
     ? `<div class="bk-card"><canvas width="240" height="190" data-i="${i}"></canvas><b>${e.info.name}</b><small class="bk-n">Beaten ×${e.n}</small>
         <dl><dt>Health</dt><dd>${e.hpText}</dd><dt>Hurt by</dt><dd>${e.info.hurt}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
     : `<div class="bk-card bk-unknown"><canvas width="240" height="190" data-i="${i}"></canvas><b>???</b><small class="bk-n">Not beaten yet</small><p>Found on: ${e.where.join(', ')}</p></div>`;
-  const all = tab === 'bosses' ? bosses : aliens.concat(combos);
-  const nA = aliens.filter(e => e.known).length, nB = bosses.filter(e => e.known).length;
+  const all = list.concat(extra);
+  const nA = aliens.filter(e => e.known).length, nB = bosses.filter(e => e.known).length, nD = blds.filter(e => e.known).length;
+  const tabBtn = (id, label) => `<button class="btn ${tab === id ? '' : 'alt'}" id="bk-${id}">${label}</button>`;
+  const extraH = tab === 'aliens' ? `<h3 class="bk-h3">Combo aliens from Random Mix-Up · ${combos.length} found</h3><div class="bk-grid">${combos.length ? combos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Beat a combo alien in Random Mix-Up and it gets its own page here.</p>'}</div>`
+    : tab === 'buildings' ? `<h3 class="bk-h3">Combo buildings from Random Mix-Up · ${bcombos.length} found</h3><div class="bk-grid">${bcombos.length ? bcombos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Build a combo building in Random Mix-Up and it gets its own page here.</p>'}</div>` : '';
   openModal(`<span class="eyebrow" style="color:#c9a7ff">📖 Alien Book</span>
-    <h2>${tab === 'bosses' ? 'Bosses' : 'Aliens'}</h2>
-    <div class="bk-tabs"><button class="btn ${tab === 'aliens' ? '' : 'alt'}" id="bk-aliens">Aliens · ${nA}/${aliens.length}</button><button class="btn ${tab === 'bosses' ? '' : 'alt'}" id="bk-bosses">Bosses · ${nB}/${bosses.length}</button></div>
-    <p class="small-note">Beat an alien to add it to your book. Dark ones are still a mystery.</p>
+    <h2>${tab === 'bosses' ? 'Bosses' : tab === 'buildings' ? 'Buildings' : 'Aliens'}</h2>
+    <div class="bk-tabs">${tabBtn('aliens', `Aliens · ${nA}/${aliens.length}`)}${tabBtn('bosses', `Bosses · ${nB}/${bosses.length}`)}${tabBtn('buildings', `Buildings · ${nD}/${blds.length}`)}</div>
+    <p class="small-note">${tab === 'buildings' ? 'Build something to add it to your book. Dark ones you haven’t built yet.' : 'Beat an alien to add it to your book. Dark ones are still a mystery.'}</p>
     <div class="bk-grid">${list.map(card).join('')}</div>
-    ${tab === 'aliens' ? `<h3 class="bk-h3">Combo aliens from Random Mix-Up · ${combos.length} found</h3><div class="bk-grid">${combos.length ? combos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Beat a combo alien in Random Mix-Up and it gets its own page here.</p>'}</div>` : ''}
+    ${extraH}
     <div class="row"><button class="btn alt" id="bk-close">Back to level select</button></div>`, true);
   $('#bk-aliens').addEventListener('click', () => showBook('aliens'));
   $('#bk-bosses').addEventListener('click', () => showBook('bosses'));
+  $('#bk-buildings').addEventListener('click', () => showBook('buildings'));
   $('#bk-close').addEventListener('click', showTitle);
   const cnvs = [...document.querySelectorAll('.bk-card canvas')];
   const t0 = performance.now();
@@ -7288,6 +7436,7 @@ function place(name, t) {
     return;
   }
   t.b = name; t.born = RT; t.burn = 0;
+  bookBuilding(name);
   if (name === 'field') t.fhp = FIELD_HP;
   if (name === 'tunnel' || name === 'shaft') openTunnel(t, name);
   if (name === 'tower' || FARMS.includes(name) || name === 'pipe') updateWater();
