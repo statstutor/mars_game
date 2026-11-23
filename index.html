@@ -415,7 +415,7 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 71;
+const BUILD = 72;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -4429,6 +4429,26 @@ function buildingPlaces(id) {
   if (!set.length) set.push('Random Mix-Up');
   return set.length > 8 ? ['Nearly every world'] : set;
 }
+// Helpers section: knights, police, wizards and the allies from Earth's spawners. Each one is added
+// the first time one is trained (or comes out of a spawner).
+const ON_GROUND = 'Aliens on the ground, even shell-beasts, rhinos and tree aliens. Not blobs, rock monsters, water aliens or anything flying.';
+const HELPER_INFO = {
+  knight: { name: 'Knight', hearts: '4 (6 with Mech Suits)', dmg: '1 sword hit every ¾ second', hurts: ON_GROUND, from: 'castle',
+    many: 'Up to 3 from each castle (5 food each).', does: 'Guards everything within 4 tiles of the castle. A knocked-out knight walks home to heal.' },
+  cop: { name: 'Police officer', hearts: '4 (6 with Mech Suits)', dmg: '1 hit every ¾ second', hurts: ON_GROUND, from: 'police',
+    many: 'Up to 3 from each police station (5 food each).', does: 'A little faster than a knight. Officers chase aliens near the station, and they can stop alien rhinos.' },
+  wizard: { name: 'Wizard', hearts: 'Never gets hurt', dmg: '1 magic zap every 1.3 seconds, at TWO aliens at once', hurts: 'Most aliens, even blobs, water aliens and ones that fly. Not shell-beasts, rhinos, tree aliens or spiders.', from: 'wizhut',
+    many: 'Up to 3 from each wizard hut (5 food each).', does: 'Stays near the hut and zaps aliens up to 3½ tiles away.' },
+};
+const ALLY_DOES = {
+  lizards: 'A lizard warrior from Venus. Quick on its feet.', blobs: 'A wobbly blob buddy from Mercury. Squishy and tough.',
+  rhinos: 'A rhino from Jupiter. It hits harder than anyone.', trees: 'A tree guard from Saturn. Slow, but very tough.',
+  rocks: 'A rock buddy from Titan. Slow, but very tough.', water: 'A water squirter from Uranus. It squirts aliens from far away.',
+  ice: 'An ice thrower from Neptune. It throws ice from far away.', spiders: 'A web spitter from Pluto. Its webs slow the aliens down.',
+};
+for (const [id, A] of Object.entries(ALLY)) HELPER_INFO[id] = { name: A.name[0].toUpperCase() + A.name.slice(1), ally: id, hearts: `${A.hp} (+3 with Ally Armour)`,
+  dmg: `${A.dmg} per ${A.ranged ? 'shot' : 'hit'}`, hurts: A.ranged ? 'Any alien within 3½ tiles, even ones that fly.' : 'Aliens on the ground. Not blobs, rock monsters, water aliens or anything flying.',
+  from: 'sp_' + id, many: 'Up to 3 from each spawner, with a power core next to it.', does: ALLY_DOES[id] };
 let BOOK = store.get('mmb-book', null);
 // where each alien lives, worked out from the levels themselves
 function placeName(li) {
@@ -4456,8 +4476,31 @@ function bookSeed() {
   for (const a of MISSION.allies) if (allyBoss[a]) b.bosses[allyBoss[a]] = 1;
   if (WORLDS_DONE.king) b.bosses.king = 1; if (WORLDS_DONE.chief) b.bosses.chief = 1; if (WORLDS_DONE.blackhole || MISSION.cores.includes('void')) b.bosses.shadow = 1;
   if (WORLDS_DONE.earth4) b.bosses.dragon = 1;
-  b.buildings = bookSeedBuildings(done); b.bcombos = {};
+  b.buildings = bookSeedBuildings(done); b.bcombos = {}; b.helpers = bookSeedHelpers(done);
   return b;
+}
+// helpers: credit the ones finished levels could train, and the ones in the saved game
+function bookSeedHelpers(done) {
+  const b = {}, add = (id, n = 1) => { b[id] = Math.max(b[id] || 0, n); };
+  for (const li of done) {
+    const L = LEVELS[li]; if (!L || !L.tools) continue;
+    if (L.tools.includes('castle')) add('knight'); if (L.tools.includes('police')) add('cop'); if (L.tools.includes('wizhut')) add('wizard');
+  }
+  const s = S && S.tiles ? S : (readSave() || {}).S;
+  if (s) for (const t of s.tiles) {
+    if (!t || !t.b) continue;
+    if (t.kn && t.b === 'castle') add('knight', t.kn); else if (t.kn && t.b === 'police') add('cop', t.kn);
+    else if (t.kn && B[t.b] && B[t.b].spawner) add(B[t.b].spawner, t.kn);
+    if (t.wz && t.b === 'wizhut') add('wizard', t.wz);
+  }
+  return b;
+}
+function bookHelper(id) {
+  ensureBook();
+  if (!HELPER_INFO[id]) return;
+  const first = !BOOK.helpers[id];
+  BOOK.helpers[id] = (BOOK.helpers[id] || 0) + 1;
+  bookSave(first && HELPER_INFO[id].name);
 }
 // buildings: credit the ones finished levels asked you to build, and the ones on the saved map
 function bookSeedBuildings(done) {
@@ -4482,6 +4525,10 @@ function ensureBook() {
     const done = Object.keys(WORLDS_DONE).filter(k => WORLDS_DONE[k] && WORLDS[k]).map(k => WORLDS[k].level);
     for (let li = 0; li < Math.min(+store.get('mmb-best', 0) || 0, 6); li++) done.push(li);
     BOOK.buildings = bookSeedBuildings(done); BOOK.bcombos = BOOK.bcombos || {}; store.set('mmb-book', BOOK);
+  }
+  if (!BOOK.helpers) { // books from before the helpers section
+    const done = Object.keys(WORLDS_DONE).filter(k => WORLDS_DONE[k] && WORLDS[k]).map(k => WORLDS[k].level);
+    BOOK.helpers = bookSeedHelpers(done); store.set('mmb-book', BOOK);
   }
   return BOOK;
 }
@@ -4535,7 +4582,14 @@ function bookDrawOn(cnv, entry, t) {
   const known = entry.known;
   bookDrawing = true;
   try {
-    if (entry.building) {
+    if (entry.helper) { // a pretend knight, officer, wizard or ally, swinging away
+      const ph = t % 1.2, swing = ph < 0.25 ? 0.25 - ph : 0;
+      const k = { x: 0.5, y: 0.5, t, i: 0, face: 1, seed: 1.3, hit: 0, swing, cd: 0, cast: ph < 0.3 ? 0.3 - ph : 0, state: 'fight', hp: 4, maxhp: 4,
+        cop: entry.id === 'cop', ally: HELPER_INFO[entry.id].ally };
+      const p = critWorld(k), sc = k.ally ? ({ trees: 2.3, ice: 3.2, spiders: 2.9 }[k.ally] || 4.4) : entry.id === 'wizard' ? 4.5 : 5.2;
+      g.translate(W / 2, H * 0.84); g.scale(sc, sc); g.translate(-p.x, -p.y);
+      if (entry.id === 'wizard') drawWizard(g, k); else if (k.ally) drawAlly(g, k); else if (k.cop) drawCop(g, k); else drawKnight(g, k);
+    } else if (entry.building) {
       let id = entry.id;
       if (entry.combo) { if (!bookCombos['b:' + entry.key]) { const bid = 'bookb_' + entry.parents.join('_'); makeComboBuilding(bid, ...entry.parents); bookCombos['b:' + entry.key] = bid; } id = bookCombos['b:' + entry.key]; }
       const sc = { castle: 2.3, turbine: 2.0, cforge: 2.1, wizhut: 2.6, church: 2.3 }[id] || 2.9;
@@ -4588,9 +4642,16 @@ function showBook(tab = 'aliens') {
     return { key, building: true, combo: true, parents: v.parents, known: true, n: v.n, info: { name: v.name, does: `It does the jobs of ${aAn(B[a].name)} AND ${aAn(B[b].name)}, each at half strength.` },
       cost: 'Half of each', tip: 'Usually 1 (the level’s special goal often asks for one).', where: ['Random Mix-Up'] };
   });
-  const list = tab === 'bosses' ? bosses : tab === 'buildings' ? blds : aliens;
+  const helpers = Object.entries(HELPER_INFO).map(([id, info]) => ({ id, helper: true, info, known: !!BOOK.helpers[id], n: BOOK.helpers[id] || 0,
+    where: info.ally ? ['Earth'] : buildingPlaces(info.from) }));
+  const list = tab === 'bosses' ? bosses : tab === 'buildings' ? blds : tab === 'helpers' ? helpers : aliens;
   const extra = tab === 'buildings' ? bcombos : tab === 'aliens' ? combos : [];
-  const card = (e, i) => e.building
+  const card = (e, i) => e.helper
+    ? (e.known
+      ? `<div class="bk-card"><canvas width="240" height="190" data-i="${i}"></canvas><b>${e.info.name}</b><small class="bk-n">${e.info.ally ? 'Spawned' : 'Trained'} ×${e.n}</small>
+        <dl><dt>Hearts</dt><dd>${e.info.hearts}</dd><dt>Damage</dt><dd>${e.info.dmg}</dd><dt>Hurts</dt><dd>${e.info.hurts}</dd><dt>Comes from</dt><dd>${B[e.info.from].name}</dd><dt>How many</dt><dd>${e.info.many}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
+      : `<div class="bk-card bk-unknown"><canvas width="240" height="190" data-i="${i}"></canvas><b>???</b><small class="bk-n">Not met yet</small><p>Comes from: ${B[e.info.from].name}<br>Found on: ${e.where.join(', ')}</p></div>`)
+    : e.building
     ? (e.known
       ? `<div class="bk-card"><canvas width="240" height="190" data-i="${i}"></canvas><b>${e.info.name}</b><small class="bk-n">Built ×${e.n}</small>
         <dl><dt>How many</dt><dd>${e.tip}</dd><dt>Costs</dt><dd>${e.cost || 'Free'}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
@@ -4600,20 +4661,21 @@ function showBook(tab = 'aliens') {
         <dl><dt>Health</dt><dd>${e.hpText}</dd><dt>Hurt by</dt><dd>${e.info.hurt}</dd><dt>Found on</dt><dd>${e.where.join(', ')}</dd></dl><p>${e.info.does}</p></div>`
     : `<div class="bk-card bk-unknown"><canvas width="240" height="190" data-i="${i}"></canvas><b>???</b><small class="bk-n">Not beaten yet</small><p>Found on: ${e.where.join(', ')}</p></div>`;
   const all = list.concat(extra);
-  const nA = aliens.filter(e => e.known).length, nB = bosses.filter(e => e.known).length, nD = blds.filter(e => e.known).length;
+  const nA = aliens.filter(e => e.known).length, nB = bosses.filter(e => e.known).length, nD = blds.filter(e => e.known).length, nH = helpers.filter(e => e.known).length;
   const tabBtn = (id, label) => `<button class="btn ${tab === id ? '' : 'alt'}" id="bk-${id}">${label}</button>`;
   const extraH = tab === 'aliens' ? `<h3 class="bk-h3">Combo aliens from Random Mix-Up · ${combos.length} found</h3><div class="bk-grid">${combos.length ? combos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Beat a combo alien in Random Mix-Up and it gets its own page here.</p>'}</div>`
     : tab === 'buildings' ? `<h3 class="bk-h3">Combo buildings from Random Mix-Up · ${bcombos.length} found</h3><div class="bk-grid">${bcombos.length ? bcombos.map((e, i) => card(e, list.length + i)).join('') : '<p class="small-note">Build a combo building in Random Mix-Up and it gets its own page here.</p>'}</div>` : '';
   openModal(`<span class="eyebrow" style="color:#c9a7ff">📖 Alien Book</span>
-    <h2>${tab === 'bosses' ? 'Bosses' : tab === 'buildings' ? 'Buildings' : 'Aliens'}</h2>
-    <div class="bk-tabs">${tabBtn('aliens', `Aliens · ${nA}/${aliens.length}`)}${tabBtn('bosses', `Bosses · ${nB}/${bosses.length}`)}${tabBtn('buildings', `Buildings · ${nD}/${blds.length}`)}</div>
-    <p class="small-note">${tab === 'buildings' ? 'Build something to add it to your book. Dark ones you haven’t built yet.' : 'Beat an alien to add it to your book. Dark ones are still a mystery.'}</p>
+    <h2>${{ bosses: 'Bosses', buildings: 'Buildings', helpers: 'Helpers' }[tab] || 'Aliens'}</h2>
+    <div class="bk-tabs">${tabBtn('aliens', `Aliens · ${nA}/${aliens.length}`)}${tabBtn('bosses', `Bosses · ${nB}/${bosses.length}`)}${tabBtn('buildings', `Buildings · ${nD}/${blds.length}`)}${tabBtn('helpers', `Helpers · ${nH}/${helpers.length}`)}</div>
+    <p class="small-note">${tab === 'buildings' ? 'Build something to add it to your book. Dark ones you haven’t built yet.' : tab === 'helpers' ? 'Train a knight, police officer or wizard, or spawn an ally, to add them to your book.' : 'Beat an alien to add it to your book. Dark ones are still a mystery.'}</p>
     <div class="bk-grid">${list.map(card).join('')}</div>
     ${extraH}
     <div class="row"><button class="btn alt" id="bk-close">Back to level select</button></div>`, true);
   $('#bk-aliens').addEventListener('click', () => showBook('aliens'));
   $('#bk-bosses').addEventListener('click', () => showBook('bosses'));
   $('#bk-buildings').addEventListener('click', () => showBook('buildings'));
+  $('#bk-helpers').addEventListener('click', () => showBook('helpers'));
   $('#bk-close').addEventListener('click', showTitle);
   const cnvs = [...document.querySelectorAll('.bk-card canvas')];
   const t0 = performance.now();
@@ -9162,7 +9224,7 @@ function spawnerStep(t, dt, coreFor) {
   t.train = (t.train || 0) + dt / (hasTech('allyarmor') ? 5 : 10) * (t.frozen ? FROZEN : 1);
   if (t.train < 1) return;
   t.train = 0; t.kn++; dirty = true;
-  knights.push(newAlly(t, have, id));
+  knights.push(newAlly(t, have, id)); bookHelper(id);
   const c = center(t);
   burst(c.x, c.y - 20, 14, [A.col, '#ffffff', '#7ff7a8']);
   fx.push({ kind: 'text', x: c.x, y: c.y - 46, text: A.sname + '!', life: 1.2, max: 1.2, color: '#7ff7a8' });
@@ -9233,7 +9295,7 @@ function updateKnights(dt) {
     t.train = (t.train || 0) + dt / 12;
     if (t.train >= 1) {
       t.train = 0; t.kn++; S.food -= 5; dirty = true;
-      knights.push(newKnight(t, have));
+      knights.push(newKnight(t, have)); bookHelper(t.b === 'police' ? 'cop' : 'knight');
       const c = center(t);
       burst(c.x, c.y - 20, 12, ['#ffd166', '#ffffff', '#5c7cfa']);
       fx.push({ kind: 'text', x: c.x, y: c.y - 46, text: t.b === 'police' ? 'Officer!' : 'Knight!', life: 1.2, max: 1.2, color: '#ffd166' });
@@ -9304,7 +9366,7 @@ function updateWizards(dt) {
     t.wtrain = (t.wtrain || 0) + dt / 14 * (t.frozen ? FROZEN : 1);
     if (t.wtrain >= 1) {
       t.wtrain = 0; t.wz++; S.food -= 5; dirty = true;
-      wizards.push(newWizard(t, have));
+      wizards.push(newWizard(t, have)); bookHelper('wizard');
       const c = center(t);
       burst(c.x, c.y - 24, 14, ['#c9a7ff', '#ffffff', '#ffe066']);
       fx.push({ kind: 'text', x: c.x, y: c.y - 48, text: 'Wizard!', life: 1.2, max: 1.2, color: '#c9a7ff' });

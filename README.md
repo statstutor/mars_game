@@ -277,7 +277,7 @@ Research from Levels 4 and 5 carries into the next level when you finish them.
 ## Alien Book
 
 The **📖 Alien Book** button in level select (under the list of levels) opens the Alien Book.
-It has three sections: **Aliens** (28 kinds), **Bosses** (16) and **Buildings** (72). Each alien and boss page has a moving picture of
+It has four sections: **Aliens** (28 kinds), **Bosses** (16), **Buildings** (72) and **Helpers** (11). Each alien and boss page has a moving picture of
 the alien, drawn the same way as in the game, plus:
 - its health
 - what hurts it
@@ -303,6 +303,18 @@ Buildings you haven't placed yet are dark shapes. Every different combo building
 Random Mix-Up gets its own page under the buildings. The first time the Buildings section opens,
 older games get credit for the buildings their finished levels asked for and the ones on their
 saved map.
+
+**Helpers** are the ones who fight on your side: the **knight**, the **police officer**, the
+**wizard**, and the eight allies from Earth's spawners (lizard warrior, blob buddy, rhino, tree
+guard, rock buddy, water squirter, ice thrower and web spitter). A helper is added the first time
+one is trained or comes out of a spawner. Each page has a moving picture of them fighting and:
+- their hearts and how much damage they do
+- which aliens they can hurt
+- which building they come from, and how many each one makes
+- where you can find them, and how many you've trained
+
+Older games get credit for helpers from finished worlds that had castles, police stations or
+wizard huts, and for the ones in their saved game.
 
 ## Colony life
 
