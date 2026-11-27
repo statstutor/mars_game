@@ -280,8 +280,8 @@ Every December (by the player's own clock) the game turns Christmassy by itself,
 normal on January 1:
 - **Snow** falls on every world and dusts the ground (not in the lava-tube city of Under Mars).
 - **It's cold everywhere.** Buildings that aren't on or next to a **giant oven** freeze and work at
-  half speed (Uranus and Neptune stay at 40%). Every level can build giant ovens. Training Camp and
-  Level 1 get the snow but no freezing.
+  half speed (Uranus and Neptune stay at 40%). Every level can build giant ovens. Training Camp gets
+  the snow but no freezing.
 - **Christmas buildings** on every level except Training Camp:
   - **Christmas Tree**: +2.4 food/s, three times a greenhouse.
   - **Gingerbread House**: a home for 6 colonists.
