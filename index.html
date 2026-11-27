@@ -169,6 +169,7 @@ body.cramped #tip.idle { display: none; }
 .lvl.titan2 .n { background: #9a7a5e; } .lvl.titan2 .go { color: #d8b48a; }
 .lvl.under .n { background: #8f68aa; font-size: 16px; } .lvl.under .go { color: #b79bff; }
 .levels { max-height: 46vh; overflow-y: auto; }
+.xmas-note { margin: 10px 0 0; padding: 10px 14px; border-radius: 14px; background: rgba(224, 48, 60, 0.16); border: 1px solid rgba(255, 120, 130, 0.45); font-size: 14px; }
 .lvl.cont { border-color: var(--leaf); background: rgba(95, 211, 141, 0.1); }
 .lvl.cont:hover { border-color: var(--leaf); background: rgba(95, 211, 141, 0.18); }
 .lvl.cont .n { background: var(--leaf); font-size: 16px; }
@@ -415,7 +416,10 @@ const BASE = 30;            // thickness of the diorama slab
 const ECAP = 100;           // energy storage
 const COMET_CD = 15;        // seconds between comets
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BUILD = 72;
+const BUILD = 73;
+// The Christmas update: all of December (by the player's own clock) it snows on every world, buildings
+// far from a giant oven freeze, there are Christmas buildings, and every alien wears a Santa hat.
+const XMAS = new Date().getMonth() === 11;
 // progress that belongs to the player rather than to one save
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -601,6 +605,16 @@ const B = {
              desc: 'Melts down golden crystals into metal. Click it (with no building picked) to put a golden crystal in: +150 metal each.' },
   zhouse:  { name: 'The Zorp Family Home', cost: {}, on: [], onText: '',
              desc: 'A giant mushroom house. Mind your head on the way in.' },
+  xtree:   { name: 'Christmas Tree', cost: { metal: 20, water: 10 }, on: ['plain', 'ore', 'ice'], onText: 'Christmas trees need flat ground.', energy: -1, out: { food: 2.4 }, xmas: true,
+             desc: 'A twinkly tree hung with cookies and candy canes to pick. +2.4 food/s, three times a greenhouse. Uses 1 energy/s for the lights.' },
+  gingerbread: { name: 'Gingerbread House', cost: { metal: 25, food: 10 }, on: ['plain', 'ore', 'ice'], onText: 'Gingerbread houses need flat ground.', energy: -1, pop: 6, xmas: true,
+             desc: 'A sweet-smelling home for 6 colonists, with icing on the roof and gumdrops by the door. Uses 1 energy/s.' },
+  snowman: { name: 'Snowman', cost: { water: 15 }, on: ['plain', 'ore', 'ice'], onText: 'Snowmen need flat ground.', serve: 10, mood: 8, xmas: true,
+             desc: 'A big friendly snowman with a carrot nose. +8 happiness for 10 colonists, and he only costs water.' },
+  snowball: { name: 'Snowball Launcher', cost: { metal: 35 }, on: ['plain', 'ore', 'ice'], onText: 'Snowball launchers need flat ground.', energy: -1, xmas: true,
+             desc: 'Throws a snowball every 2 seconds at the nearest alien within 3 tiles: 1 damage, and the alien slows down for 2 seconds. Snowballs hit aliens that fly, too. Uses 1 energy/s.' },
+  sleigh:  { name: 'Santa’s Sleigh', cost: { metal: 60 }, on: ['plain', 'ore', 'ice'], onText: 'The sleigh needs flat ground.', unique: true, xmas: true,
+             desc: 'Santa’s sleigh and two reindeer. Every 45 seconds it flies over the colony and drops 3 presents. Tap a present to open it: metal, water, food or crystals!' },
   comet:   { name: 'Comet', cost: { energy: 40 }, ability: true,
              desc: 'Nudge an icy comet into Mars: +2.5 kPa, +1.5 °C. A comet into a crater leaves a lake. Hitting open ground digs a new crater.' },
   recycle: { name: 'Recycle', cost: {}, ability: true,
@@ -611,13 +625,13 @@ const B = {
 const ALL = () => (S.under || S.sky) ? S.tiles.concat(S.under || [], S.sky || []) : S.tiles;
 const count = type => ALL().reduce((n, t) => n + (t.b === type ? 1 : 0), 0);
 const FARMS = ['greenhouse', 'coop', 'ranch', 'fishery'];
-const homeSize = b => b === 'hover' ? (PERK === 'hover' ? 12 : 10) : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : 0;
+const homeSize = b => b === 'hover' ? (PERK === 'hover' ? 12 : 10) : b === 'habitat' ? (PERK === 'hover' ? 6 : 4) : b === 'gingerbread' ? (PERK === 'hover' ? 8 : 6) : 0;
 const popCap = () => ALL().reduce((n, t) => n + homeSize(t.b), 0);
 const wetFarms = () => ALL().filter(t => FARMS.includes(t.b) && t.wet).length;
 const hasTech = id => !!(S.techs && S.techs.includes(id)) || !!(S && LEVELS[S.level].earth && EARTH_BASE_TECHS.includes(id));
 const curTiles = () => S.view === 'under' ? S.under : S.view === 'sky' ? S.sky : S.tiles;
 const nestsLeft = () => ALL().filter(t => t.type === 'nest').length;
-const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain'];
+const SERVICES = ['restaurant', 'cafe', 'clinic', 'arcade', 'park', 'fountain', 'snowman'];
 // which layers each building may go on (default: all three)
 // The allies you freed on the mission. On Earth each one has a spawner, and every spawner needs a
 // power core right next to it. Melee allies fight up close like knights; ranged ones shoot from
@@ -673,11 +687,19 @@ const TECH = Object.fromEntries(TECHS.map(t => [t.id, t]));
 const lvlNum = i => LEVELS[i].num || i + 1;
 // how a level is named on screen: bonus levels (Glorp, the black hole) say so instead of a number
 const lvlName = i => LEVELS[i].tutorial ? 'Tutorial' : LEVELS[i].bonus || LEVELS[i].voidLevel || LEVELS[i].mixup ? 'Bonus level' : 'Level ' + lvlNum(i);
+// Christmas: snow everywhere except the lava-tube city; freezing everywhere except Training Camp and Level 1
+const XMAS_TOOLS = ['xtree', 'gingerbread', 'snowman', 'snowball', 'sleigh'];
+const xmasSnow = () => XMAS && !!S && !LEVELS[S.level].under;
+const xmasCold = () => xmasSnow() && !LEVELS[S.level].tutorial && S.level !== 0;
 // buildings shown in the toolbar: the level's own list plus whatever research has unlocked
 function levelTools() {
   const L = LEVELS[S.level], tools = L.tools.filter(n => n !== 'recycle');
   if (L.earth) tools.unshift('pcore', ...Object.keys(ALLY).filter(a => MISSION.allies.includes(a)).map(a => 'sp_' + a));
   if (L.research) for (const t of TECHS) if (hasTech(t.id) && t.unlock) for (const u of t.unlock) if (!tools.includes(u)) tools.push(u);
+  if (XMAS && !L.tutorial) {
+    if (xmasCold() && !tools.includes('oven')) tools.push('oven');
+    for (const b of XMAS_TOOLS) if (!tools.includes(b)) tools.push(b);
+  }
   return [...tools, 'recycle'];
 }
 // Earth only shows its own Free Earth branch: the rest is already researched there
@@ -3492,14 +3514,17 @@ function initStars() {
 
 // ---------------------------------------------------------------- simulation
 // Uranus: every surface tile next to a giant oven (or under one) is warm; buildings anywhere else freeze
-const FROZEN = 0.4;
+let FROZEN = 0.4; // Uranus and Neptune; Christmas snow is milder (0.5)
 function warmUp() {
   const ovens = S.tiles.filter(t => t.b === 'oven');
   for (const t of S.tiles) {
     t.warm = ovens.some(o => Math.max(Math.abs(o.gx - t.gx), Math.abs(o.gy - t.gy)) <= 1);
     const was = t.frozen;
     t.frozen = !!t.b && !t.warm;
-    if (t.frozen && !was && t.b && t.born > RT - 1) say('eng', 'Brr! That building is too far from a giant oven, so it froze. Frozen buildings work at less than half speed. Build an oven next to it.', 'frozen1');
+    if (t.frozen && !was && t.b && t.born > RT - 1) {
+      if (FROZEN < 0.5) say('eng', 'Brr! That building is too far from a giant oven, so it froze. Frozen buildings work at less than half speed. Build an oven next to it.', 'frozen1');
+      else say('eng', 'Brr! It is snowing, so that building froze. Frozen buildings work at half speed. Build a giant oven right next to it.', 'xfrozen1');
+    }
   }
 }
 // Pluto: metal detectors beep faster the closer they are to the hidden power core
@@ -3553,7 +3578,14 @@ function tick(dt) {
   const skySun = (S.night ? 0.4 : 1) * 1.6;
   let prod = 0, cons = 0;
   const tiles = ALL();
-  if (L.uranus || L.neptune) warmUp();
+  FROZEN = L.uranus || L.neptune ? 0.4 : 0.5;
+  if (L.uranus || L.neptune || xmasCold()) warmUp();
+  else for (const t of S.tiles) if (t.frozen) t.frozen = false; // December is over: nothing stays frozen
+  if (XMAS && !L.tutorial && !S.xmasHi && S.time > 4) {
+    S.xmasHi = 1;
+    if (xmasCold()) say('kip', 'Merry Christmas, everyone! It is snowing on every world this month, so buildings far from a giant oven freeze. Build giant ovens, and try the new Christmas buildings!', 'xmas-cold');
+    else say('kip', 'Merry Christmas! It is snowing! There are new Christmas buildings to try, and look, every alien is wearing a Santa hat.', 'xmas-warm');
+  }
   for (const t of tiles) {
     if (t.off > 0) t.off = Math.max(0, t.off - dt);
     if (!t.b || t.off > 0) continue;
@@ -4116,6 +4148,7 @@ function drawWorm(g) {
   g.save(); g.translate(head.x, head.y); g.scale(K, K);
   ell(g, 0, 0, 19, 16, w.hit > 0 ? '#ffffff' : '#a86be8');
   for (const [ex, ey, r] of [[-8, -5, 4.5], [0, -9, 5], [8, -5, 4.5]]) { ell(g, ex, ey, r, r, '#fff3a0'); ell(g, ex + 1, ey + 1, r * 0.5, r * 0.5, '#1a1238'); }
+  if (XMAS && w.state !== 'dead') santaHat(g, 2, -15, 1.3, 0.2);
   ell(g, 0, 6, 9, w.state === 'up' ? 5 : 3, '#3b1f4a');
   g.fillStyle = '#ffffff'; for (const x of [-5, 0, 5]) poly(g, [[x - 2, 3], [x + 2, 3], [x, 6]]);
   g.restore();
@@ -4186,6 +4219,7 @@ function drawBlorg(g) {
   }
   g.save(); g.translate(w.x, w.y); if (b.state === 'dead') g.rotate(b.t * 4);
   ell(g, 0, -6, 11, 9, 'rgba(255,170,190,0.5)'); ell(g, 0, -4, 6, 5, '#9a8cc0'); ell(g, -2, -5, 1.2, 1.2, '#fff3a0'); ell(g, 2, -5, 1.2, 1.2, '#fff3a0');
+  if (XMAS && b.state !== 'dead') santaHat(g, 0, -8.5, 0.45, 0.2);
   ell(g, 0, 0, 26, 8, b.hit > 0 ? '#ffffff' : '#3a3050'); ell(g, 0, -1.5, 23, 5, '#5a4a70');
   for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI + 0.25; ell(g, Math.cos(a) * 21, Math.sin(a) * 4.5 + 1, 1.8, 1.8, Math.floor(RT * 5 + i) % 2 ? '#ff5d73' : '#ffd166'); }
   g.restore();
@@ -4412,14 +4446,20 @@ const BUILD_TIPS = {
   church: 'Just 1. That is the most you can have.',
   crafter: '1 is enough.',
   spawner: '1 of each kind you have, with a power core next to each one.',
+  xtree: '2 or 3: one Christmas tree feeds about 40 colonists.',
+  gingerbread: 'As many as you like: each one holds 6 colonists.',
+  snowman: '1 for every 10 colonists.',
+  snowball: '2 or 3 where the aliens come in.',
+  sleigh: 'Just 1. That is the most you can have.',
 };
-const bookBuildingIds = () => Object.keys(B).filter(id => !B[id].ability && id !== 'zhouse' && !/^(mixb|bookb_)/.test(id));
+const bookBuildingIds = () => Object.keys(B).filter(id => !B[id].ability && id !== 'zhouse' && !/^(mixb|bookb_)/.test(id) && (!B[id].xmas || XMAS || !!(BOOK && BOOK.buildings && BOOK.buildings[id])));
 const buildTip = id => BUILD_TIPS[id] || (B[id].spawner ? BUILD_TIPS.spawner : B[id].unique ? 'Just 1. That is the most you can have.' : B[id].max ? `Up to ${B[id].max}.` : 'As many as you need.');
 // where each building can be built, worked out from the levels (and the research they offer)
 function buildingPlaces(id) {
   const d = B[id];
   if (d.spawner || id === 'pcore') return ['Earth'];
   if (d.newMix) return ['Random Mix-Up'];
+  if (d.xmas) return ['Every world, all December'];
   const tech = TECHS.find(t => t.unlock && t.unlock.includes(id)), set = [];
   LEVELS.forEach((L, li) => {
     if (L.mixup || L.tutorial) return;
@@ -5215,7 +5255,27 @@ function bossAt(mx, my) {
   if (Math.abs(mx - bx) < 40 * QS * sc && Math.abs(my - by) < 38 * QS * sc) { hurtBoss(1); sfx('clang'); return true; }
   return false;
 }
+// bosses wear Santa hats too: [scale, x, y, size] in each boss's own drawing units
+const BOSS_HAT = { queen: [1, 18, -60, 1.3], cousin: [1, 18, -60, 1.2], king: [1, 16, -60, 1.8], lizard: [1.2, 4, -79, 1.1], robot: [1.15, 0, -112, 1.6], storm: [1, 0, -95, 1.6],
+  elder: [1, 0, -110, 1.6], golem: [2.4, 2, -16.5, 0.6], shadow: [2.6, 1, -22.5, 0.55], tide: [2.6, 1, -21, 0.55], icegiant: [2.6, 1, -30, 0.55], spiderqueen: [2.6, 5, -12, 0.32], dragon: [1.3, 28, -57.5, 0.75] };
 function drawBoss(g) {
+  drawBossBody(g);
+  const b = S.boss;
+  if (!XMAS || !b || b.state === 'burrow' || b.state === 'dead') return;
+  const k = QS * (b.state === 'emerge' ? easeBack(clamp(b.t / 2, 0, 1)) : 1);
+  const lift = b.kind === 'cousin' ? 46 + Math.sin(RT * 2.5) * 6 : b.kind === 'lizard' || b.kind === 'dragon' ? b.lift || 0 : 0;
+  const x = (b.x - b.y) * 32, y = (b.x + b.y) * 16 - (b.hs || 0) * HZ - lift;
+  g.save(); g.translate(x, y);
+  if (b.kind === 'chief') { // a hat on every head but the one with the crown
+    g.scale(k * 1.15 * (b.face || 1), k * 1.15);
+    HEADS5.forEach(([hx, hy], i) => { if (i !== 2 && b.heads[i] > 0) santaHat(g, hx, hy - 7, 1.05, 0.2); });
+  } else {
+    const H = BOSS_HAT[b.kind || 'queen'];
+    if (H) { g.scale(k * H[0] * (b.face || 1), k * H[0]); santaHat(g, H[1], H[2], H[3], 0.2); }
+  }
+  g.restore();
+}
+function drawBossBody(g) {
   const b = S.boss;
   if (!b || b.state === 'burrow') return;
   const w = bossWorld();
@@ -6999,6 +7059,7 @@ function updateCritters(dt) {
     } else if (c.state === 'bonked') { if (c.t > 0.9) c.gone = true; }
   }
   newBuildings(dt);
+  xmasBuildings(dt);
   if (LEVELS[S.level].earth) { S.cores = coresLeft(); earthTowers(dt); }
   // zappers
   for (const t of S.tiles) {
@@ -7099,6 +7160,134 @@ function newBuildingLine(b) {
   else if (b === 'ctree') say('kip', 'A crystal tree! It grows a new crystal every twenty seconds. Free crystals!', 'nb-ctree');
   else if (b === 'medic') say('kip', 'A knight medic tent! Knights and police nearby get their hearts back. Put it near the castles.', 'nb-medic');
   else if (b === 'fountain') say('kip', 'A rainbow fountain! The colonists love it, and it makes a little water too.', 'nb-fountain');
+}
+// Christmas buildings: snowball launchers, and Santa's sleigh dropping presents
+function xmasLine(b) {
+  if (b === 'xtree') say('kip', 'A Christmas tree! It is hung with cookies and candy canes, and it makes three times as much food as a greenhouse.', 'xb-tree');
+  else if (b === 'gingerbread') say('kip', 'A gingerbread house! Six colonists can live in it. Please do not eat the walls.', 'xb-ginger');
+  else if (b === 'snowman') say('kip', 'A snowman! The colonists love him, so everyone is happier. And he only costs water.', 'xb-snowman');
+  else if (b === 'snowball') say('kip', 'A snowball launcher! It throws snowballs that slow the aliens down. It can even hit aliens that fly.', 'xb-snowball');
+}
+function xmasBuildings(dt) {
+  const boss = S.boss && !['dead', 'burrow', 'emerge'].includes(S.boss.state) ? S.boss : null;
+  S.xSaid = S.xSaid || {};
+  for (const t of S.tiles) {
+    if (!t.b || !B[t.b] || !B[t.b].xmas) continue;
+    if (!S.xSaid[t.b] && t.b !== 'sleigh') { S.xSaid[t.b] = 1; xmasLine(t.b); }
+    if (t.off > 0) continue;
+    if (t.b === 'snowball') {
+      if (S.eff < 0.3) continue;
+      t.cd = (t.cd || 0) - dt * (t.frozen ? FROZEN : 1);
+      if (t.cd > 0) continue;
+      const x = t.gx + 0.5, y = t.gy + 0.5, a = center(t), dist = c => Math.hypot(c.x - x, c.y - y);
+      const prey = crits.filter(c => !c.gone && c.state !== 'bonked' && c.state !== 'emerge' && dist(c) <= 3).sort((p, q) => dist(p) - dist(q))[0];
+      if (prey) {
+        const to = critWorld(prey);
+        fx.push({ kind: 'shot', snow: true, x: a.x, y: a.y - 30, x2: to.x, y2: to.y - 10, life: 0.45, max: 0.45, color: '#ffffff', hit: () => {
+          if (prey.gone || prey.state === 'bonked') return;
+          prey.webT = Math.max(prey.webT || 0, 2); bonk(prey, false, 1, false, 'ally');
+          const w = critWorld(prey); burst(w.x, w.y - 10, 6, ['#ffffff', '#dff2ff']);
+        } });
+        t.cd = 2; t.throw = 0.3; sfx('pop');
+      } else if (boss && Math.hypot(boss.x - x, boss.y - y) <= 3.5) {
+        const w = bossWorld();
+        fx.push({ kind: 'shot', snow: true, x: a.x, y: a.y - 30, x2: w.x, y2: w.y - 40, life: 0.5, max: 0.5, color: '#ffffff', hit: () => hurtBoss(1) });
+        t.cd = 2; t.throw = 0.3; sfx('pop');
+      } else t.cd = 0.3;
+    } else if (t.b === 'sleigh') {
+      if (S.sleighFly) continue;
+      t.cd = (t.cd ?? 8) - dt;
+      if (t.cd > 0) continue;
+      t.cd = 45;
+      S.sleighFly = { t: 0, from: S.tiles.indexOf(t), drops: [] };
+      sfx('chime');
+      if (!S.xSaid.sleigh) { S.xSaid.sleigh = 1; say('kip', 'Ho ho ho! Santa’s sleigh is taking off! Watch for presents falling from the sky, and tap them to open them.', 'xb-sleigh'); }
+    }
+  }
+  // the sleigh's flight: across the sky in 6 seconds, dropping 3 presents on the way
+  const f = S.sleighFly;
+  if (f) {
+    f.t += dt;
+    for (const at of [0.3, 0.5, 0.7]) if (f.t / 6 >= at && !f.drops.includes(at)) {
+      f.drops.push(at);
+      const spots = S.tiles.filter(t => !t.b && ['plain', 'ore', 'ice'].includes(t.type) && !(S.presents || []).some(q => q.ti === S.tiles.indexOf(t)));
+      const t = spots[Math.floor(Math.random() * spots.length)];
+      if (t) { const sp = sleighWorld(f.t); S.presents = S.presents || []; S.presents.push({ ti: S.tiles.indexOf(t), t: 0, fx: sp.x, fy: sp.y, c: Math.floor(Math.random() * 4) }); sfx('whoosh'); }
+    }
+    if (f.t > 6) S.sleighFly = null;
+  }
+  for (const q of S.presents || []) { q.t += dt; if (q.t > 25) openPresent(q); } // presents open by themselves after a while
+  if (S.presents) S.presents = S.presents.filter(q => !q.open);
+}
+// where the flying sleigh is: a swoop across the top of the map
+function sleighWorld(ft) {
+  const u = clamp(ft / 6, 0, 1), n = S.n, mid = { x: 0, y: n * 16 }, w = n * 32 + 260;
+  return { x: mid.x - w + u * w * 2, y: mid.y - n * 16 - 90 + Math.sin(u * Math.PI * 2) * 18 };
+}
+const PRESENT_COLS = [['#e0303c', '#ffd166'], ['#3aa0e8', '#ffffff'], ['#5fbf6a', '#e0303c'], ['#c9a7ff', '#ffd166']];
+function openPresent(q) {
+  if (q.open) return; q.open = true; dirty = true;
+  const t = S.tiles[q.ti], w = center(t);
+  const gifts = [['metal', 60, '+60 metal'], ['water', 40, '+40 water'], ['food', 40, '+40 food'], ['crystals', 2, '+2 crystals']];
+  const [k, v, txt] = gifts[Math.floor(Math.random() * gifts.length)];
+  S[k] = (S[k] || 0) + v;
+  burst(w.x, w.y - 12, 18, ['#e0303c', '#ffd166', '#5fbf6a', '#ffffff'], 1.2);
+  fx.push({ kind: 'text', x: w.x, y: w.y - 40, text: '🎁 ' + txt, life: 1.6, max: 1.6, color: '#ffd166' });
+  sfx('relic');
+}
+// tap a present to open it
+function presentAt(mx, my) {
+  if (!S.presents || !S.presents.length || (S.view && S.view !== 'surface')) return false;
+  for (const q of S.presents) {
+    if (q.t < 0.8) continue;
+    const t = S.tiles[q.ti], c = center(t), x = view.x + c.x * view.s, y = view.y + (c.y - 10) * view.s;
+    if (Math.hypot(mx - x, my - y) <= Math.max(26, 20 * view.s)) { openPresent(q); return true; }
+  }
+  return false;
+}
+function drawPresents(g) {
+  for (const q of S.presents || []) {
+    const t = S.tiles[q.ti]; if (!t) continue;
+    const c = center(t), k = clamp(q.t / 0.8, 0, 1);
+    const x = lerp(q.fx ?? c.x, c.x, k), y = lerp(q.fy ?? c.y, c.y, k * k) - (k < 1 ? 0 : Math.abs(Math.sin(RT * 3 + q.ti)) * 2);
+    const [col, rib] = PRESENT_COLS[q.c || 0];
+    g.save(); g.translate(x, y);
+    if (k >= 1) ell(g, 0, 1, 9, 3.5, 'rgba(70,16,24,0.25)');
+    isoBox(g, 0, 0, 8, 4, 10, shade(col, 0.15), col, shade(col, -0.2));
+    g.fillStyle = rib; g.fillRect(-1, -14, 2, 15); g.fillRect(-8, -6, 16, 2);
+    ell(g, -3, -15, 3, 2, rib); ell(g, 3, -15, 3, 2, rib);
+    g.restore();
+  }
+}
+function drawSleighFly(g) {
+  const f = S.sleighFly; if (!f) return;
+  const p = sleighWorld(f.t);
+  g.save(); g.translate(p.x, p.y); g.scale(1.3, 1.3);
+  drawSleigh(g, RT, true);
+  g.restore();
+  if (f.t < 2) { g.save(); g.globalAlpha = 1 - f.t / 2; g.fillStyle = '#ffffff'; g.font = '700 14px Fredoka, sans-serif'; g.textAlign = 'center'; g.fillText('Ho ho ho!', p.x + 10, p.y - 40); g.restore(); }
+}
+// a red sleigh with gold runners, pulled by two reindeer (the front one has a red nose)
+function drawSleigh(g, T, flying) {
+  const bob = flying ? Math.sin(T * 6) * 1.5 : 0;
+  for (const [x, nose] of [[34, true], [20, false]]) {
+    const leg = flying ? Math.sin(T * 10 + x) * 2 : 0;
+    g.save(); g.translate(x, -8 + bob + (flying ? Math.sin(T * 6 + x) * 1.5 : 0));
+    g.strokeStyle = '#7a4a2a'; g.lineWidth = 1.6; g.beginPath();
+    for (const lx of [-4, 4]) { g.moveTo(lx, 2); g.lineTo(lx + leg, 8); } g.stroke();
+    ell(g, 0, 0, 7, 3.6, '#9a6038'); ell(g, 6, -5, 3, 2.6, '#9a6038'); ell(g, 8.5, -4.6, 1.3, 1.3, nose ? '#ff3b3b' : '#3a2518');
+    if (nose) ell(g, 8.5, -4.6, 3, 3, 'rgba(255,80,80,0.3)');
+    g.strokeStyle = '#d9b68a'; g.lineWidth = 1; g.beginPath(); g.moveTo(5, -7); g.lineTo(3, -12); g.lineTo(1, -11); g.moveTo(4, -9.5); g.lineTo(6, -12); g.stroke();
+    ell(g, 5.6, -6, 0.6, 0.6, '#1a1238');
+    g.restore();
+  }
+  g.strokeStyle = '#d9b68a'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(10, -10 + bob); g.lineTo(16, -9 + bob); g.stroke();
+  g.save(); g.translate(0, bob);
+  g.strokeStyle = '#ffd166'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-14, 0); g.lineTo(9, 0); g.quadraticCurveTo(13, 0, 12, -4); g.stroke();
+  g.fillStyle = '#d2202e'; g.beginPath(); g.moveTo(-13, -3); g.lineTo(8, -3); g.quadraticCurveTo(11, -6, 9, -11); g.lineTo(-10, -11); g.quadraticCurveTo(-16, -14, -13, -3); g.fill();
+  g.fillStyle = '#ffd166'; g.fillRect(-12, -5, 20, 1.4);
+  ell(g, -7, -13, 5, 4, '#7a4a9a'); ell(g, -2, -14, 4, 3.5, '#3aa0e8'); ell(g, -5, -16, 3, 2.5, '#5fbf6a'); // the sack of presents
+  g.restore();
 }
 // Earth's researched buildings: harpoon towers, net launchers and the core forge
 function earthTowers(dt) {
@@ -7676,7 +7865,8 @@ function drawTile(g, t) {
   if (t.type === 'plain' || t.type === 'ore' || t.type === 'rock' || t.type === 'crater') top = shade(top, (t.v - 0.5) * 0.08);
   if (t.lichen > 0) top = mix(top, '#4cb878', t.lichen * 0.8);
   if (S.coreMarked && !S.hiddenFound && S.tiles[S.hiddenCore] === t) top = mix(top, '#ffd166', 0.35);
-  if (t.warm && !t.layer && (LEVELS[S.level].uranus || LEVELS[S.level].neptune)) top = mix(top, '#ffb070', 0.28);
+  if (xmasSnow() && !t.layer && t.type !== 'lake' && t.type !== 'vent' && t.type !== 'magma') top = mix(top, '#f2f6ff', t.type === 'ice' ? 0.2 : 0.42); // a dusting of snow
+  if (t.warm && !t.layer && (LEVELS[S.level].uranus || LEVELS[S.level].neptune || xmasCold())) top = mix(top, '#ffb070', 0.28);
   const N_ = [c.x, c.y - 16], E = [c.x + 32, c.y], S_ = [c.x, c.y + 16], W = [c.x - 32, c.y];
   const left = t.type === 'ice' || t.type === 'wall' ? pal[1] : sides[0], right = t.type === 'ice' || t.type === 'wall' ? pal[2] : sides[1];
   if (sky) { // floating island: earthy sides that taper to a point underneath
@@ -8239,6 +8429,68 @@ const DRAW = {
     const a = 0.55 + 0.45 * Math.sin(T * 7 + v * 5);
     ell(g, 0, -37, 8, 8, `rgba(155,227,255,${a * 0.35})`);
     ell(g, 0, -37, 4.5, 4.5, '#bff4ff');
+  },
+  xtree(g, T, v) { // a Christmas tree with twinkling lights and a gold star
+    shadow(g, 15, 7);
+    g.fillStyle = '#7a4a2a'; g.fillRect(-2.5, -8, 5, 9);
+    for (const [y, w, c] of [[-8, 17, '#2f8a4a'], [-19, 13.5, '#37a055'], [-29, 9.5, '#3fb562']]) { g.fillStyle = c; poly(g, [[-w, y], [w, y], [0, y - 15]]); }
+    g.strokeStyle = '#f2f6ff'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-12, -11); g.quadraticCurveTo(0, -7, 12, -12); g.moveTo(-8, -22); g.quadraticCurveTo(0, -18, 8, -23); g.stroke();
+    const cols = ['#ff4d5e', '#ffd166', '#5cc8ff', '#c9a7ff', '#ffffff'];
+    [[-9, -12], [7, -14], [-3, -15], [4, -23], [-5, -25], [1, -33], [10, -10], [-12, -9]].forEach(([x, y], i) => {
+      const on = Math.sin(T * 4 + i * 1.7 + v * 9) > -0.3;
+      ell(g, x, y, 1.8, 1.8, on ? cols[i % cols.length] : shade(cols[i % cols.length], -0.4));
+    });
+    g.strokeStyle = '#ffffff'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(6, -6); g.lineTo(6, -11); g.arc(7.4, -11, 1.4, Math.PI, 0); g.stroke(); // a candy cane
+    g.strokeStyle = '#e0303c'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(6, -7); g.lineTo(6, -8); g.moveTo(6, -9.5); g.lineTo(6, -10.5); g.stroke();
+    const tw = 1 + 0.15 * Math.sin(T * 5 + v * 7);
+    ell(g, 0, -45, 6 * tw, 6 * tw, 'rgba(255,209,102,0.3)');
+    g.fillStyle = '#ffd166'; g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.8 : 4.2; g.lineTo(Math.cos(a) * r, -45 + Math.sin(a) * r); }
+    g.fill();
+  },
+  gingerbread(g, T, v) { // a gingerbread house with icing on the roof
+    shadow(g, 18, 8);
+    isoBox(g, 0, 2, 15, 7.5, 13, '#c47a44', '#b06a38', '#94582e');
+    g.fillStyle = '#f6efe6'; poly(g, [[-16, -12], [0, -31], [0, -20], [-16, -5]]); poly(g, [[0, -31], [16, -12], [16, -5], [0, -20]]);
+    g.fillStyle = '#e8ddd0'; poly(g, [[0, -31], [16, -12], [16, -9], [0, -27]]);
+    for (const [x, y, c] of [[-10, -12, '#ff4d5e'], [-4, -18, '#5fbf6a'], [5, -19, '#ffd166'], [11, -13, '#5cc8ff']]) ell(g, x, y, 1.8, 1.8, c);
+    g.fillStyle = '#6a3a1e'; poly(g, [[-6, 2], [-6, -5], [-2, -7], [-2, 0]]);
+    g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.beginPath(); g.moveTo(-13, -4); g.lineTo(-9, -6); g.moveTo(3, -6); g.lineTo(9, -3); g.stroke();
+    g.fillStyle = 'rgba(255,214,120,0.85)'; poly(g, [[4, -3], [9, -0.5], [9, -5], [4, -7.5]]);
+    for (const [x, c] of [[-14, '#ff4d5e'], [13, '#5fbf6a']]) ell(g, x, 4, 2.4, 2, c); // gumdrops
+  },
+  snowman(g, T, v) { // a snowman with a hat, a scarf and a carrot nose
+    shadow(g, 12, 5);
+    ell(g, 0, -6, 10, 8, '#f6f9ff'); ell(g, 3, -4, 5, 4, '#e2ebf8');
+    ell(g, 0, -19, 7, 6, '#f6f9ff'); ell(g, 2, -18, 3.5, 3, '#e2ebf8');
+    ell(g, 0, -29, 5.2, 4.8, '#f6f9ff');
+    g.fillStyle = '#d2202e'; g.fillRect(-5, -25, 10, 2.5); g.fillRect(2, -24, 2.5, 6);
+    g.fillStyle = '#2a2550'; g.fillRect(-4.5, -35, 9, 1.6); g.fillRect(-3, -41, 6, 6);
+    g.fillStyle = '#d2202e'; g.fillRect(-3, -37.5, 6, 1.2);
+    ell(g, -1.8, -30, 0.8, 0.8, '#1a1238'); ell(g, 1.8, -30, 0.8, 0.8, '#1a1238');
+    g.fillStyle = '#ff8a2a'; poly(g, [[0, -29], [6, -27.8], [0, -27.4]]);
+    for (const y of [-21, -17, -8, -4]) ell(g, 0, y, 0.8, 0.8, '#1a1238');
+    const wave = Math.sin(T * 2 + v * 5) * 2;
+    g.strokeStyle = '#7a4a2a'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-6, -20); g.lineTo(-13, -26 + wave); g.moveTo(6, -20); g.lineTo(13, -24); g.stroke();
+  },
+  snowball(g, T, v, t) { // a snowball launcher: a big spring arm and a pile of snowballs
+    shadow(g, 15, 7);
+    isoBox(g, 0, 3, 12, 6, 6, '#9fb6d6', '#7d94b8', '#64799c');
+    for (const [x, y] of [[-8, -2], [-4, -1], [-6, -5], [7, 0]]) { ell(g, x, y, 3, 2.6, '#ffffff'); ell(g, x + 0.8, y + 0.6, 1.5, 1.2, '#dff2ff'); }
+    const fire = t && t.throw > 0 ? t.throw / 0.3 : 0;
+    g.save(); g.translate(2, -5); g.rotate(-0.5 - fire * 0.9);
+    g.fillStyle = '#5a6a8a'; g.fillRect(-1.5, -20, 3, 20);
+    g.fillStyle = '#c9d6ee'; g.beginPath(); g.ellipse(0, -21, 6, 3.5, 0, 0, Math.PI); g.fill();
+    if (fire < 0.5) { ell(g, 0, -23, 3.6, 3.4, '#ffffff'); ell(g, 1, -22, 1.8, 1.6, '#dff2ff'); }
+    g.restore();
+    ell(g, 2, -5, 2.6, 2.6, '#ffd166');
+  },
+  sleigh(g, T, v, t) { // Santa's sleigh, parked on a snowy pad (empty while it is out delivering)
+    shadow(g, 22, 10);
+    ell(g, 0, 0, 24, 11, '#e8f0fb'); ell(g, 0, -1, 20, 8.5, '#f6f9ff');
+    const away = S && S.sleighFly && t && S.tiles[S.sleighFly.from] === t;
+    if (away) { for (const [x, y] of [[-8, 2], [-2, 4], [4, 1], [10, 3]]) ell(g, x, y, 1.6, 0.9, '#c9d6ee'); return; }
+    g.save(); g.translate(-8, 2); drawSleigh(g, T, false); g.restore();
   },
   fusion(g, T, v) {
     shadow(g, 20, 9);
@@ -9479,7 +9731,7 @@ function drawKnight(g, k) {
   g.restore();
 }
 
-function drawCritter(g, c) {
+function drawCritterBody(g, c) {
   const p = critWorld(c);
   const walking = c.state === 'walk' || c.state === 'flee';
   let k = 1, alpha = 1;
@@ -9559,6 +9811,46 @@ function drawCritter(g, c) {
       ell(g, 0, by - 9, 3.5, 3, col); ell(g, -1, by - 10, 1.4, 1, '#ffffff');
     }
     if (night) lights.push([p.x + 2.5 * c.face, p.y + by - 3, 6, '#fff3a0']);
+  }
+  g.restore();
+}
+
+// Christmas: a Santa hat on every alien. Each kind's hat spot [x, y, size, tilt] is in the alien's own
+// units (feet at 0, 0, facing right), so the hat follows it around and flips when it turns.
+function santaHat(g, x, y, s, tilt = 0.25) {
+  g.save(); g.translate(x, y); g.rotate(tilt); g.scale(s, s);
+  g.fillStyle = '#e0303c'; g.beginPath(); g.moveTo(-7, 0); g.quadraticCurveTo(-3, -13, 9, -14); g.quadraticCurveTo(4, -8, 7, 0); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(0,0,0,0.12)'; g.beginPath(); g.moveTo(2, 0); g.quadraticCurveTo(4, -8, 9, -14); g.quadraticCurveTo(4, -6, 7, 0); g.closePath(); g.fill();
+  ell(g, 0, 0.5, 8.2, 2.8, '#ffffff'); ell(g, 9.2, -14.2, 2.7, 2.7, '#ffffff');
+  g.restore();
+}
+const HAT = {
+  basic: [0.5, -12.5, 0.62], armor: [0, -14.5, 0.62], zippy: [0.5, -12.5, 0.6], sneaky: [0.5, -12.5, 0.6], brute: [0.5, -12.5, 0.62], burrower: [0, -14.5, 0.6],
+  shell: [0, -14.5, 0.55, 0.1], shellbig: [0, -16, 0.55, 0.1], lizard: [4, -77, 0.95, 0.15, 0.25], blob: [0, -13, 0.7], rhino: [10, -14, 0.45], tree: [0, -38, 0.6],
+  rock: [0, -17, 0.6], shadow: [0, -16, 0.6], water: [0, -18, 0.6], ice: [0, -24, 0.6], spider: [4, -13, 0.5], octo: [0, -20, 0.7],
+  splitter: [0, -14, 0.6], splitling: [0, -9, 0.4], ghost: [0, -16, 0.6], healer: [0, -14, 0.6], bubble: [0, -14, 0.6], blinker: [0, -14, 0.6], boomer: [0, -14, 0.6], grower: [0, -14, 0.6], magpie: [0, -14, 0.6],
+};
+function drawCritter(g, c) {
+  drawCritterBody(g, c);
+  if (!XMAS || c.state === 'bonked' || c.gone) return;
+  const K = KINDS[c.kind || 'basic'];
+  if (K.combo || phased(c)) return; // a combo alien gets its hat from the parent it is drawn as
+  const p = critWorld(c);
+  let k = K.size * (c.state === 'emerge' ? easeBack(clamp(c.t / 0.7, 0, 1)) : 1);
+  const walking = c.state === 'walk' || c.state === 'flee';
+  const bob = walking ? Math.abs(Math.sin(c.t * 13 + c.seed)) * 3 : c.state === 'nibble' ? Math.abs(Math.sin(c.t * 22)) * 1.2 : 0;
+  g.save(); g.translate(p.x, p.y); g.globalAlpha *= critAlpha(c);
+  if (c.kind === 'fivehead') { // one hat for every head it still has
+    g.scale(0.25 * k * c.face, 0.25 * k);
+    const alive = [true, true, true, true, true];
+    for (const i of POP_ORDER.slice(0, c.maxhp - Math.max(0, c.hp))) alive[i] = false;
+    HEADS5.forEach(([hx, hy], i) => { if (alive[i]) santaHat(g, hx, hy - 7, 1.05, 0.2); });
+  } else {
+    const H = HAT[c.kind || 'basic'] || HAT.basic, grow = K.grower ? 1 + (c.grown || 0) * 0.22 : 1;
+    if (K.lizard && c.fly > 0) g.translate(0, -(24 + Math.sin(RT * 6) * 3)); // a lizard in the air
+    g.scale(k * c.face * grow, k * grow);
+    if (H[4]) g.scale(H[4], H[4]); // kinds drawn in bigger units
+    santaHat(g, H[0], H[1] - (K.immune || K.rhino || K.tree || K.rock || K.spider || K.octo || K.lizard ? 0 : bob), H[2], H[3] ?? 0.25);
   }
   g.restore();
 }
@@ -9661,7 +9953,8 @@ function drawFX(g) {
       if (p.kind === 'fire') {
         for (let i = 1; i <= 4; i++) { const kk = Math.max(0, k - i * 0.04); ell(g, lerp(p.x, p.x2, kk), lerp(p.y, p.y2, kk) - Math.sin(kk * Math.PI) * 50, 7 - i, 7 - i, `rgba(255,${150 - i * 25},60,${0.5 - i * 0.1})`); }
         ell(g, x, y, 7.5, 7.5, '#ff6a2a'); ell(g, x, y, 4.5, 4.5, '#ffd166'); ell(g, x - 1, y - 1, 2, 2, '#ffffff');
-      } else { ell(g, x, y, 3.2, 3.2, p.color); ell(g, x - 0.6, y - 0.6, 1.3, 1.3, '#ffffff'); }
+      } else if (p.snow) { ell(g, x, y, 4.6, 4.6, '#ffffff'); ell(g, x + 1, y + 1, 2.6, 2.6, '#dff2ff'); }
+      else { ell(g, x, y, 3.2, 3.2, p.color); ell(g, x - 0.6, y - 0.6, 1.3, 1.3, '#ffffff'); }
     }
     else if (p.kind === 'drone') {
       ell(g, p.x, p.y, 3.5, 2.6, '#ffd166'); ell(g, p.x + 0.8, p.y - 0.3, 1, 1, '#1a1238');
@@ -10072,7 +10365,8 @@ function render() {
   drawGhost(ctx);
   if (surf) drawBeams(ctx);
   drawFX(ctx);
-  if (surf) { drawSaucer(ctx); drawVell(ctx); drawClouds(ctx); drawComets(ctx); drawMeteors(ctx); if (LEVELS[S.level].bonus) drawGlorp(ctx); }
+  if (surf) { drawPresents(ctx); drawSaucer(ctx); drawVell(ctx); drawClouds(ctx); drawComets(ctx); drawMeteors(ctx); drawSleighFly(ctx); if (LEVELS[S.level].bonus) drawGlorp(ctx); }
+  if (xmasSnow() && S.view !== 'under') drawSnow(ctx, W, H);
   if (S.storm > 0 && S.view !== 'under') {
     const a = clamp(Math.min(S.storm, 22 - S.storm) / 3, 0, 1);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -10096,6 +10390,17 @@ function render() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = `rgba(255,250,235,${(p.life / p.max) * 0.55})`; ctx.fillRect(0, 0, W, H);
   }
+}
+
+// Christmas snow, falling gently over the whole screen
+function drawSnow(g, W, H) {
+  g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  for (let i = 0; i < 110; i++) {
+    const r1 = (Math.sin(i * 12.9898) * 43758.5453) % 1, r2 = (Math.sin(i * 78.233) * 12345.678) % 1, sp = 18 + Math.abs(r2) * 30;
+    const y = ((Math.abs(r2) * H + RT * sp) % (H + 20)) - 10, x = ((Math.abs(r1) * W + Math.sin(RT * 0.7 + i) * 18 + RT * 6) % (W + 20)) - 10;
+    ell(g, x, y, 1.2 + Math.abs(r1) * 2, 1.2 + Math.abs(r1) * 2, `rgba(255,255,255,${0.55 + Math.abs(r2) * 0.4})`);
+  }
+  g.restore();
 }
 
 // ---------------------------------------------------------------- UI
@@ -10171,7 +10476,7 @@ function showTipText(preview) {
     const [n, txt] = (hover.rh && info.hole) || (hover.sealed && info.sealed) || info[hover.type] || TILE_INFO[hover.type] || ['Ground', ''];
     let b = '';
     if (hover.b) b = `<br><b>${B[hover.b].name}:</b> ${B[hover.b].desc}`;
-    if (hover.frozen) b += ' <span style="color:var(--sky)">❄️ Frozen: working at 40% speed. Build a giant oven next to it.</span>';
+    if (hover.frozen) b += ` <span style="color:var(--sky)">❄️ Frozen: working at ${Math.round(FROZEN * 100)}% speed. Build a giant oven next to it.</span>`;
     else if ((LEVELS[S.level].uranus || LEVELS[S.level].neptune) && hover.warm && !hover.layer) b += ' <span style="color:#ffb35c">🔥 Warmed by a giant oven.</span>';
     if (S.coreMarked && !S.hiddenFound && S.tiles[S.hiddenCore] === hover) b += ' <b style="color:#ffd166">❌ The hidden power core is buried here! Build a dig site on it.</b>';
     if (hover.b === 'detector') b += ' <span style="color:var(--sky)">Drag it to move it.</span>';
@@ -10291,6 +10596,7 @@ function showTitle() {
     <span class="eyebrow">A tiny terraforming game</span>
     <h1><span class="m">Make Mars</span><br><span class="b">Blue</span></h1>
     <p>Turn a frozen, rusty desert into a world with lakes, clouds and life, one tile at a time.</p>
+    ${XMAS ? '<p class="xmas-note">🎄 <b>The Christmas update is here!</b> All December it snows on every world, so build giant ovens to keep warm. There are Christmas buildings to try, and every alien wears a Santa hat.</p>' : ''}
     <div class="how">
       <div><b>Build</b>Pick a building, click a tile.</div>
       <div><b>Balance</b>Everything runs on solar power.</div>
@@ -10600,7 +10906,7 @@ function assignVoices() {
 }
 
 // Every scripted line is pre-recorded with a neural voice (tools/make_voices.py writes audio/voice/<key>.mp3).
-const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 0191842a 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 06602666 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10a76668 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25ba9aba 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 290b0f40 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2b8059e0 2c0684b8 2c0f94f0 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d12c925 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30a99f14 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34de7d77 34f107c0 351fbd71 353c8fab 35438afe 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d64e1d8 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40e91fdc 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44a1de24 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 4840dbbd 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 492a5a38 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b6b2f6d 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e575524 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 518c71ea 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53b338b0 53e9d19c 5472dd4d 54738ed0 5477ba0c 550bd446 5540022a 555236a1 5598b671 55a248b0 56339282 563fc364 5641cbc8 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5742211c 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5a9acd83 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5cfc89b4 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 6177d955 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ea7eee 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6463b826 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 686dc348 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 764f044f 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 789ebf12 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7de59d3b 7dfc2c27 7e3d0006 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8364b030 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8772983a 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a77aa56 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 915a566f 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 967fe7e2 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98bf4815 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b054f94 9b4f1ee4 9b5118a1 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d5540f6 9d6ce3f9 9d7a1137 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a06d9708 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a692a1b5 a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a93818ae a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab057a47 ab13bb98 ab22f3d4 ab7f12b1 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b0076331 b014fba3 b03c0124 b0d32200 b114a3e3 b17bbfff b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b3e2b2c7 b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b4f2e8e0 b5560844 b583a480 b5df5df4 b5ef7b7f b5f48782 b610c34c b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbb8d745 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd88f2d5 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bf34404a bf5a8b95 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7247dfe c7310a3a c7bf8338 c8af3800 c8d8e3d9 c8db89a1 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbcb2f61 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 cfba6b3a d00d15a9 d0764a7a d0d50703 d10f3826 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d51ece78 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 da96dd04 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df5574a9 df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e12c7f82 e1b7c297 e1f65969 e233cd11 e262888f e2a2fffd e2e7889c e309c25d e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e6477192 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f02933c3 f0487f74 f06aaf8a f07c4b9a f0d8b101 f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f23b1964 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffc7af77 ffd59377'/*END*/.split(' ').filter(Boolean));
+const VOICE_CLIPS = new Set(/*VOICE_CLIPS*/'001b7ab6 0058240c 00992d65 009f4701 00bb6209 00d17e67 00d644cf 00dabfb6 00f174a9 011c8098 0191842a 01b054cc 021a7c1b 0250fa1b 02610b12 02610d9c 02a1c81f 02a8f282 02fa19d3 030a7f96 038f52f1 03ca4b72 04274c70 043eaa72 04dd6e85 052e0102 05498a7d 05eb28cb 06075329 0625abf9 064185af 06602666 068a1274 06a2ace1 06b8a8b7 06c63dbf 06dcce1b 06e150f9 06e3e69e 071f47c3 072a6353 0732c7bd 07e9d382 07f18a09 081fadbc 082ae736 085b1570 08645ff8 09033633 095e8697 09f4efea 0a01a313 0a273192 0a3b6308 0a3e2be9 0a92380d 0a938044 0ac23f1b 0aed9b59 0b1c87ac 0b3398d9 0ba7f09d 0bb14d14 0bcda11f 0c05b8dd 0c33d6e1 0c594a15 0c5cf89e 0c82820d 0c9c1e77 0d0cda38 0d5b7cb1 0d9b5e6f 0da086cf 0dfbab82 0ef97e84 0f5e67f5 0f9d9a55 0fc77d48 0fd54492 0fd5b47b 104bb7ba 1075e5a4 108c93be 1097c905 10a76668 10e5be86 11400aaa 11479d99 11f40e2c 12e3043e 12eb0373 1329ea55 1331cada 133c13a6 13713eb9 13adf42b 13c7f07c 13dd5ef6 13e2d8ff 143d51b6 14443303 148e9d2e 14df85c0 14e62512 1515b2c3 153b4a48 158473ac 158ff1cc 15d616f2 15e651b8 160d88cc 16313705 169436b0 16aed961 16e5dfc6 172f0e97 174aad1a 17b76b15 17c35d32 182a5a90 18465b88 18620260 1898b7ff 18c32dc3 18d94617 190f8874 191a66d4 199300de 19a57fd4 19b12353 19bcfabb 19ce90f8 19d57ccf 19dd2af4 19f04f62 19fd1dae 1a73deff 1abfe6b0 1aebaf1f 1b572f3a 1bb58cc5 1bc946da 1bca980b 1bd330d0 1be26710 1c2a8284 1d2363f8 1e261bbc 1e3bc430 1e8d27c9 1e97249a 1ea5ac72 1ec6befa 1f40a8ac 1f68eadf 1f6bc700 1f6dbb97 2019a31a 20262f09 2078c341 212448d4 2174fd19 2212d13e 22432c2a 224bb053 22586686 22b95332 22c96318 22dc1977 22dfe065 231440de 231d8460 2341f3c5 235e1bd1 235ed52f 238a33d7 23c80e45 23ed68d8 242204ab 243b00c3 24514fab 245d9643 25393e9f 256cca42 258c0b73 25ba9aba 25cd6623 25e31980 260be19d 262c9f53 2631b903 2635205e 2636caf8 2638cdf0 26434b54 269d6a0a 26e7cbc5 270a58b3 2750a067 278c00d9 2837bb0c 290b0f40 291999c7 293c4750 29cba8da 2a38d28d 2aa2610b 2ac018ed 2ac797ae 2b0056e6 2b71b694 2b732c7f 2b8059e0 2c0684b8 2c0f94f0 2c8f8b73 2ccc105c 2cd98069 2d12a696 2d12c925 2d167df6 2d4236e0 2d875e56 2df75f43 2e30c278 2e3feb97 2e5c16db 2f8a9231 2f8ab1a6 30442443 3075d65f 30a99f14 30acefdd 30c88a70 30cb6362 30dc372b 317b5667 31c4bef1 31d22739 320b0f7a 3212792b 325707a5 325c2975 32e68b8d 330d177f 3337bc9a 334078da 334358e9 3466711a 34771892 347f2275 34975786 349e917d 34b3668a 34d349b4 34de7d77 34f107c0 3508a435 351fbd71 353c8fab 35438afe 35a97171 3623e560 3626bfee 3654501f 365f8af1 36977c46 36d6cdfc 36e9e12e 36f30872 36f7cfab 3729f259 37845349 37c5f42b 37fa92e9 382c6884 3836a2d0 385079cb 3880c0e7 38ab3d83 38c29758 38f2ba2d 38fcc81d 39092a13 393eb8bd 39a98cd8 39ac3311 39fbcbbc 3a049a30 3a1b1737 3a227cef 3a2a3dd2 3a626771 3a6e835f 3a78d6b5 3ac5b40e 3ad46690 3b49c630 3c027697 3c512846 3ca2a321 3cb15341 3cc630ac 3cee32ac 3d00fcfa 3d029e83 3d097221 3d0f9bb3 3d245ec0 3d41d11d 3d64e1d8 3d69b063 3d981c71 3d9f7dba 3db0af83 3dcd9e8c 3e288819 3e522223 3e783921 3f1873e2 3f970f04 3faa6fa4 3fbe297f 3ff96ab1 400a3a07 40239366 409fc0d7 40a8711f 40c7849e 40e91fdc 40ec22c0 42166813 426ed3db 4280a778 429c3774 42bbdd55 4320630f 43461594 434b1085 4380759e 43ccc37b 44700db2 4471988e 448f9053 44a1de24 44b9eb2a 4534d2ed 45636b57 4587e8fc 45b30120 45c259fe 45c4c0d5 45d7c169 4615137e 46168059 463d12bf 465ae406 465dc590 467c1a03 468c1dc2 4696df20 46ae4ea6 46daebf2 4761fedd 47a01830 47f34f3d 480dc0f6 4840dbbd 488637dd 48b2ba7a 48d3b6ef 48f59d1c 491b0201 492a5a38 49e42d70 49e81f41 4a840114 4a98f022 4aa7489d 4af64ac2 4b62a538 4b6b2f6d 4b983c1d 4b9890ea 4bbf5662 4c3256ca 4c97350c 4cb2e8af 4cb74cda 4d378904 4daf56e3 4e575524 4e60f300 4ecb63fb 4faedbe9 4fc617c5 50116eea 50215999 502882ca 5033e388 505d2181 508a5570 50900281 5095fe75 50ab7adc 51218f66 518c71ea 5199f095 51a5c1d2 51aaff27 51c8c83d 52170bf3 521fd829 5258e219 528a8bcd 528abda2 528f735f 52b94595 5311d391 531550fe 53481673 5365dbc8 53789086 53b338b0 53e9d19c 5472dd4d 54738ed0 5477ba0c 550bd446 5540022a 555236a1 5598b671 55a248b0 56339282 563fc364 5641cbc8 56502331 5681770d 56932f6a 569f6ce7 56eebfbb 570313a4 57156cc3 5742211c 5744a1df 57822802 5804eb16 581a7c01 58a66ef9 58c19200 58f21390 58fc90dd 593f1e7a 59461109 59d6a190 59e35af8 59f3d102 5a0049d9 5a65acdd 5a79b588 5a7be0e7 5a8f7ec7 5a9acd83 5ac28b38 5b11f8b8 5b29e746 5b4e7f34 5b605ff5 5b6c32b5 5b8d10cb 5b94a851 5b9890cc 5bd15a39 5bf08dd4 5c3c23c1 5c486613 5c95cb91 5cc87cd6 5cfc89b4 5d0db244 5d255f48 5d375a65 5d4b89eb 5d5c0d57 5da606fb 5da65827 5ddbade0 5df8d089 5e2ae372 5e2c6680 5e5c043a 5e7aea23 5ed638c9 5f1cf634 5f4de577 5f789523 5f9b26c3 5faf64ee 5fb8d9d7 5fcb5567 5fec72b2 5ff04c80 600544c7 60144cc1 602279ef 6046cfa9 608cf92e 60b858de 60cd53e0 60e25ebf 60fc803b 610f7b2d 611c5aca 614d1e53 6177d955 61907eff 61c004ff 61df2e03 628f06bc 62cbbd6e 62ea7eee 62ff802a 63407f03 63b15a97 63bed161 63c78b92 6415c071 644f3086 6463b826 6496f543 64cb995b 64e04f7f 64ec0701 6527de87 6540e489 654f86d3 6556dbce 65698d37 657cd9d8 65876fef 6592bfb1 65b781d1 6658417e 665bf203 666c2836 666fe626 668270b6 66a5fbaf 66c95ee9 66d5da93 66df857e 671f5d5f 6735619a 67bc9c3a 67be6d51 67d90521 686dc348 6884fd9c 68c0862a 68ecfd5d 6915055d 6918ef7c 692ba820 69409f62 69605eb6 69910a99 69a1d5c5 69e3494a 69e49634 69eba331 6a187c31 6a2cbee6 6a376a68 6a63922f 6a986bf5 6ad137a8 6b4736a6 6b8709b4 6bd41cbc 6c30f428 6cec85ae 6d03b059 6d2b5a7b 6d2fbf10 6d4a394e 6d521243 6d793f09 6d8933a2 6d8a77e3 6d9409f5 6dbb267c 6e02103b 6f04a02b 6f4aacd7 6f649d50 6f723cdd 6f733557 6f8a37f9 6f9d6822 6faf3e04 6fd1527e 70319bb5 70349e35 70889a7f 7090a6f6 70ef6118 710cc6be 71219925 71878520 71c2f517 71c4976c 7208a517 7301527c 7344795b 738b1eca 73a800c4 73a92909 73ed37e3 73fb801d 742b0766 74470192 748d3907 74b7691f 74cd7519 74ffa1fb 750f794b 757394d3 75790582 760a097c 761171c5 761f4d2b 7636773e 764f044f 7664ba28 767ef75c 76858307 769a0fc9 77454f28 7745b777 776c07c6 7788a317 7794c923 779d4a70 77a911a5 78264157 7837b257 785c9c14 789ebf12 78b18da1 78b281a4 793bba59 79524ea0 79ad7ccc 79fe0b9e 7a3c5add 7a3ca3b3 7a3e6261 7a4aa7db 7ace35c2 7b30d29e 7b4aa8fa 7b4f0e3f 7b8fe686 7ba49dc9 7cc4e0a9 7cc90c76 7cd99413 7d6850ec 7dbb54c6 7de59d3b 7dfc2c27 7e3d0006 7e465ba3 7f3dbe71 7f3e0f47 7f526f05 7f899244 805ea53e 806aa390 8094c667 810007fb 81781e3e 819d4d95 819d9083 82448b61 82961ece 82c27015 82f3b78d 833fe2a5 8364b030 8382ef77 838f0024 8393b8df 83d7899b 83ff31b7 8407c711 84989456 84f4760a 85078d30 8517b105 856d34f6 8588aa9e 859101f7 85c90490 862ce317 8636e9cd 8638490b 8657f8c2 86587ccf 869b1cec 874d27a3 87636f3e 8772983a 87814dbc 8796f0db 883ccef6 884dfba3 886df8bb 88755faf 88922e7d 88d46cc2 88e66a24 89002816 890ff6e7 8910fd0b 893c6180 89433fbb 896dfa6a 89d13c55 89e9c091 8a286a1d 8a709730 8a77aa56 8a787fd6 8a9c604c 8ad95f98 8af7e74d 8b05cc8e 8b8bdc7a 8b94a7fe 8c1dfc46 8c3b6370 8c4d86a4 8c65f76d 8c90c165 8ca1d89d 8cb8f1f1 8d2c2a3e 8d3951b1 8d92f6c0 8d962b86 8de4b162 8e2fcde9 8e6af2c4 8e708bce 8efcd034 8f7adffb 8f98ee63 9005a0e9 9007db86 909d18ac 90ed4e67 9107f0cc 911a18a9 915a566f 916e3e57 91a4f8e6 91c08f68 91e43e61 92562698 929a1361 92b818df 933ae15c 9344e33e 93a8e8f2 93e93df3 9439fdfb 943c33d7 9469484c 946f5125 948e6bca 94ad3bd3 9530f060 95410ed1 9597d21e 9599dd43 963f2c7e 965c2374 966dd059 967a76e4 967fe7e2 96b624cf 972b45ed 972b9bba 9737c37d 973deef8 97dacf1c 97df0889 97fee95b 98491001 98592ff6 98ba9268 98bf4815 98df24cc 990c2852 99187467 992e0b59 9963b74b 998ca151 99ace02c 99aee01f 99d674bb 9a0a3779 9a17dfe6 9a211927 9a22a375 9a359d9f 9a47f6a4 9a730ed7 9ad8d525 9b028ef8 9b054f94 9b4f1ee4 9b5118a1 9b646edd 9b81ca2a 9bad23e5 9c31c06a 9c5eeff9 9ca57709 9caf9f2c 9cb181d2 9cdc007a 9d0d9f27 9d22f9c4 9d262032 9d3dc32f 9d3e3e58 9d5540f6 9d6ce3f9 9d7a1137 9db0cc12 9dc4c374 9dc7a0e8 9e14341c 9e43da12 9e563fed 9eb200b5 9ebbd8fd 9efc45ad 9fe1a062 9ff266a9 a06d9708 a07e771b a0fceeca a1737ded a1748250 a1f9a4f8 a2413960 a260a4f5 a3308c35 a3a26592 a3e40589 a3e48c35 a403ebc2 a40669dc a42066c4 a43b4a27 a4c4fea4 a52e8425 a561d271 a5acc6dc a5c496d1 a5d721bc a6777e8e a692a1b5 a698e1a4 a6b9d9dd a71010c0 a72fb8b8 a7c3604f a7e99e36 a8678a34 a8e7a2ee a93548ba a93818ae a967cfab a9998778 a9c26c4c aa88eede aa916e99 ab057a47 ab13bb98 ab22f3d4 ab7f12b1 ab821971 abbdb235 abc24b6e ac2ec8d5 ac519962 ac5e0d8b acfa49dc ad207632 ad30e757 ad47eb64 ad5052db ad70ea5b add4d7ce ae011302 ae1c65a0 ae60c912 ae847e6a aea4038c aec5c475 aed10dbb aef7f263 af0e380d af308bdb af366807 af87f81f afbd76a6 afebc14f b0076331 b014fba3 b03c0124 b0d32200 b114a3e3 b17bbfff b1b0ace0 b2382db9 b2968a4e b2b9eac6 b2c2b064 b2caa0a2 b2fbd96f b3097704 b37e7352 b3a89cec b3c3bafc b3e2b2c7 b4185752 b45ba542 b479563f b4add1bb b4b82095 b4b9f647 b4f2e8e0 b5560844 b583a480 b5df5df4 b5ef7b7f b5f48782 b610c34c b62d4104 b6750665 b6885fe4 b6a1a824 b6bbbfee b6e9c3d4 b7025808 b762f60b b7bacc46 b814c5dd b864510d b8a67fac b8db967a b8f1f2bb b8fc4c8d b8fe7bcd b9472832 b94b18cf b956ba1f b9a8df50 b9da402b b9e48688 b9fc496b ba79acbf ba7ae515 bb208cad bb2dc0c7 bb31fd36 bb5e0450 bbaad895 bbb8d745 bbcd0695 bc0f49e0 bc5dc0ab bc664788 bc82a27a bcb9b065 bd2a40d2 bd33d8f4 bd88f2d5 bd99fe14 be3c90f0 be5f9396 be680d9f be980d13 bf202cf8 bf34404a bf5a8b95 bfca9f65 bff1be7e c007124e c08db08b c0aaecdc c124f512 c1d23551 c2056159 c23bfc92 c2546201 c293bbd8 c2a1c16c c325df07 c34f5141 c35a2b22 c3937178 c417db0c c46528db c4677edd c47abf72 c4c50ccc c4fc5507 c5355b2d c5781fe1 c57eab6c c581ac9c c587d92c c5addc9a c5dd1752 c5eaa696 c5f9fe2d c6467c60 c672ecc1 c6c6a77b c6ec9b22 c6fd79ee c717a9ad c7247dfe c7310a3a c7bf8338 c8af3800 c8d8e3d9 c8db89a1 c904af31 c9251091 c97a1d64 c9a1c3c4 c9a9b21a c9c4682a c9cd4dbb c9ed73b9 ca099504 caae48de cae99177 cafbed2b cb28cba4 cbc9e725 cbcb2f61 cbd82633 cbddf393 cbde5b59 cc18412d cc1c71d1 cc8e851e cd0147b3 cd1b07e3 cd703a97 cda0278e ce3fae76 cebb6a16 cedb1184 cf785847 cf857d0b cfb0eb64 cfba6b3a d00d15a9 d0764a7a d0d50703 d10f3826 d1568f77 d1a244a4 d1f74b36 d28d8cbe d3127e1c d35995cf d3cf6a98 d51ece78 d52f8f3b d5916c25 d5d49ebb d5e98a5e d5f9e141 d6438f40 d658011b d6695bb9 d66b103a d6c68669 d6fa4a0c d717036b d7e534f1 d805324d d8352bff d8551ff8 d87b48be d885e156 d8ddc3df d8fec047 d94d2885 d956d672 d983031a d9855bb5 d9bcb77d d9d6d46b d9e72f66 da05665d da32e608 da56bced da768766 da96dd04 dae95449 db095896 db9e7873 dbe38e0d dbe79418 dc0a4016 dc340f00 dc409a86 dc6c9907 dc94a688 dca4534b dcd32c4b dcd84adb dd7ea9a4 dd94a8f2 ddea2bfe de029411 de2037cd de46524c dedf727c df172315 df3f6729 df4f235d df5574a9 df6c4f2a df8f98d7 dfbe7e1b dfee1638 e005dae5 e00826a8 e0269f86 e03b165f e08912be e0e1dca5 e1201462 e12c7f82 e1b7c297 e1f65969 e233cd11 e262888f e2a2fffd e2e7889c e309c25d e30fbc43 e3526ffc e3669c61 e38ee839 e39fd024 e4831d1f e4915b04 e49423b0 e495bdfc e4acaf8a e4fb12b8 e5392f66 e5fc57c1 e607c25b e627a7aa e63673a9 e6389f23 e6477192 e68ab45f e68aec3f e6a7a5c5 e6ac5e56 e7264fe6 e7465fc8 e77d6a46 e7f5c545 e87c001f e8dc2b4c e8f796a7 e8fc609e e93f035b e968d24b e9c0546b e9d2abdc e9deed77 ea244657 ea28b442 ea492de8 ea597c73 ea83d793 eabc44fe eaf2ded4 eb04ac21 eb1ad02d eb2b4d17 eb2f7a4c eb420d2d eb979778 eb9acfab ebf0aa8a ebfd3da8 ec1a8a1d ec761478 ecc40113 ed0dbe49 ed5539be ed771340 ed9a9b75 edaf3095 ee3ccb67 ee639766 ee7e156f ee92b472 eeaab69f eebe2a5b eebfba27 ef1f18a3 ef43016a ef7db129 efa64c1e efa9bffe efbbf903 efd02516 efd11b57 f016d6ad f024b752 f02933c3 f0487f74 f06aaf8a f07c4b9a f0d8b101 f0e32d17 f0f7b1f7 f16d66a6 f173ec31 f17ff7be f1df2d3f f20d14c2 f2187c55 f23b1964 f24c2508 f29daee7 f2a82cfe f310b43c f3236dcb f383cd0c f388134a f3a2e59e f3d814bc f413464c f42b055d f4442d6f f44d9378 f450f0b6 f46ef84f f4830735 f4cce301 f51be093 f587e291 f59fe90d f5c504f1 f5e28285 f5f52596 f65e5369 f67feaa8 f69a474e f6a7efeb f6b9aead f6cb9570 f6e21f59 f7243b0c f74c6219 f7636ce0 f7a3471e f7afed4d f7da076b f7dceee0 f8521c9a f85b5644 f87e4775 f88882f0 f8a3b979 f8ff61da f95f66b6 f9cce713 f9e98a6a fa93cb7d fac6e56b fae6a266 fafac2c8 fb25aaad fc5227f2 fc64efd2 fce6a935 fcf02c2c fcfbf226 fcfc54d5 fd117f3c fe236ba0 fe9eb353 fea310e4 fef3ceeb fefe905b ffc7af77 ffd59377'/*END*/.split(' ').filter(Boolean));
 function clipKey(who, text) {
   let h = 0x811c9dc5;
   const s = who + '|' + text;
@@ -11254,6 +11560,7 @@ cv.addEventListener('pointerdown', e => {
   if (e.button === 2) { selectTool(null); return; }
   if (saucerAt(e.clientX, e.clientY)) { showTrade(); return; }
   if (crystalAt(e.clientX, e.clientY)) return;
+  if (presentAt(e.clientX, e.clientY)) return;
   const crit = critterAt(e.clientX, e.clientY);
   if (crit) { bonk(crit); return; }
   if (bossAt(e.clientX, e.clientY)) return;

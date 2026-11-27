@@ -274,6 +274,29 @@ you which one you have:
 
 Research from Levels 4 and 5 carries into the next level when you finish them.
 
+## The Christmas update (all of December)
+
+Every December (by the player's own clock) the game turns Christmassy by itself, and goes back to
+normal on January 1:
+- **Snow** falls on every world and dusts the ground (not in the lava-tube city of Under Mars).
+- **It's cold everywhere.** Buildings that aren't on or next to a **giant oven** freeze and work at
+  half speed (Uranus and Neptune stay at 40%). Every level can build giant ovens. Training Camp and
+  Level 1 get the snow but no freezing.
+- **Christmas buildings** on every level except Training Camp:
+  - **Christmas Tree**: +2.4 food/s, three times a greenhouse.
+  - **Gingerbread House**: a home for 6 colonists.
+  - **Snowman**: +8 happiness for 10 colonists, and costs only water.
+  - **Snowball Launcher**: throws a snowball every 2 seconds at an alien within 3 tiles (1 damage, and
+    it slows down for 2 seconds). It can hit aliens that fly.
+  - **Santa's Sleigh** (one per level): every 45 seconds it flies over the colony and drops 3
+    presents. Tap a present to open it (metal, water, food or crystals); unopened ones open by
+    themselves after a while.
+- **Every alien and boss wears a Santa hat**, even in the Alien Book. The five-headed aliens get one
+  on every head.
+
+A note on the title screen says the Christmas update is on. Christmas buildings built in December
+keep working afterwards, but can't be built again until next December.
+
 ## Alien Book
 
 The **📖 Alien Book** button in level select (under the list of levels) opens the Alien Book.
